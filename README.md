@@ -278,12 +278,4 @@ http://localhost:8080/QuanLyPhongTro
 - Cấu hình Tomcat integration
 - Enable hot deployment cho development
 
-#### Production Deployment
-- **Security Hardening**: Thay đổi database credentials
-- **Performance Tuning**: Connection pooling
-- **Monitoring**: Log files và error tracking
-- **SSL Certificate**: HTTPS cho production
-
 ---
-
-*Đây là hệ thống quản lý phòng trọ hoàn chỉnh được xây dựng với Spring MVC, MySQL và các công nghệ web hiện đại. Hệ thống được thiết kế để dễ sử dụng, bảo trì và mở rộng cho các nhu cầu kinh doanh phòng trọ.*
