@@ -104,13 +104,14 @@ public class UserController {
             // Get detailed room information
             Room roomDetails = roomDAO.getRoomById(currentTenant.getRoomId());
             
-            // Get services for this room/tenant
-            List<ServiceUsage> serviceUsages = serviceUsageDAO.getServiceUsageByTenantId(currentTenant.getTenantId());
+            // Get services available for this room
+            List<Service> roomServices = serviceDAO.getServicesByRoomId(currentTenant.getRoomId());
             
             // Get recent invoices for this tenant
             List<Invoice> recentInvoices = invoiceDAO.getInvoicesByTenantId(currentTenant.getTenantId(), 5);
             
-            // Calculate monthly costs
+            // Calculate monthly service cost from recent usage
+            List<ServiceUsage> serviceUsages = serviceUsageDAO.getServiceUsageByTenantId(currentTenant.getTenantId());
             double monthlyServiceCost = 0;
             for (ServiceUsage usage : serviceUsages) {
                 if (usage.getTotalCost() != null) {
@@ -124,7 +125,7 @@ public class UserController {
             }
             
             model.addAttribute("roomDetails", roomDetails);
-            model.addAttribute("serviceUsages", serviceUsages);
+            model.addAttribute("roomServices", roomServices);
             model.addAttribute("recentInvoices", recentInvoices);
             model.addAttribute("monthlyServiceCost", monthlyServiceCost);
             

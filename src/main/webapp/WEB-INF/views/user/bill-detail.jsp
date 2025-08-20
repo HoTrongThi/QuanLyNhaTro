@@ -509,7 +509,46 @@
                             </div>
                         </div>
                         
-                        <!-- Payment Status & Actions -->
+                        <!-- MoMo QR Code -->
+                        <c:if test="${invoice.hasMomoQrCode() && invoice.status == 'UNPAID'}">
+                            <div class="card mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-qr-code me-2"></i>Thanh toán MoMo
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <img src="${invoice.momoQrCodeUrl}" alt="MoMo QR Code" 
+                                             class="img-fluid" style="max-width: 200px; border: 2px solid #ddd; border-radius: 10px;">
+                                    </div>
+                                    <h6 class="text-primary mb-2">Quét mã QR để thanh toán</h6>
+                                    <p class="text-muted small mb-3">
+                                        Sử dụng ứng dụng MoMo để quét mã QR và thanh toán hóa đơn
+                                    </p>
+                                    <div class="d-grid gap-2">
+                                        <a href="${invoice.momoQrCodeUrl}" target="_blank" class="btn btn-primary">
+                                            <i class="bi bi-download me-2"></i>Tải mã QR
+                                        </a>
+                                        <form method="POST" action="${pageContext.request.contextPath}/payment/momo/regenerate-qr/${invoice.invoiceId}" style="display: inline;">
+                                            <button type="submit" class="btn btn-outline-primary w-100">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>Tạo mã QR mới
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <c:if test="${invoice.isMomoPending()}">
+                                        <div class="alert alert-warning mt-3 mb-0">
+                                            <small>
+                                                <i class="bi bi-clock me-1"></i>
+                                                Trạng thái: Đang chờ thanh toán
+                                            </small>
+                                        </div>
+                                    </c:if>
+                                </div>
+                            </div>
+                        </c:if>
+                        
+                        <!-- Actions -->
                         <div class="card">
                             <div class="card-header">
                                 <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Trạng thái & Hướng dẫn</h6>

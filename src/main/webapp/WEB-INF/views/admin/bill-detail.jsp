@@ -253,7 +253,34 @@
                                             <p class="mb-1"><strong>Ngày tạo HĐ:</strong> 
                                                 <fmt:formatDate value="${invoice.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
                                             </p>
-                                            <p class="mb-0"><strong>Mã hóa đơn:</strong> #${invoice.invoiceId}</p>
+                                            <p class="mb-1"><strong>Mã hóa đơn:</strong> #${invoice.invoiceId}</p>
+                                            <c:if test="${invoice.hasMomoQrCode()}">
+                                                <p class="mb-0">
+                                                    <strong>MoMo:</strong> 
+                                                    <c:choose>
+                                                        <c:when test="${invoice.isMomoPending()}">
+                                                            <span class="badge bg-warning text-dark">
+                                                                <i class="bi bi-clock me-1"></i>Chờ thanh toán
+                                                            </span>
+                                                        </c:when>
+                                                        <c:when test="${invoice.isMomoPaid()}">
+                                                            <span class="badge bg-success">
+                                                                <i class="bi bi-check-circle me-1"></i>Đã thanh toán
+                                                            </span>
+                                                        </c:when>
+                                                        <c:when test="${invoice.isMomoFailed()}">
+                                                            <span class="badge bg-danger">
+                                                                <i class="bi bi-x-circle me-1"></i>Thất bại
+                                                            </span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="badge bg-secondary">
+                                                                <i class="bi bi-qr-code me-1"></i>Có QR Code
+                                                            </span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </p>
+                                            </c:if>
                                         </div>
                                     </div>
                                 </div>
@@ -428,6 +455,7 @@
                                 </p>
                             </div>
                         </div>
+                        
                         
                         <!-- Actions -->
                         <div class="card">

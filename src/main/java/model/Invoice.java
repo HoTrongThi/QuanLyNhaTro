@@ -26,6 +26,12 @@ public class Invoice {
     private String userEmail;
     private int tenantsCount; // Number of tenants in the room
     
+    // MoMo Payment fields
+    private String momoQrCodeUrl;
+    private String momoOrderId;
+    private String momoRequestId;
+    private String momoPaymentStatus; // PENDING, PAID, FAILED
+    
     // Constructors
     public Invoice() {}
     
@@ -178,6 +184,39 @@ public class Invoice {
         this.tenantsCount = tenantsCount;
     }
     
+    // MoMo Payment getters and setters
+    public String getMomoQrCodeUrl() {
+        return momoQrCodeUrl;
+    }
+    
+    public void setMomoQrCodeUrl(String momoQrCodeUrl) {
+        this.momoQrCodeUrl = momoQrCodeUrl;
+    }
+    
+    public String getMomoOrderId() {
+        return momoOrderId;
+    }
+    
+    public void setMomoOrderId(String momoOrderId) {
+        this.momoOrderId = momoOrderId;
+    }
+    
+    public String getMomoRequestId() {
+        return momoRequestId;
+    }
+    
+    public void setMomoRequestId(String momoRequestId) {
+        this.momoRequestId = momoRequestId;
+    }
+    
+    public String getMomoPaymentStatus() {
+        return momoPaymentStatus;
+    }
+    
+    public void setMomoPaymentStatus(String momoPaymentStatus) {
+        this.momoPaymentStatus = momoPaymentStatus;
+    }
+    
     // Helper methods
     public boolean isPaid() {
         return "PAID".equalsIgnoreCase(status);
@@ -197,6 +236,23 @@ public class Invoice {
         BigDecimal additional = additionalTotal != null ? additionalTotal : BigDecimal.ZERO;
         
         this.totalAmount = room.add(service).add(additional);
+    }
+    
+    // MoMo Payment helper methods
+    public boolean hasMomoQrCode() {
+        return momoQrCodeUrl != null && !momoQrCodeUrl.trim().isEmpty();
+    }
+    
+    public boolean isMomoPending() {
+        return "PENDING".equalsIgnoreCase(momoPaymentStatus);
+    }
+    
+    public boolean isMomoPaid() {
+        return "PAID".equalsIgnoreCase(momoPaymentStatus);
+    }
+    
+    public boolean isMomoFailed() {
+        return "FAILED".equalsIgnoreCase(momoPaymentStatus);
     }
     
     @Override

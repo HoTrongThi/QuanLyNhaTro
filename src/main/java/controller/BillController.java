@@ -47,6 +47,9 @@ public class BillController {
     @Autowired
     private MeterReadingDAO meterReadingDAO;
     
+    @Autowired
+    private MoMoDAO moMoDAO;
+    
     /**
      * Check if user is admin
      */
@@ -631,6 +634,28 @@ public class BillController {
             boolean success = invoiceDAO.createInvoice(invoice);
             
             if (success) {
+                // Generate MoMo QR Code after successful invoice creation
+                try {
+                    String orderInfo = "Thanh toán hóa đơn phòng " + room.getRoomName() + " - " + 
+                                     String.format("%02d/%d", month, year);
+                    
+                    MoMoResponse moMoResponse = moMoDAO.createQRCode(invoice.getInvoiceId(), totalAmount, orderInfo);
+                    
+                    if (moMoResponse.isSuccess() && moMoResponse.hasQrCode()) {
+                        // Update invoice with MoMo information
+                        invoiceDAO.updateMoMoPaymentInfo(
+                            invoice.getInvoiceId(),
+                            moMoResponse.getQrCodeUrl(),
+                            moMoResponse.getOrderId(),
+                            moMoResponse.getRequestId(),
+                            "PENDING"
+                        );
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error creating MoMo QR Code: " + e.getMessage());
+                    // Don't fail the invoice creation if MoMo fails
+                }
+                
                 String tenantNames = tenantsInRoom.stream()
                     .map(Tenant::getFullName)
                     .reduce((a, b) -> a + ", " + b)

@@ -19,12 +19,16 @@ public class InvoiceDAO {
     /**
      * Create/Generate invoice
      */
+    /**
+     * Create a new invoice
+     */
     public boolean createInvoice(Invoice invoice) {
-        String sql = "INSERT INTO invoices (tenant_id, month, year, room_price, service_total, additional_total, total_amount, status) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO invoices (tenant_id, month, year, room_price, service_total, additional_total, total_amount, status, " +
+                    "momo_qr_code_url, momo_order_id, momo_request_id, momo_payment_status) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             pstmt.setInt(1, invoice.getTenantId());
             pstmt.setInt(2, invoice.getMonth());
@@ -34,12 +38,72 @@ public class InvoiceDAO {
             pstmt.setBigDecimal(6, invoice.getAdditionalTotal());
             pstmt.setBigDecimal(7, invoice.getTotalAmount());
             pstmt.setString(8, invoice.getStatus());
+            pstmt.setString(9, invoice.getMomoQrCodeUrl());
+            pstmt.setString(10, invoice.getMomoOrderId());
+            pstmt.setString(11, invoice.getMomoRequestId());
+            pstmt.setString(12, invoice.getMomoPaymentStatus());
+            
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                // Get the generated invoice ID
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    invoice.setInvoiceId(generatedKeys.getInt(1));
+                }
+                return true;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating invoice: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update MoMo payment information
+     */
+    public boolean updateMoMoPaymentInfo(int invoiceId, String qrCodeUrl, String orderId, String requestId, String paymentStatus) {
+        String sql = "UPDATE invoices SET momo_qr_code_url = ?, momo_order_id = ?, momo_request_id = ?, momo_payment_status = ? WHERE invoice_id = ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, qrCodeUrl);
+            pstmt.setString(2, orderId);
+            pstmt.setString(3, requestId);
+            pstmt.setString(4, paymentStatus);
+            pstmt.setInt(5, invoiceId);
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
             
         } catch (SQLException e) {
-            System.err.println("Error creating invoice: " + e.getMessage());
+            System.err.println("Error updating MoMo payment info: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Update MoMo payment status only
+     */
+    public boolean updateMoMoPaymentStatus(String orderId, String paymentStatus) {
+        String sql = "UPDATE invoices SET momo_payment_status = ? WHERE momo_order_id = ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setString(1, paymentStatus);
+            pstmt.setString(2, orderId);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating MoMo payment status: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -71,9 +135,11 @@ public class InvoiceDAO {
      * Get invoice by ID
      */
     public Invoice getInvoiceById(int invoiceId) {
-        String sql = "SELECT i.invoice_id, i.tenant_id, i.month, i.year, i.room_price, " +
-                    "i.service_total, i.additional_total, i.total_amount, i.status, i.created_at, " +
-                    "u.full_name, u.phone, u.email, r.room_name " +
+        String sql = "SELECT i.invoice_id, i.tenant_id, i.month, i.year, i.room_price, i.service_total, " +
+                    "i.additional_total, i.total_amount, i.status, i.created_at, " +
+                    "i.momo_qr_code_url, i.momo_order_id, i.momo_request_id, i.momo_payment_status, " +
+                    "u.full_name as tenant_name, u.phone as user_phone, u.email as user_email, " +
+                    "r.room_name " +
                     "FROM invoices i " +
                     "JOIN tenants t ON i.tenant_id = t.tenant_id " +
                     "JOIN users u ON t.user_id = u.user_id " +
@@ -98,9 +164,13 @@ public class InvoiceDAO {
                 invoice.setTotalAmount(rs.getBigDecimal("total_amount"));
                 invoice.setStatus(rs.getString("status"));
                 invoice.setCreatedAt(rs.getTimestamp("created_at"));
-                invoice.setTenantName(rs.getString("full_name"));
-                invoice.setUserPhone(rs.getString("phone"));
-                invoice.setUserEmail(rs.getString("email"));
+                invoice.setMomoQrCodeUrl(rs.getString("momo_qr_code_url"));
+                invoice.setMomoOrderId(rs.getString("momo_order_id"));
+                invoice.setMomoRequestId(rs.getString("momo_request_id"));
+                invoice.setMomoPaymentStatus(rs.getString("momo_payment_status"));
+                invoice.setTenantName(rs.getString("tenant_name"));
+                invoice.setUserPhone(rs.getString("user_phone"));
+                invoice.setUserEmail(rs.getString("user_email"));
                 invoice.setRoomName(rs.getString("room_name"));
                 return invoice;
             }

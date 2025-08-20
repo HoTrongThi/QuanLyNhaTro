@@ -254,29 +254,24 @@
                                         </div>
                                         <div class="card-body">
                                             <c:choose>
-                                                <c:when test="${not empty serviceUsages}">
-                                                    <c:forEach var="service" items="${serviceUsages}">
-                                                        <div class="service-item mb-2">
-                                                            <div class="row align-items-center">
-                                                                <div class="col-md-4">
-                                                                    <strong class="fs-6">${service.serviceName}</strong>
-                                                                </div>
-                                                                <div class="col-md-3 text-center">
-                                                                    <span class="badge bg-primary fs-6">
-                                                                        ${service.quantity} ${service.serviceUnit}
-                                                                    </span>
-                                                                </div>
-                                                                <div class="col-md-3 text-center">
-                                                                    <span class="text-muted"><fmt:formatNumber value="${service.pricePerUnit}" type="currency" currencySymbol="" pattern="#,##0"/>₫/${service.serviceUnit}</span>
-                                                                </div>
-                                                                <div class="col-md-2 text-end">
-                                                                    <strong class="text-success fs-6">
-                                                                        <fmt:formatNumber value="${service.totalCost}" type="currency" currencySymbol="" pattern="#,##0"/>₫
-                                                                    </strong>
+                                                <c:when test="${not empty roomServices}">
+                                                    <div class="row">
+                                                        <c:forEach var="service" items="${roomServices}">
+                                                            <div class="col-md-6 mb-3">
+                                                                <div class="service-item">
+                                                                    <div class="d-flex align-items-center">
+                                                                        <i class="bi bi-gear-fill text-primary me-3 fs-4"></i>
+                                                                        <div>
+                                                                            <h6 class="mb-1">${service.serviceName}</h6>
+                                                                            <span class="text-success fw-bold">
+                                                                                <fmt:formatNumber value="${service.pricePerUnit}" type="number" maxFractionDigits="0"/>₫/${service.unit}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </c:forEach>
+                                                        </c:forEach>
+                                                    </div>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <div class="text-center py-4">

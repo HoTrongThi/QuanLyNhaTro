@@ -335,4 +335,40 @@ public class ServiceDAO {
         
         return false;
     }
+    
+    /**
+     * Get services that have been used in a specific room
+     * This shows services that any tenant in this room has used
+     */
+    public List<Service> getServicesByRoomId(int roomId) {
+        List<Service> services = new ArrayList<>();
+        String sql = "SELECT DISTINCT s.service_id, s.service_name, s.unit, s.price_per_unit " +
+                    "FROM services s " +
+                    "INNER JOIN service_usage su ON s.service_id = su.service_id " +
+                    "INNER JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? " +
+                    "ORDER BY s.service_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Service service = new Service();
+                service.setServiceId(rs.getInt("service_id"));
+                service.setServiceName(rs.getString("service_name"));
+                service.setUnit(rs.getString("unit"));
+                service.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+                services.add(service);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting services by room ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return services;
+    }
 }
