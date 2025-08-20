@@ -478,7 +478,20 @@ public class BillController {
                                     
                                     // Get previous meter reading (using representative tenant)
                                     MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
-                                    BigDecimal previousReadingValue = (previousReading != null) ? previousReading.getReading() : BigDecimal.ZERO;
+                                    BigDecimal previousReadingValue = BigDecimal.ZERO;
+                                    
+                                    if (previousReading != null) {
+                                        previousReadingValue = previousReading.getReading();
+                                    } else {
+                                        // If no previous reading found, check for initial reading in the same period
+                                        // This handles new tenants who have initial readings for their first month
+                                        MeterReading initialReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(
+                                            representativeTenantId, serviceId, month, year);
+                                        if (initialReading != null) {
+                                            // Use initial reading as the starting point
+                                            previousReadingValue = initialReading.getReading();
+                                        }
+                                    }
                                     
                                     // Calculate consumption
                                     BigDecimal consumption = currentReading.subtract(previousReadingValue);
@@ -840,17 +853,35 @@ public class BillController {
                 .min()
                 .orElse(0);
             
+            // Try to get previous reading from earlier periods
             previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
             
             if (previousReading != null) {
                 foundTenantInfo = "from representative tenant " + representativeTenantId;
             } else {
-                // If not found, try all tenants in the room
+                // If not found, try all tenants in the room for previous periods
                 for (Tenant tenant : tenantsInRoom) {
                     previousReading = meterReadingDAO.getPreviousMeterReading(tenant.getTenantId(), serviceId, month, year);
                     if (previousReading != null) {
                         foundTenantInfo = "from tenant " + tenant.getTenantId() + " (" + tenant.getFullName() + ")";
                         break;
+                    }
+                }
+                
+                // If still no previous reading found, check if this is the first month for new tenants
+                // Look for initial reading in the same period (for new tenants)
+                if (previousReading == null) {
+                    // Try to find initial reading for the same period from any tenant in the room
+                    // This handles the case where tenant moved in during the current month
+                    for (Tenant tenant : tenantsInRoom) {
+                        MeterReading initialReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(
+                            tenant.getTenantId(), serviceId, month, year);
+                        if (initialReading != null) {
+                            // Use this as "previous" reading (it's actually the initial reading for this period)
+                            previousReading = initialReading;
+                            foundTenantInfo = "initial reading for " + month + "/" + year + " from tenant " + tenant.getTenantId() + " (" + tenant.getFullName() + ")";
+                            break;
+                        }
                     }
                 }
             }
