@@ -194,6 +194,64 @@
                     </div>
                 </div>
                 
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border-radius: 15px;">
+                            <div class="card-body text-center p-4">
+                                <i class="bi bi-check-circle" style="font-size: 3rem; opacity: 0.8; margin-bottom: 1rem;"></i>
+                                <h5 class="mb-2">Đã thanh toán</h5>
+                                <h3 class="mb-1">${paidCount}</h3>
+                                <p class="mb-0" style="opacity: 0.75;">
+                                    <fmt:formatNumber value="${totalPaid}" type="number" maxFractionDigits="0"/> VNĐ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white; border-radius: 15px;">
+                            <div class="card-body text-center p-4">
+                                <i class="bi bi-exclamation-circle" style="font-size: 3rem; opacity: 0.8; margin-bottom: 1rem;"></i>
+                                <h5 class="mb-2">Chưa thanh toán</h5>
+                                <h3 class="mb-1">${unpaidCount}</h3>
+                                <p class="mb-0" style="opacity: 0.75;">
+                                    <fmt:formatNumber value="${totalUnpaid}" type="number" maxFractionDigits="0"/> VNĐ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card" style="background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%); color: white; border-radius: 15px;">
+                            <div class="card-body text-center p-4">
+                                <i class="bi bi-calculator" style="font-size: 3rem; opacity: 0.8; margin-bottom: 1rem;"></i>
+                                <h5 class="mb-2">Tổng cộng</h5>
+                                <h3 class="mb-1">${paidCount + unpaidCount}</h3>
+                                <p class="mb-0" style="opacity: 0.75;">
+                                    <fmt:formatNumber value="${totalPaid.add(totalUnpaid)}" type="number" maxFractionDigits="0"/> VNĐ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="card" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); color: white; border-radius: 15px;">
+                            <div class="card-body text-center p-4">
+                                <i class="bi bi-percent" style="font-size: 3rem; opacity: 0.8; margin-bottom: 1rem;"></i>
+                                <h5 class="mb-2">Tỷ lệ thanh toán</h5>
+                                <h3 class="mb-1">
+                                    <c:choose>
+                                        <c:when test="${paidCount + unpaidCount > 0}">
+                                            <fmt:formatNumber value="${(paidCount * 100.0) / (paidCount + unpaidCount)}" 
+                                                            type="number" maxFractionDigits="1"/>%
+                                        </c:when>
+                                        <c:otherwise>0%</c:otherwise>
+                                    </c:choose>
+                                </h3>
+                                <p class="mb-0" style="opacity: 0.75;">Hoàn thành</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Success/Error Messages -->
                 <c:if test="${not empty success}">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">

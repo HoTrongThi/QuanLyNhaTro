@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -288,10 +289,27 @@
                                 <div class="invoice-info p-3 mb-4">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <h6 class="text-primary mb-2"><i class="bi bi-person me-1"></i>Thông tin người thuê</h6>
-                                            <p class="mb-1"><strong>Họ tên:</strong> ${invoice.tenantName}</p>
-                                            <p class="mb-1"><strong>Số điện thoại:</strong> ${invoice.userPhone}</p>
-                                            <p class="mb-0"><strong>Email:</strong> ${invoice.userEmail}</p>
+                                            <h6 class="text-primary mb-2"><i class="bi bi-people me-1"></i>Thông tin người thuê</h6>
+                                            <c:choose>
+                                                <c:when test="${fn:length(tenantsInRoom) > 1}">
+                                                    <p class="mb-1"><strong>Số người thuê:</strong> ${fn:length(tenantsInRoom)} người</p>
+                                                    <div class="mb-2">
+                                                        <strong>Danh sách:</strong><br>
+                                                        <c:forEach var="roomTenant" items="${tenantsInRoom}" varStatus="status">
+                                                            <small class="text-muted">
+                                                                <i class="bi bi-person me-1"></i>${roomTenant.fullName}
+                                                                <c:if test="${not empty roomTenant.phone}"> - ${roomTenant.phone}</c:if>
+                                                                <c:if test="${!status.last}"><br></c:if>
+                                                            </small>
+                                                        </c:forEach>
+                                                    </div>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <p class="mb-1"><strong>Họ tên:</strong> ${invoice.tenantName}</p>
+                                                    <p class="mb-1"><strong>Số điện thoại:</strong> ${invoice.userPhone}</p>
+                                                    <p class="mb-0"><strong>Email:</strong> ${invoice.userEmail}</p>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                         <div class="col-md-6">
                                             <h6 class="text-primary mb-2"><i class="bi bi-door-open me-1"></i>Thông tin thanh toán</h6>

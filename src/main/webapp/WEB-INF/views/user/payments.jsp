@@ -50,21 +50,7 @@
             border-radius: 15px 15px 0 0 !important;
         }
         
-        .stats-card {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            border-radius: 15px;
-            transition: transform 0.3s ease;
-        }
-        
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stats-icon {
-            font-size: 3rem;
-            opacity: 0.8;
-        }
+
         
         .payment-item {
             border-radius: 12px;
@@ -234,75 +220,14 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h4><i class="bi bi-credit-card me-2"></i>Lịch sử Thanh toán</h4>
-                            <p class="text-muted mb-0">Theo dõi lịch sử thanh toán hóa đơn của bạn</p>
+                            <p class="text-muted mb-0">Danh sách các hóa đơn đã thanh toán của bạn</p>
                         </div>
                         <div class="d-flex gap-2">
-                            <span class="badge" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 8px 12px; border-radius: 10px;">
-                                <i class="bi bi-list-check me-1"></i>${paidCount + unpaidCount} hóa đơn
-                            </span>
                             <c:if test="${currentTenant != null}">
                                 <span class="badge" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 8px 12px; border-radius: 10px;">
                                     <i class="bi bi-house-door me-1"></i>${currentTenant.roomName}
                                 </span>
                             </c:if>
-                        </div>
-                    </div>
-
-                    <!-- Statistics Cards -->
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="card stats-card">
-                                <div class="card-body text-center p-4">
-                                    <i class="bi bi-check-circle stats-icon mb-3"></i>
-                                    <h5 class="mb-2">Đã thanh toán</h5>
-                                    <h3 class="mb-1">${paidCount}</h3>
-                                    <p class="mb-0 opacity-75">
-                                        <fmt:formatNumber value="${totalPaid}" type="number" maxFractionDigits="0"/> VNĐ
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card" style="background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%); color: white; border-radius: 15px;">
-                                <div class="card-body text-center p-4">
-                                    <i class="bi bi-exclamation-circle stats-icon mb-3"></i>
-                                    <h5 class="mb-2">Chưa thanh toán</h5>
-                                    <h3 class="mb-1">${unpaidCount}</h3>
-                                    <p class="mb-0 opacity-75">
-                                        <fmt:formatNumber value="${totalUnpaid}" type="number" maxFractionDigits="0"/> VNĐ
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card" style="background: linear-gradient(135deg, #17a2b8 0%, #007bff 100%); color: white; border-radius: 15px;">
-                                <div class="card-body text-center p-4">
-                                    <i class="bi bi-calculator stats-icon mb-3"></i>
-                                    <h5 class="mb-2">Tổng cộng</h5>
-                                    <h3 class="mb-1">${paidCount + unpaidCount}</h3>
-                                    <p class="mb-0 opacity-75">
-                                        <fmt:formatNumber value="${totalPaid.add(totalUnpaid)}" type="number" maxFractionDigits="0"/> VNĐ
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card" style="background: linear-gradient(135deg, #6f42c1 0%, #e83e8c 100%); color: white; border-radius: 15px;">
-                                <div class="card-body text-center p-4">
-                                    <i class="bi bi-percent stats-icon mb-3"></i>
-                                    <h5 class="mb-2">Tỷ lệ thanh toán</h5>
-                                    <h3 class="mb-1">
-                                        <c:choose>
-                                            <c:when test="${paidCount + unpaidCount > 0}">
-                                                <fmt:formatNumber value="${(paidCount * 100.0) / (paidCount + unpaidCount)}" 
-                                                                type="number" maxFractionDigits="1"/>%
-                                            </c:when>
-                                            <c:otherwise>0%</c:otherwise>
-                                        </c:choose>
-                                    </h3>
-                                    <p class="mb-0 opacity-75">Hoàn thành</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
@@ -322,16 +247,7 @@
                                             </c:forEach>
                                         </select>
                                     </div>
-                                    <div class="col-md-3 mb-3 mb-md-0">
-                                        <label for="statusFilter" class="form-label fw-bold">
-                                            <i class="bi bi-flag me-1"></i>Trạng thái
-                                        </label>
-                                        <select id="statusFilter" name="status" class="form-select">
-                                            <option value="ALL" ${filterStatus == 'ALL' ? 'selected' : ''}>Tất cả</option>
-                                            <option value="PAID" ${filterStatus == 'PAID' ? 'selected' : ''}>Đã thanh toán</option>
-                                            <option value="UNPAID" ${filterStatus == 'UNPAID' ? 'selected' : ''}>Chưa thanh toán</option>
-                                        </select>
-                                    </div>
+
                                     <div class="col-md-6 text-md-end">
                                         <button type="submit" class="btn filter-btn me-2">
                                             <i class="bi bi-funnel me-2"></i>Lọc kết quả
@@ -351,13 +267,9 @@
                             <h6 class="mb-0">
                                 <i class="bi bi-list-ul me-2"></i>
                                 Danh sách Thanh toán 
-                                <c:if test="${filterYear != null || (filterStatus != null && filterStatus != 'ALL')}">
+                                <c:if test="${filterYear != null}">
                                     <small class="opacity-75">
-                                        (${payments.size()} kết quả
-                                        <c:if test="${filterYear != null}">- Năm ${filterYear}</c:if>
-                                        <c:if test="${filterStatus != null && filterStatus != 'ALL'}">
-                                            - ${filterStatus == 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                                        </c:if>)
+                                        (${payments.size()} kết quả - Năm ${filterYear})
                                     </small>
                                 </c:if>
                             </h6>
@@ -451,8 +363,8 @@
                                         <i class="bi bi-receipt text-muted" style="font-size: 4rem;"></i>
                                         <h5 class="text-muted mt-3">
                                             <c:choose>
-                                                <c:when test="${filterYear != null || (filterStatus != null && filterStatus != 'ALL')}">
-                                                    Không tìm thấy thanh toán nào với bộ lọc này
+                                                <c:when test="${filterYear != null}">
+                                                    Không tìm thấy thanh toán nào trong năm ${filterYear}
                                                 </c:when>
                                                 <c:otherwise>
                                                     Bạn chưa có lịch sử thanh toán nào
@@ -461,8 +373,8 @@
                                         </h5>
                                         <p class="text-muted">
                                             <c:choose>
-                                                <c:when test="${filterYear != null || (filterStatus != null && filterStatus != 'ALL')}">
-                                                    Thử thay đổi bộ lọc hoặc xóa bộ lọc để xem tất cả thanh toán.
+                                                <c:when test="${filterYear != null}">
+                                                    Thử thay đổi năm hoặc xóa bộ lọc để xem tất cả thanh toán.
                                                 </c:when>
                                                 <c:otherwise>
                                                     Khi có hóa đơn được thanh toán, chúng sẽ hiển thị ở đây.
@@ -471,7 +383,7 @@
                                         </p>
                                         <div class="mt-4">
                                             <c:choose>
-                                                <c:when test="${filterYear != null || (filterStatus != null && filterStatus != 'ALL')}">
+                                                <c:when test="${filterYear != null}">
                                                     <a href="${pageContext.request.contextPath}/user/payments" class="btn btn-primary">
                                                         <i class="bi bi-arrow-clockwise me-2"></i>Xóa bộ lọc
                                                     </a>
@@ -511,14 +423,9 @@
             // Auto-submit form when filters change
             const filterForm = document.querySelector('form');
             const yearFilter = document.getElementById('yearFilter');
-            const statusFilter = document.getElementById('statusFilter');
             
-            if (yearFilter && statusFilter) {
+            if (yearFilter) {
                 yearFilter.addEventListener('change', function() {
-                    filterForm.submit();
-                });
-                
-                statusFilter.addEventListener('change', function() {
                     filterForm.submit();
                 });
             }

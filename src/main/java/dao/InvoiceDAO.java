@@ -692,4 +692,52 @@ public class InvoiceDAO {
         return invoices;
     }
     
+    /**
+     * Get invoices by room ID (for room-based billing)
+     */
+    public List<Invoice> getInvoicesByRoomId(int roomId) {
+        List<Invoice> invoices = new ArrayList<>();
+        String sql = "SELECT i.invoice_id, i.tenant_id, i.month, i.year, i.room_price, " +
+                    "i.service_total, i.additional_total, i.total_amount, i.status, i.created_at, " +
+                    "u.full_name, u.phone, u.email, r.room_name " +
+                    "FROM invoices i " +
+                    "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE t.room_id = ? " +
+                    "ORDER BY i.year DESC, i.month DESC";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Invoice invoice = new Invoice();
+                invoice.setInvoiceId(rs.getInt("invoice_id"));
+                invoice.setTenantId(rs.getInt("tenant_id"));
+                invoice.setMonth(rs.getInt("month"));
+                invoice.setYear(rs.getInt("year"));
+                invoice.setRoomPrice(rs.getBigDecimal("room_price"));
+                invoice.setServiceTotal(rs.getBigDecimal("service_total"));
+                invoice.setAdditionalTotal(rs.getBigDecimal("additional_total"));
+                invoice.setTotalAmount(rs.getBigDecimal("total_amount"));
+                invoice.setStatus(rs.getString("status"));
+                invoice.setCreatedAt(rs.getTimestamp("created_at"));
+                invoice.setTenantName(rs.getString("full_name"));
+                invoice.setUserPhone(rs.getString("phone"));
+                invoice.setUserEmail(rs.getString("email"));
+                invoice.setRoomName(rs.getString("room_name"));
+                invoices.add(invoice);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting invoices by room ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return invoices;
+    }
+    
 }

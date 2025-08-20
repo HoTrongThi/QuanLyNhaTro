@@ -708,16 +708,28 @@ public class BillController {
         
         User user = (User) session.getAttribute("user");
         
-        // Get detailed breakdowns
+        // Get tenant information to find room
+        Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
+        if (tenant == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người thuê");
+            return "redirect:/admin/bills";
+        }
+        
+        // Get all tenants in the same room for room-based billing
+        List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(tenant.getRoomId());
+        
+        // Get detailed breakdowns - now room-based
         List<ServiceUsage> serviceUsages = serviceUsageDAO.getServiceUsageByTenantAndPeriod(
-            invoice.getTenantId(), invoice.getMonth(), invoice.getYear()
+            tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
-        List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByTenantAndPeriod(
-            invoice.getTenantId(), invoice.getMonth(), invoice.getYear()
+        List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByRoomAndPeriod(
+            tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
         
         model.addAttribute("user", user);
         model.addAttribute("invoice", invoice);
+        model.addAttribute("tenant", tenant);
+        model.addAttribute("tenantsInRoom", tenantsInRoom);
         model.addAttribute("serviceUsages", serviceUsages);
         model.addAttribute("additionalCosts", additionalCosts);
         model.addAttribute("pageTitle", "Chi tiết Hóa đơn - " + invoice.getFormattedPeriod());

@@ -181,8 +181,7 @@ public class UserController {
      */
     @GetMapping("/payments")
     public String paymentHistory(HttpSession session, Model model,
-            @RequestParam(value = "year", required = false) Integer filterYear,
-            @RequestParam(value = "status", required = false) String filterStatus) {
+            @RequestParam(value = "year", required = false) Integer filterYear) {
         String accessCheck = checkUserAccess(session);
         if (accessCheck != null) {
             return accessCheck;
@@ -190,8 +189,8 @@ public class UserController {
         
         User user = (User) session.getAttribute("user");
         
-        // Get all invoices for this user (payments are essentially paid invoices)
-        List<Invoice> allInvoices = invoiceDAO.getInvoicesByUserId(user.getUserId());
+        // Get all invoices for this user's room (room-based billing)
+        List<Invoice> allInvoices = getInvoicesForUser(user);
         
         // Filter invoices based on parameters
         List<Invoice> payments = new ArrayList<>();
@@ -200,29 +199,31 @@ public class UserController {
         int paidCount = 0;
         int unpaidCount = 0;
         
+        // Calculate statistics for all invoices (without filters for overall stats)
         for (Invoice invoice : allInvoices) {
-            // Apply year filter if specified
-            if (filterYear != null && invoice.getYear() != filterYear) {
-                continue;
-            }
-            
-            // Apply status filter if specified
-            if (filterStatus != null && !filterStatus.isEmpty() && !filterStatus.equals("ALL")) {
-                if (!invoice.getStatus().equalsIgnoreCase(filterStatus)) {
-                    continue;
-                }
-            }
-            
-            payments.add(invoice);
-            
-            // Calculate statistics
-            if (invoice.isPaid()) {
+            if ("PAID".equals(invoice.getStatus())) {
                 totalPaid = totalPaid.add(invoice.getTotalAmount());
                 paidCount++;
             } else {
                 totalUnpaid = totalUnpaid.add(invoice.getTotalAmount());
                 unpaidCount++;
             }
+        }
+        
+        // Filter invoices for display - only show PAID invoices (payment history)
+        for (Invoice invoice : allInvoices) {
+            // Only include PAID invoices for payment history
+            if (!"PAID".equals(invoice.getStatus())) {
+                continue;
+            }
+            
+            // Apply year filter if specified
+            if (filterYear != null && invoice.getYear() != filterYear) {
+                continue;
+            }
+            
+            // Add to payments list for display
+            payments.add(invoice);
         }
         
         // Get unique years for filter dropdown
@@ -245,9 +246,24 @@ public class UserController {
         model.addAttribute("unpaidCount", unpaidCount);
         model.addAttribute("availableYears", yearsList);
         model.addAttribute("filterYear", filterYear);
-        model.addAttribute("filterStatus", filterStatus != null ? filterStatus : "ALL");
         model.addAttribute("pageTitle", "Lịch sử Thanh toán");
         
         return "user/payments";
+    }
+    
+    /**
+     * Helper method to get invoices for a user (room-based)
+     */
+    private List<Invoice> getInvoicesForUser(User user) {
+        // Get user's active tenant record to find their room
+        Tenant activeTenant = tenantDAO.getActiveTenantByUserId(user.getUserId());
+        
+        if (activeTenant != null) {
+            // Get all invoices for the room (room-based billing)
+            return invoiceDAO.getInvoicesByRoomId(activeTenant.getRoomId());
+        } else {
+            // Fallback: get invoices by user ID for legacy support
+            return invoiceDAO.getInvoicesByUserId(user.getUserId());
+        }
     }
 }
