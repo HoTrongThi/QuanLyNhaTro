@@ -193,7 +193,31 @@
                 <div class="col-md-3">
                     <h6>Phòng:</h6>
                     <h5>${room.roomName}</h5>
-                    <small>Giá phòng: <fmt:formatNumber value="${room.price}" pattern="#,##0" /> VNĐ</small>
+                    <c:choose>
+                        <c:when test="${isProrated}">
+                            <small>Giá phòng: <fmt:formatNumber value="${proratedRoomPrice}" pattern="#,##0" /> VNĐ 
+                                <span class="text-muted">(Tính theo tỷ lệ ngày ở)</span>
+                            </small>
+                            <br>
+                            <small class="text-muted">Giá gốc: <fmt:formatNumber value="${fullRoomPrice}" pattern="#,##0" /> VNĐ/tháng</small>
+                            <br>
+                            <small class="text-info">
+                                <i class="bi bi-calendar-check me-1"></i>
+                                Đã ở: ${daysStayed}/${daysInMonth} ngày 
+                                <c:if test="${earliestStartDate != null}">
+                                    (từ <fmt:formatDate value="${earliestStartDate}" pattern="dd/MM/yyyy"/>)
+                                </c:if>
+                            </small>
+                        </c:when>
+                        <c:otherwise>
+                            <small>Giá phòng: <fmt:formatNumber value="${room.price}" pattern="#,##0" /> VNĐ</small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-check me-1"></i>
+                                Cả tháng: ${daysInMonth} ngày
+                            </small>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
                 <div class="col-md-3">
                     <h6>Người thuê:</h6>
@@ -370,8 +394,28 @@
                         <div class="col-md-8">
                             <table class="table table-borderless">
                                 <tr>
-                                    <td>Tiền phòng:</td>
-                                    <td class="text-end"><fmt:formatNumber value="${room.price}" pattern="#,##0" /> VNĐ</td>
+                                    <td>
+                                        Tiền phòng:
+                                        <c:choose>
+                                            <c:when test="${isProrated}">
+                                                <br><small class="text-muted">(${daysStayed}/${daysInMonth} ngày)</small>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <br><small class="text-muted">(Cả tháng)</small>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td class="text-end">
+                                        <c:choose>
+                                            <c:when test="${isProrated}">
+                                                <fmt:formatNumber value="${proratedRoomPrice}" pattern="#,##0" /> VNĐ
+                                                <br><small class="text-muted">(<fmt:formatNumber value="${fullRoomPrice}" pattern="#,##0" /> VNĐ × ${daysStayed}/${daysInMonth})</small>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <fmt:formatNumber value="${room.price}" pattern="#,##0" /> VNĐ
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <td>Tiền dịch vụ:</td>
@@ -384,7 +428,14 @@
                                 <tr class="border-top">
                                     <th>Tổng tiền:</th>
                                     <th class="text-end text-primary h5" id="grand-total">
-                                        <fmt:formatNumber value="${room.price + additionalTotal}" pattern="#,##0" /> VNĐ
+                                        <c:choose>
+                                            <c:when test="${isProrated}">
+                                                <fmt:formatNumber value="${proratedRoomPrice + additionalTotal}" pattern="#,##0" /> VNĐ
+                                            </c:when>
+                                            <c:otherwise>
+                                                <fmt:formatNumber value="${room.price + additionalTotal}" pattern="#,##0" /> VNĐ
+                                            </c:otherwise>
+                                        </c:choose>
                                     </th>
                                 </tr>
                             </table>
@@ -421,7 +472,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const roomPrice = ${room.price};
+        const roomPrice = ${isProrated ? proratedRoomPrice : room.price};
+        const fullRoomPrice = ${fullRoomPrice};
+        const isProrated = ${isProrated};
         const additionalTotal = ${additionalTotal};
         const roomId = ${roomId};
         const month = ${month};

@@ -267,12 +267,28 @@
                                                 <i class="bi bi-house fs-3 text-primary me-2"></i>
                                                 <div>
                                                     <h6 class="mb-0">Tiền phòng</h6>
-                                                    <small class="text-muted">Phí cơ bản hàng tháng</small>
+                                                    <c:choose>
+                                                        <c:when test="${isProrated}">
+                                                            <small class="text-muted">Tính theo tỷ lệ ngày ở</small>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <small class="text-muted">Phí cơ bản hàng tháng</small>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </div>
                                             </div>
                                             <h4 class="text-primary mb-0">
                                                 <fmt:formatNumber value="${invoice.roomPrice}" type="number" maxFractionDigits="0"/> VNĐ
                                             </h4>
+                                            <c:if test="${isProrated}">
+                                                <small class="text-info">
+                                                    <i class="bi bi-calendar-check me-1"></i>
+                                                    ${daysStayed}/${daysInMonth} ngày
+                                                    <c:if test="${earliestStartDate != null}">
+                                                        <br>(từ <fmt:formatDate value="${earliestStartDate}" pattern="dd/MM/yyyy"/>)
+                                                    </c:if>
+                                                </small>
+                                            </c:if>
                                         </div>
                                     </div>
                                     
@@ -316,6 +332,12 @@
                             <div class="card mb-4">
                                 <div class="card-header">
                                     <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Chi tiết Sử dụng Dịch vụ</h5>
+                                    <c:if test="${fn:length(tenantsInRoom) > 1}">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Số liệu đã được tổng hợp cho tất cả ${fn:length(tenantsInRoom)} người thuê trong phòng
+                                        </small>
+                                    </c:if>
                                 </div>
                                 <div class="card-body">
                                     <c:forEach var="serviceUsage" items="${serviceUsages}">
@@ -324,10 +346,20 @@
                                                 <div class="col-md-4">
                                                     <h6 class="mb-1">${serviceUsage.serviceName}</h6>
                                                     <small class="text-muted">Đơn vị: ${serviceUsage.serviceUnit}</small>
+                                                    <c:if test="${fn:length(tenantsInRoom) > 1}">
+                                                        <br><small class="text-info">
+                                                            <i class="bi bi-people me-1"></i>Tổng hợp cho ${fn:length(tenantsInRoom)} người thuê
+                                                        </small>
+                                                    </c:if>
                                                 </div>
                                                 <div class="col-md-2 text-center">
                                                     <strong>${serviceUsage.quantity}</strong><br>
-                                                    <small class="text-muted">${serviceUsage.serviceUnit}</small>
+                                                    <small class="text-muted">
+                                                        ${serviceUsage.serviceUnit}
+                                                        <c:if test="${fn:length(tenantsInRoom) > 1}">
+                                                            <br>(Tổng cộng)
+                                                        </c:if>
+                                                    </small>
                                                 </div>
                                                 <div class="col-md-3 text-center">
                                                     <fmt:formatNumber value="${serviceUsage.pricePerUnit}" type="number" maxFractionDigits="0"/> VNĐ<br>
@@ -381,10 +413,19 @@
                         <div class="card total-amount mb-4">
                             <div class="card-body text-center">
                                 <h5 class="mb-2">TỔNG TIỀN</h5>
-                                <h2 class="mb-0">
+                                <h2 class="mb-3">
                                     <fmt:formatNumber value="${invoice.totalAmount}" type="number" maxFractionDigits="0"/> VNĐ
                                 </h2>
-                                <small class="opacity-75">Đã bao gồm tất cả các phí</small>
+                                <p class="mb-0 opacity-75">
+                                    Kỳ thanh toán: ${invoice.formattedPeriod}<br>
+                                    <c:if test="${isProrated}">
+                                        <small class="text-warning">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Tiền phòng tính theo ${daysStayed}/${daysInMonth} ngày
+                                        </small><br>
+                                    </c:if>
+                                    <small>Đã bao gồm tất cả các phí</small>
+                                </p>
                             </div>
                         </div>
                         

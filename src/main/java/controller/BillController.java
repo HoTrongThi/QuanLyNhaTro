@@ -361,6 +361,15 @@ public class BillController {
         // Get tenants in this room
         List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
         
+        // Calculate prorated room price for display
+        BigDecimal fullRoomPrice = room.getPrice();
+        BigDecimal proratedRoomPrice = calculateProratedRoomPrice(fullRoomPrice, tenantsInRoom, month, year);
+        
+        // Calculate days information for display
+        int daysInMonth = getDaysInMonth(month, year);
+        int daysStayed = calculateDaysStayed(tenantsInRoom, month, year);
+        Date earliestStartDate = getEarliestStartDate(tenantsInRoom, month, year);
+        
         // Get all available services (simplified to avoid potential database issues)
         List<Service> services = serviceDAO.getAllServices();
         
@@ -383,6 +392,12 @@ public class BillController {
         
         model.addAttribute("user", user);
         model.addAttribute("room", room);
+        model.addAttribute("fullRoomPrice", fullRoomPrice);
+        model.addAttribute("proratedRoomPrice", proratedRoomPrice);
+        model.addAttribute("isProrated", proratedRoomPrice.compareTo(fullRoomPrice) < 0);
+        model.addAttribute("daysInMonth", daysInMonth);
+        model.addAttribute("daysStayed", daysStayed);
+        model.addAttribute("earliestStartDate", earliestStartDate);
         model.addAttribute("tenantsInRoom", tenantsInRoom);
         model.addAttribute("services", services);
         model.addAttribute("existingUsages", existingUsages);
@@ -594,7 +609,11 @@ public class BillController {
             }
             
             // Calculate totals after updating service usage - now room-based
-            BigDecimal roomPrice = room.getPrice();
+            BigDecimal fullRoomPrice = room.getPrice();
+            
+            // Calculate prorated room price based on actual days stayed
+            BigDecimal roomPrice = calculateProratedRoomPrice(fullRoomPrice, tenantsInRoom, month, year);
+            
             BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotalByRoom(roomId, month, year);
             BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotalByRoom(roomId, month, year);
             
@@ -616,9 +635,16 @@ public class BillController {
                     .map(Tenant::getFullName)
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("Không xác định");
+                
+                // Check if room price was prorated
+                String priceInfo = "";
+                if (roomPrice.compareTo(fullRoomPrice) < 0) {
+                    priceInfo = " (Tiền phòng đã được tính theo tỷ lệ ngày ở thực tế)";
+                }
+                
                 redirectAttributes.addFlashAttribute("success", 
                     "Tạo hóa đơn thành công cho phòng " + room.getRoomName() + 
-                    " (" + tenantNames + ")! Tổng tiền: " + totalAmount.toString() + " VNĐ");
+                    " (" + tenantNames + ")! Tổng tiền: " + totalAmount.toString() + " VNĐ" + priceInfo);
             } else {
                 redirectAttributes.addFlashAttribute("error", "Tạo hóa đơn thất bại. Vui lòng thử lại.");
             }
@@ -673,7 +699,13 @@ public class BillController {
         }
         
         // Calculate totals
-        BigDecimal roomPrice = room.getPrice();
+        BigDecimal fullRoomPrice = room.getPrice();
+        
+        // Calculate prorated room price for this tenant
+        List<Tenant> singleTenantList = new ArrayList<>();
+        singleTenantList.add(tenant);
+        BigDecimal roomPrice = calculateProratedRoomPrice(fullRoomPrice, singleTenantList, month, year);
+        
         BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotal(tenantId, month, year);
         BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotal(tenantId, month, year);
         
@@ -731,13 +763,30 @@ public class BillController {
         // Get all tenants in the same room for room-based billing
         List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(tenant.getRoomId());
         
-        // Get detailed breakdowns - now room-based
-        List<ServiceUsage> serviceUsages = serviceUsageDAO.getServiceUsageByTenantAndPeriod(
+        // Get detailed breakdowns - now room-based and aggregated
+        List<ServiceUsage> roomUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(
             tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
+        List<ServiceUsage> serviceUsages = aggregateServiceUsagesByService(roomUsages);
+        
         List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByRoomAndPeriod(
             tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
+        
+        // Calculate days information for prorated pricing display
+        int daysInMonth = getDaysInMonth(invoice.getMonth(), invoice.getYear());
+        int daysStayed = calculateDaysStayed(tenantsInRoom, invoice.getMonth(), invoice.getYear());
+        Date earliestStartDate = getEarliestStartDate(tenantsInRoom, invoice.getMonth(), invoice.getYear());
+        
+        // Calculate what the full room price would be
+        BigDecimal fullRoomPrice = calculateFullRoomPrice(invoice, tenantsInRoom, daysInMonth, daysStayed);
+        boolean isProrated = daysStayed < daysInMonth;
+        
+        model.addAttribute("daysInMonth", daysInMonth);
+        model.addAttribute("daysStayed", daysStayed);
+        model.addAttribute("earliestStartDate", earliestStartDate);
+        model.addAttribute("fullRoomPrice", fullRoomPrice);
+        model.addAttribute("isProrated", isProrated);
         
         model.addAttribute("user", user);
         model.addAttribute("invoice", invoice);
@@ -930,5 +979,203 @@ public class BillController {
         }
         
         return null; // Valid
+    }
+    
+    /**
+     * Calculate prorated room price based on actual days stayed in the month
+     * For tenants who moved in during the month, only charge for days actually stayed
+     */
+    private BigDecimal calculateProratedRoomPrice(BigDecimal fullRoomPrice, List<Tenant> tenantsInRoom, int month, int year) {
+        if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        
+        // Get the number of days in the billing month
+        int daysInMonth = getDaysInMonth(month, year);
+        
+        // Find the earliest start date among all tenants in the room for this month
+        Date earliestStartDate = null;
+        
+        for (Tenant tenant : tenantsInRoom) {
+            Date startDate = tenant.getStartDate();
+            if (startDate != null) {
+                // Check if tenant started in this month/year
+                java.time.LocalDate startLocalDate = startDate.toLocalDate();
+                if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
+                    // Tenant started in this billing month
+                    if (earliestStartDate == null || startDate.before(earliestStartDate)) {
+                        earliestStartDate = startDate;
+                    }
+                } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
+                    // Tenant started before this month, so they should pay for the full month
+                    // Set earliest start date to the first day of the month
+                    earliestStartDate = Date.valueOf(java.time.LocalDate.of(year, month, 1));
+                    break; // No need to check further, full month applies
+                }
+            }
+        }
+        
+        if (earliestStartDate == null) {
+            // No valid start date found, charge full month
+            return fullRoomPrice;
+        }
+        
+        // Calculate the number of days to charge
+        java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
+        java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
+        
+        // Calculate days from start date to end of month (inclusive)
+        int daysToCharge = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
+        
+        // Ensure we don't charge for more days than in the month
+        daysToCharge = Math.min(daysToCharge, daysInMonth);
+        daysToCharge = Math.max(daysToCharge, 1); // At least 1 day
+        
+        // Calculate prorated amount
+        BigDecimal dailyRate = fullRoomPrice.divide(new BigDecimal(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal proratedAmount = dailyRate.multiply(new BigDecimal(daysToCharge));
+        
+        System.out.println("DEBUG: Prorated room price calculation:");
+        System.out.println("  - Full room price: " + fullRoomPrice);
+        System.out.println("  - Days in month: " + daysInMonth);
+        System.out.println("  - Earliest start date: " + earliestStartDate);
+        System.out.println("  - Days to charge: " + daysToCharge);
+        System.out.println("  - Daily rate: " + dailyRate);
+        System.out.println("  - Prorated amount: " + proratedAmount);
+        
+        return proratedAmount;
+    }
+    
+    /**
+     * Get number of days in a specific month and year
+     */
+    private int getDaysInMonth(int month, int year) {
+        java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
+        return yearMonth.lengthOfMonth();
+    }
+    
+    /**
+     * Calculate the number of days stayed in the billing month
+     */
+    private int calculateDaysStayed(List<Tenant> tenantsInRoom, int month, int year) {
+        if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
+            return 0;
+        }
+        
+        int daysInMonth = getDaysInMonth(month, year);
+        Date earliestStartDate = getEarliestStartDate(tenantsInRoom, month, year);
+        
+        if (earliestStartDate == null) {
+            return daysInMonth; // Full month
+        }
+        
+        java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
+        java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
+        
+        // Calculate days from start date to end of month (inclusive)
+        int daysStayed = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
+        
+        // Ensure we don't count more days than in the month
+        daysStayed = Math.min(daysStayed, daysInMonth);
+        daysStayed = Math.max(daysStayed, 1); // At least 1 day
+        
+        return daysStayed;
+    }
+    
+    /**
+     * Get the earliest start date among tenants for the billing month
+     */
+    private Date getEarliestStartDate(List<Tenant> tenantsInRoom, int month, int year) {
+        if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
+            return null;
+        }
+        
+        Date earliestStartDate = null;
+        
+        for (Tenant tenant : tenantsInRoom) {
+            Date startDate = tenant.getStartDate();
+            if (startDate != null) {
+                java.time.LocalDate startLocalDate = startDate.toLocalDate();
+                if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
+                    // Tenant started in this billing month
+                    if (earliestStartDate == null || startDate.before(earliestStartDate)) {
+                        earliestStartDate = startDate;
+                    }
+                } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
+                    // Tenant started before this month, so they should pay for the full month
+                    earliestStartDate = Date.valueOf(java.time.LocalDate.of(year, month, 1));
+                    break; // No need to check further, full month applies
+                }
+            }
+        }
+        
+        return earliestStartDate;
+    }
+    
+    /**
+     * Aggregate service usages by service to avoid duplicates
+     * Combines multiple tenant usages for the same service into one record
+     */
+    private List<ServiceUsage> aggregateServiceUsagesByService(List<ServiceUsage> usages) {
+        if (usages == null || usages.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Group by service ID and aggregate quantities
+        Map<Integer, ServiceUsage> serviceMap = new HashMap<>();
+        
+        for (ServiceUsage usage : usages) {
+            int serviceId = usage.getServiceId();
+            
+            if (serviceMap.containsKey(serviceId)) {
+                // Service already exists, add to quantity and recalculate total cost
+                ServiceUsage existing = serviceMap.get(serviceId);
+                BigDecimal newQuantity = existing.getQuantity().add(usage.getQuantity());
+                existing.setQuantity(newQuantity);
+                existing.calculateTotalCost();
+            } else {
+                // New service, create a copy and add to map
+                ServiceUsage aggregated = new ServiceUsage();
+                aggregated.setUsageId(usage.getUsageId()); // Keep first usage ID for reference
+                aggregated.setTenantId(usage.getTenantId()); // Keep first tenant ID for reference
+                aggregated.setServiceId(usage.getServiceId());
+                aggregated.setMonth(usage.getMonth());
+                aggregated.setYear(usage.getYear());
+                aggregated.setQuantity(usage.getQuantity());
+                aggregated.setServiceName(usage.getServiceName());
+                aggregated.setServiceUnit(usage.getServiceUnit());
+                aggregated.setPricePerUnit(usage.getPricePerUnit());
+                aggregated.setTenantName("Tất cả người thuê"); // Indicate it's aggregated
+                aggregated.setRoomName(usage.getRoomName());
+                aggregated.calculateTotalCost();
+                
+                serviceMap.put(serviceId, aggregated);
+            }
+        }
+        
+        // Convert map values to list and sort by service name
+        List<ServiceUsage> result = new ArrayList<>(serviceMap.values());
+        result.sort((a, b) -> a.getServiceName().compareToIgnoreCase(b.getServiceName()));
+        
+        return result;
+    }
+    
+    /**
+     * Calculate what the full room price would be (reverse calculation from prorated price)
+     */
+    private BigDecimal calculateFullRoomPrice(Invoice invoice, List<Tenant> tenantsInRoom, int daysInMonth, int daysStayed) {
+        if (daysStayed >= daysInMonth) {
+            // Full month, so current room price is the full price
+            return invoice.getRoomPrice();
+        }
+        
+        // Prorated month, calculate full price from prorated price
+        // proratedPrice = fullPrice * (daysStayed / daysInMonth)
+        // fullPrice = proratedPrice * (daysInMonth / daysStayed)
+        BigDecimal proratedPrice = invoice.getRoomPrice();
+        BigDecimal fullPrice = proratedPrice.multiply(new BigDecimal(daysInMonth))
+                                           .divide(new BigDecimal(daysStayed), 2, java.math.RoundingMode.HALF_UP);
+        
+        return fullPrice;
     }
 }
