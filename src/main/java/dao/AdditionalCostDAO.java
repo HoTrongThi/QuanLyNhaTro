@@ -145,6 +145,48 @@ public class AdditionalCostDAO {
     }
     
     /**
+     * Get all additional costs for a specific room and period
+     */
+    public List<AdditionalCost> getAdditionalCostsByRoomAndPeriod(int roomId, int month, int year) {
+        List<AdditionalCost> costList = new ArrayList<>();
+        String sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                    "u.full_name, r.room_name " +
+                    "FROM additional_costs ac " +
+                    "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE t.room_id = ? AND MONTH(ac.date) = ? AND YEAR(ac.date) = ? " +
+                    "ORDER BY ac.date DESC, u.full_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                AdditionalCost cost = new AdditionalCost();
+                cost.setCostId(rs.getInt("cost_id"));
+                cost.setTenantId(rs.getInt("tenant_id"));
+                cost.setDescription(rs.getString("description"));
+                cost.setAmount(rs.getBigDecimal("amount"));
+                cost.setDate(rs.getDate("date"));
+                cost.setTenantName(rs.getString("full_name"));
+                cost.setRoomName(rs.getString("room_name"));
+                costList.add(cost);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting additional costs by room and period: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return costList;
+    }
+    
+    /**
      * Get all additional costs
      */
     public List<AdditionalCost> getAllAdditionalCosts() {
@@ -228,6 +270,41 @@ public class AdditionalCostDAO {
             e.printStackTrace();
         }
         
+        return BigDecimal.ZERO;
+    }
+    
+    /**
+     * Calculate total additional cost for a room and period
+     */
+    public BigDecimal calculateAdditionalTotalByRoom(int roomId, int month, int year) {
+        String sql = "SELECT SUM(ac.amount) as total " +
+                    "FROM additional_costs ac " +
+                    "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? AND MONTH(ac.date) = ? AND YEAR(ac.date) = ?";
+        
+        System.out.println("DEBUG: calculateAdditionalTotalByRoom - RoomID: " + roomId + ", Month: " + month + ", Year: " + year);
+        System.out.println("DEBUG: SQL: " + sql);
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                BigDecimal total = rs.getBigDecimal("total");
+                System.out.println("DEBUG: Additional total result: " + total);
+                return total != null ? total : BigDecimal.ZERO;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error calculating additional total by room: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        System.out.println("DEBUG: Additional total returning ZERO");
         return BigDecimal.ZERO;
     }
     

@@ -17,6 +17,11 @@ public class User {
     private String role; // ADMIN or USER
     private Timestamp createdAt;
     
+    // Message-related properties (for contact list)
+    private boolean hasUnreadMessages;
+    private String lastMessage;
+    private Timestamp lastMessageTime;
+    
     // Default constructor
     public User() {}
     
@@ -131,6 +136,35 @@ public class User {
     // Check if user is regular user
     public boolean isUser() {
         return "USER".equals(this.role);
+    }
+    
+    // Message-related getters and setters
+    public boolean hasUnreadMessages() {
+        return hasUnreadMessages;
+    }
+    
+    public boolean getHasUnreadMessages() {
+        return hasUnreadMessages;
+    }
+    
+    public void setHasUnreadMessages(boolean hasUnreadMessages) {
+        this.hasUnreadMessages = hasUnreadMessages;
+    }
+    
+    public String getLastMessage() {
+        return lastMessage;
+    }
+    
+    public void setLastMessage(String lastMessage) {
+        this.lastMessage = lastMessage;
+    }
+    
+    public Timestamp getLastMessageTime() {
+        return lastMessageTime;
+    }
+    
+    public void setLastMessageTime(Timestamp lastMessageTime) {
+        this.lastMessageTime = lastMessageTime;
     }
     
     @Override

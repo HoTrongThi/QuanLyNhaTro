@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 13, 2025 at 07:15 AM
+-- Generation Time: Aug 13, 2025 at 05:41 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -35,6 +35,14 @@ CREATE TABLE `additional_costs` (
   `date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `additional_costs`
+--
+
+INSERT INTO `additional_costs` (`cost_id`, `tenant_id`, `description`, `amount`, `date`) VALUES
+(1, 1, 'Sửa bóng đèn', 50000.00, '2025-08-13'),
+(2, 3, 'Mua thịt chó', 100000.00, '2025-08-13');
+
 -- --------------------------------------------------------
 
 --
@@ -54,6 +62,28 @@ CREATE TABLE `invoices` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `invoices`
+--
+
+INSERT INTO `invoices` (`invoice_id`, `tenant_id`, `month`, `year`, `room_price`, `service_total`, `additional_total`, `total_amount`, `status`, `created_at`) VALUES
+(10, 3, 8, 2025, 2000000.00, 348000.00, 100000.00, 2448000.00, 'PAID', '2025-08-13 11:23:43');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `messages`
+--
+
+CREATE TABLE `messages` (
+  `message_id` int(11) NOT NULL,
+  `sender_id` int(11) NOT NULL,
+  `receiver_id` int(11) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('UNREAD','READ') DEFAULT 'UNREAD'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- --------------------------------------------------------
 
 --
@@ -68,6 +98,16 @@ CREATE TABLE `rooms` (
   `description` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `rooms`
+--
+
+INSERT INTO `rooms` (`room_id`, `room_name`, `price`, `status`, `description`) VALUES
+(1, 'P01', 3000000.00, 'OCCUPIED', ''),
+(3, 'P02', 2000000.00, 'OCCUPIED', 'Không có'),
+(4, 'P03', 3000000.00, 'OCCUPIED', ''),
+(5, 'P04', 5000000.00, 'OCCUPIED', '');
+
 -- --------------------------------------------------------
 
 --
@@ -80,6 +120,15 @@ CREATE TABLE `services` (
   `unit` varchar(50) DEFAULT NULL,
   `price_per_unit` decimal(12,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `services`
+--
+
+INSERT INTO `services` (`service_id`, `service_name`, `unit`, `price_per_unit`) VALUES
+(1, 'Điện', 'kWh', 4000.00),
+(3, 'Internet', 'tháng', 30000.00),
+(4, 'Nước', 'm³', 5000.00);
 
 -- --------------------------------------------------------
 
@@ -96,6 +145,19 @@ CREATE TABLE `service_usage` (
   `quantity` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `service_usage`
+--
+
+INSERT INTO `service_usage` (`usage_id`, `tenant_id`, `service_id`, `month`, `year`, `quantity`) VALUES
+(1, 2, 3, 8, 2025, 0.00),
+(2, 2, 1, 8, 2025, 0.00),
+(3, 3, 3, 8, 2025, 10.00),
+(4, 3, 1, 8, 2025, 12.00),
+(5, 4, 4, 8, 2025, 0.00),
+(6, 4, 1, 8, 2025, 0.00),
+(7, 5, 3, 8, 2025, 0.00);
+
 -- --------------------------------------------------------
 
 --
@@ -109,6 +171,17 @@ CREATE TABLE `tenants` (
   `start_date` date NOT NULL,
   `end_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tenants`
+--
+
+INSERT INTO `tenants` (`tenant_id`, `user_id`, `room_id`, `start_date`, `end_date`) VALUES
+(1, 1, 1, '2025-08-13', '2025-08-13'),
+(2, 1, 1, '2025-08-13', NULL),
+(3, 3, 3, '2025-08-13', NULL),
+(4, 7, 4, '2025-08-13', NULL),
+(5, 6, 5, '2025-08-13', NULL);
 
 -- --------------------------------------------------------
 
@@ -129,6 +202,18 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`user_id`, `username`, `password`, `full_name`, `phone`, `email`, `address`, `role`, `created_at`) VALUES
+(1, 'thi', '$2a$10$Qe5RtPqRBXDy.hMwGK9bVe3CdNkZm99LojgIy30O1S1yqBqjsyS.m', 'Hồ Trọng Thi', '0971911559', 'hotrongthi2709@gmail.com', 'Bình Định', 'USER', '2025-08-13 05:30:28'),
+(2, 'admin', '$2a$10$RMKuZdZWo82Jlp86UEl9lOqM.TBPzSv6FM5Pw28.jDP2RBpL7FLNS', 'thi', '42443431', 'admin@example.com', 'Bình Định', 'ADMIN', '2025-08-13 05:42:05'),
+(3, 'tan', '$2a$10$cUQIyY26eooXrtcXKPsbkeqtWJhasAUDR78cCBMiJ6e33iTB8k5Cm', 'Đặng Văn Tân', '0424434312', 'tan@gmail.com', 'Bình Định', 'USER', '2025-08-13 08:13:05'),
+(4, 'nhat', '$2a$10$.fNsVSyOym4nnEYj86mq9.MbH/Od9iV/G9YlxUDv1D/ygZjwHfnli', 'Lê Đình Nhật', '0947248279', 'nhat@gmail.com', 'Bình Định', 'ADMIN', '2025-08-13 08:14:16'),
+(6, 'thuy', '$2a$10$e4m1P8DAQ34r/XQAvb8JVOYtyI4GwT1TL.slLg6UypP7287mrw3NW', 'Nguyễn Thị Thúy', '09472847562', 'thuy@gmail.com', 'Bình Định', 'USER', '2025-08-13 14:43:57'),
+(7, 'ngan', '$2a$10$dBZZ74lBxxB2PkzHFk2LA.x2fRpsUM1imqfrvZ35jxAElmFolHinq', 'Ngô Thị Kim Ngân', '0394726492', 'ngan@gmail.com', 'Quy Nhơn', 'USER', '2025-08-13 14:44:49');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -145,6 +230,14 @@ ALTER TABLE `additional_costs`
 ALTER TABLE `invoices`
   ADD PRIMARY KEY (`invoice_id`),
   ADD KEY `tenant_id` (`tenant_id`);
+
+--
+-- Indexes for table `messages`
+--
+ALTER TABLE `messages`
+  ADD PRIMARY KEY (`message_id`),
+  ADD KEY `sender_id` (`sender_id`),
+  ADD KEY `receiver_id` (`receiver_id`);
 
 --
 -- Indexes for table `rooms`
@@ -189,43 +282,49 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `additional_costs`
 --
 ALTER TABLE `additional_costs`
-  MODIFY `cost_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `cost_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `invoices`
 --
 ALTER TABLE `invoices`
-  MODIFY `invoice_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `invoice_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT for table `messages`
+--
+ALTER TABLE `messages`
+  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `room_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `room_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `service_usage`
 --
 ALTER TABLE `service_usage`
-  MODIFY `usage_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `usage_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `tenants`
 --
 ALTER TABLE `tenants`
-  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Constraints for dumped tables
@@ -242,6 +341,13 @@ ALTER TABLE `additional_costs`
 --
 ALTER TABLE `invoices`
   ADD CONSTRAINT `invoices_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`);
+
+--
+-- Constraints for table `messages`
+--
+ALTER TABLE `messages`
+  ADD CONSTRAINT `messages_ibfk_1` FOREIGN KEY (`sender_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `messages_ibfk_2` FOREIGN KEY (`receiver_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `service_usage`

@@ -4,6 +4,7 @@ import dao.TenantDAO;
 import dao.UserDAO;
 import dao.ServiceDAO;
 import dao.ServiceUsageDAO;
+import dao.MeterReadingDAO;
 import model.Tenant;
 import model.User;
 import model.Room;
@@ -15,9 +16,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Tenant Management Controller
@@ -38,6 +43,29 @@ public class TenantController {
     
     @Autowired
     private ServiceUsageDAO serviceUsageDAO;
+    
+    @Autowired
+    private MeterReadingDAO meterReadingDAO;
+    
+    /**
+     * Check if service requires meter reading (electricity/water)
+     */
+    private boolean isServiceWithMeter(int serviceId) {
+        // Check service names from database to determine if it needs meter
+        try {
+            Service service = serviceDAO.getServiceById(serviceId);
+            if (service != null) {
+                String serviceName = service.getServiceName().toLowerCase();
+                return serviceName.contains("điện") || serviceName.contains("nước") || 
+                       serviceName.contains("electric") || serviceName.contains("water");
+            }
+        } catch (Exception e) {
+            // Log error but continue with fallback
+        }
+        
+        // Fallback to hard-coded IDs for common services
+        return serviceId == 1 || serviceId == 2 || serviceId == 4;
+    }
     
     /**
      * Check if user is admin
@@ -81,16 +109,25 @@ public class TenantController {
             tenants = tenantDAO.getAllTenants();
         }
         
-        // Create a map to store tenant services display information
-        java.util.Map<Integer, String> tenantServicesMap = new java.util.HashMap<>();
+        // Get tenant services for display
+        Map<Integer, String> tenantServicesMap = new HashMap<>();
+        Map<Integer, Integer> roomTenantCounts = new HashMap<>();
+        
         for (Tenant tenant : tenants) {
-            String servicesDisplay = tenantDAO.getTenantServicesDisplay(tenant.getTenantId());
-            tenantServicesMap.put(tenant.getTenantId(), servicesDisplay);
+            String services = tenantDAO.getTenantServicesDisplay(tenant.getTenantId());
+            tenantServicesMap.put(tenant.getTenantId(), services);
+            
+            // Get room tenant count if not already calculated
+            if (!roomTenantCounts.containsKey(tenant.getRoomId())) {
+                int count = tenantDAO.getRoomTenantCount(tenant.getRoomId());
+                roomTenantCounts.put(tenant.getRoomId(), count);
+            }
         }
         
         model.addAttribute("user", user);
         model.addAttribute("tenants", tenants);
         model.addAttribute("tenantServicesMap", tenantServicesMap);
+        model.addAttribute("roomTenantCounts", roomTenantCounts);
         model.addAttribute("pageTitle", "Quản lý Thuê trọ");
         model.addAttribute("selectedStatus", status);
         model.addAttribute("totalTenants", tenantDAO.getTotalTenantCount());
@@ -134,6 +171,7 @@ public class TenantController {
                                   @RequestParam("roomId") int roomId,
                                   @RequestParam("startDate") String startDate,
                                   @RequestParam(value = "serviceIds", required = false) List<Integer> serviceIds,
+                                  @RequestParam(value = "initialReadings", required = false) List<String> initialReadings,
                                   HttpSession session,
                                   RedirectAttributes redirectAttributes) {
         
@@ -143,26 +181,20 @@ public class TenantController {
         }
         
         try {
-            // Enhanced logging for debugging
-            System.out.println("=== DEBUG: Adding Tenant ===");
-            System.out.println("User ID: " + userId);
-            System.out.println("Room ID: " + roomId);
-            System.out.println("Start Date: " + startDate);
-            System.out.println("Selected Services: " + serviceIds);
+
             
             // Validate inputs
             if (userId <= 0 || roomId <= 0 || startDate == null || startDate.trim().isEmpty()) {
-                System.out.println("DEBUG: Validation failed - missing required fields");
-                redirectAttributes.addFlashAttribute("error", "Vui lòng nhập đầy đủ thông tin");
+                redirectAttributes.addFlashAttribute("error", "Vui lòng điền đầy đủ thông tin");
                 return "redirect:/admin/tenants/add";
             }
             
-            // Check if user is already a tenant
-            if (tenantDAO.isUserCurrentlyTenant(userId)) {
-                System.out.println("DEBUG: User is already a tenant");
-                redirectAttributes.addFlashAttribute("error", "Người dùng này đã là khách thuê");
-                return "redirect:/admin/tenants/add";
-            }
+        // Validate that room has space (max 4 tenants)
+        int currentTenantCount = tenantDAO.getRoomTenantCount(roomId);
+        if (currentTenantCount >= 4) {
+            redirectAttributes.addFlashAttribute("error", "Phòng này đã đủ 4 người thuê!");
+            return "redirect:/admin/tenants/add";
+        }
             
             // Validate date format
             Date parsedDate;
@@ -200,11 +232,50 @@ public class TenantController {
                         int currentMonth = now.getMonthValue();
                         int currentYear = now.getYear();
                         
-                        // Assign selected services with 0 quantity for current month
+                        // Process initial meter readings if provided
+                        boolean meterReadingsInitialized = true;
+                        
+                        if (initialReadings != null && !initialReadings.isEmpty()) {
+                            // Filter out empty readings and match with services that have meters
+                            List<Integer> meterServiceIds = new ArrayList<>();
+                            List<BigDecimal> meterReadings = new ArrayList<>();
+                            
+                            int readingIndex = 0;
+                            for (Integer serviceId : serviceIds) {
+                                boolean needsMeter = isServiceWithMeter(serviceId);
+                                
+                                if (needsMeter && readingIndex < initialReadings.size()) {
+                                    String readingStr = initialReadings.get(readingIndex);
+                                    
+                                    if (readingStr != null && !readingStr.trim().isEmpty()) {
+                                        try {
+                                            BigDecimal reading = new BigDecimal(readingStr.trim());
+                                            meterServiceIds.add(serviceId);
+                                            meterReadings.add(reading);
+                                        } catch (NumberFormatException e) {
+                                            // Invalid number format - skip this reading
+                                        }
+                                    }
+                                    readingIndex++;
+                                }
+                            }
+                            
+                            // Initialize meter readings only for services that have meters
+                            if (!meterServiceIds.isEmpty() && !meterReadings.isEmpty()) {
+                                Date startDateParsed = Date.valueOf(startDate);
+                                meterReadingsInitialized = meterReadingDAO.initializeMeterReadingsForTenant(
+                                    tenantId, meterServiceIds, meterReadings, startDateParsed, currentMonth, currentYear
+                                );
+                            }
+                        }
+                        
+                        // Assign selected services with 0 quantity for current month (for backward compatibility)
                         boolean servicesAssigned = serviceUsageDAO.initializeServicesForTenant(tenantId, serviceIds, currentMonth, currentYear);
                         System.out.println("DEBUG: Services assigned: " + servicesAssigned);
                         
-                        if (servicesAssigned) {
+                        if (servicesAssigned && meterReadingsInitialized) {
+                            redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ, gán dịch vụ và khởi tạo chỉ số công tơ thành công!");
+                        } else if (servicesAssigned) {
                             redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ và gán dịch vụ thành công!");
                         } else {
                             redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ thành công nhưng có lỗi khi gán dịch vụ!");

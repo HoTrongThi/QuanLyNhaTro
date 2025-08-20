@@ -123,6 +123,10 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
+                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -298,12 +302,25 @@
                                                                    title="Chỉnh sửa">
                                                                     <i class="bi bi-pencil"></i>
                                                                 </a>
-                                                                <button type="button" 
-                                                                        class="btn btn-outline-danger btn-sm" 
-                                                                        title="Xóa"
-                                                                        onclick="confirmDelete(${room.roomId}, '${room.roomName}')">
-                                                                    <i class="bi bi-trash"></i>
-                                                                </button>
+                                                                <!-- Check if room can be deleted -->
+                                                                <c:choose>
+                                                                    <c:when test="${room.status == 'OCCUPIED'}">
+                                                                        <button type="button" 
+                                                                                class="btn btn-outline-secondary btn-sm" 
+                                                                                title="Không thể xóa - Phòng đang có người thuê"
+                                                                                disabled>
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        <button type="button" 
+                                                                                class="btn btn-outline-danger btn-sm" 
+                                                                                title="Xóa"
+                                                                                onclick="confirmDelete(${room.roomId}, '${room.roomName}')">
+                                                                            <i class="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </c:otherwise>
+                                                                </c:choose>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -337,7 +354,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <form id="deleteForm" method="POST" style="display: inline;">
+                    <form id="deleteForm" method="POST" action="" style="display: inline;">
+                        <input type="hidden" name="_method" value="POST">
                         <button type="submit" class="btn btn-danger">Xóa</button>
                     </form>
                 </div>
@@ -348,12 +366,35 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function confirmDelete(roomId, roomName) {
+            // Set room name in modal
             document.getElementById('roomNameToDelete').textContent = roomName;
-            document.getElementById('deleteForm').action = '${pageContext.request.contextPath}/admin/rooms/delete/' + roomId;
             
+            // Set form action with correct URL
+            var deleteForm = document.getElementById('deleteForm');
+            deleteForm.action = '${pageContext.request.contextPath}/admin/rooms/delete/' + roomId;
+            
+            // Show modal
             var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
             deleteModal.show();
         }
+        
+        // Add form submit handler to ensure proper submission
+        document.addEventListener('DOMContentLoaded', function() {
+            var deleteForm = document.getElementById('deleteForm');
+            if (deleteForm) {
+                deleteForm.addEventListener('submit', function(e) {
+                    // Ensure form has action before submitting
+                    if (!this.action || this.action.endsWith('/admin/rooms/delete/')) {
+                        e.preventDefault();
+                        alert('Lỗi: Không thể xác định phòng cần xóa. Vui lòng thử lại.');
+                        return false;
+                    }
+                    
+                    // Form is valid, allow submission
+                    return true;
+                });
+            }
+        });
     </script>
 </body>
 </html>

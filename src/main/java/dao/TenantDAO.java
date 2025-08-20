@@ -139,6 +139,39 @@ public class TenantDAO {
     }
     
     /**
+     * Get all tenants in a specific room (active tenants)
+     */
+    public List<Tenant> getTenantsByRoomId(int roomId) {
+        List<Tenant> tenants = new ArrayList<>();
+        String sql = "SELECT t.tenant_id, t.user_id, t.room_id, t.start_date, t.end_date, " +
+                    "u.username, u.full_name, u.phone, u.email, u.address, " +
+                    "r.room_name, r.price as room_price " +
+                    "FROM tenants t " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE t.room_id = ? AND t.end_date IS NULL " +
+                    "ORDER BY u.full_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Tenant tenant = mapResultSetToTenant(rs);
+                tenants.add(tenant);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting tenants by room ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return tenants;
+    }
+    
+    /**
      * Add a new tenant (assign user to room)
      */
     public boolean addTenant(Tenant tenant) {
@@ -158,9 +191,9 @@ public class TenantDAO {
             System.out.println("DEBUG DAO: Rows affected: " + rowsAffected);
             
             if (rowsAffected > 0) {
-                // Update room status to OCCUPIED
-                System.out.println("DEBUG DAO: Updating room status to OCCUPIED for room ID: " + tenant.getRoomId());
-                updateRoomStatus(tenant.getRoomId(), "OCCUPIED");
+                // Update room status based on tenant count
+                System.out.println("DEBUG DAO: Updating room status for room ID: " + tenant.getRoomId());
+                updateRoomStatusBasedOnTenantCount(tenant.getRoomId());
                 return true;
             }
             
@@ -189,10 +222,10 @@ public class TenantDAO {
             int rowsAffected = pstmt.executeUpdate();
             
             if (rowsAffected > 0) {
-                // Get room ID and update status to AVAILABLE
+                // Get room ID and update status based on remaining tenants
                 Tenant tenant = getTenantById(tenantId);
                 if (tenant != null) {
-                    updateRoomStatus(tenant.getRoomId(), "AVAILABLE");
+                    updateRoomStatusBasedOnTenantCount(tenant.getRoomId());
                 }
                 return true;
             }
@@ -223,10 +256,9 @@ public class TenantDAO {
             int rowsAffected = pstmt.executeUpdate();
             
             if (rowsAffected > 0) {
-                // Update old room to AVAILABLE
-                updateRoomStatus(currentTenant.getRoomId(), "AVAILABLE");
-                // Update new room to OCCUPIED
-                updateRoomStatus(newRoomId, "OCCUPIED");
+                // Update both rooms' status based on tenant count
+                updateRoomStatusBasedOnTenantCount(currentTenant.getRoomId());
+                updateRoomStatusBasedOnTenantCount(newRoomId);
                 return true;
             }
             
@@ -239,14 +271,14 @@ public class TenantDAO {
     }
     
     /**
-     * Get available users (users who are not currently tenants)
+     * Get users who are not currently tenants (available for new rental)
      */
     public List<User> getAvailableUsers() {
         List<User> users = new ArrayList<>();
         String sql = "SELECT u.user_id, u.username, u.full_name, u.phone, u.email, u.address " +
                     "FROM users u " +
                     "WHERE u.role = 'USER' AND u.user_id NOT IN (" +
-                    "    SELECT t.user_id FROM tenants t WHERE t.end_date IS NULL" +
+                    "    SELECT DISTINCT t.user_id FROM tenants t WHERE t.end_date IS NULL" +
                     ") ORDER BY u.full_name";
         
         try (Connection conn = DBConnection.getConnection();
@@ -273,12 +305,21 @@ public class TenantDAO {
     }
     
     /**
-     * Get available rooms
+     * Get available rooms (rooms with less than 4 tenants)
      */
     public List<Room> getAvailableRooms() {
         List<Room> rooms = new ArrayList<>();
-        String sql = "SELECT room_id, room_name, price, description " +
-                    "FROM rooms WHERE status = 'AVAILABLE' ORDER BY room_name";
+        String sql = "SELECT r.room_id, r.room_name, r.price, r.description, r.status, " +
+                    "COALESCE(tenant_count.count, 0) as current_tenants " +
+                    "FROM rooms r " +
+                    "LEFT JOIN (" +
+                    "    SELECT room_id, COUNT(*) as count " +
+                    "    FROM tenants " +
+                    "    WHERE end_date IS NULL " +
+                    "    GROUP BY room_id" +
+                    ") tenant_count ON r.room_id = tenant_count.room_id " +
+                    "WHERE COALESCE(tenant_count.count, 0) < 4 " +
+                    "ORDER BY r.room_name";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -290,7 +331,14 @@ public class TenantDAO {
                 room.setRoomName(rs.getString("room_name"));
                 room.setPrice(rs.getBigDecimal("price"));
                 room.setDescription(rs.getString("description"));
-                room.setStatus("AVAILABLE");
+                room.setStatus(rs.getString("status"));
+                
+                // Add current tenant count to description for display
+                int currentTenants = rs.getInt("current_tenants");
+                String displayDescription = room.getDescription() != null ? room.getDescription() : "";
+                displayDescription += " (" + currentTenants + "/4 người)";
+                room.setDescription(displayDescription);
+                
                 rooms.add(room);
             }
             
@@ -357,15 +405,16 @@ public class TenantDAO {
     }
     
     /**
-     * Check if user is already a tenant
+     * Check if user is already renting this specific room
      */
-    public boolean isUserCurrentlyTenant(int userId) {
-        String sql = "SELECT COUNT(*) FROM tenants WHERE user_id = ? AND end_date IS NULL";
+    public boolean isUserAlreadyInRoom(int userId, int roomId) {
+        String sql = "SELECT COUNT(*) FROM tenants WHERE user_id = ? AND room_id = ? AND end_date IS NULL";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
             pstmt.setInt(1, userId);
+            pstmt.setInt(2, roomId);
             ResultSet rs = pstmt.executeQuery();
             
             if (rs.next()) {
@@ -373,11 +422,35 @@ public class TenantDAO {
             }
             
         } catch (SQLException e) {
-            System.err.println("Error checking if user is tenant: " + e.getMessage());
+            System.err.println("Error checking if user is already in room: " + e.getMessage());
             e.printStackTrace();
         }
         
         return false;
+    }
+    
+    /**
+     * Get current tenant count for a room
+     */
+    public int getRoomTenantCount(int roomId) {
+        String sql = "SELECT COUNT(*) FROM tenants WHERE room_id = ? AND end_date IS NULL";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room tenant count: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
     }
     
     // Helper methods
@@ -412,6 +485,23 @@ public class TenantDAO {
             System.err.println("Error updating room status: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Update room status based on current tenant count
+     */
+    private void updateRoomStatusBasedOnTenantCount(int roomId) {
+        int tenantCount = getRoomTenantCount(roomId);
+        String newStatus;
+        
+        if (tenantCount == 0) {
+            newStatus = "AVAILABLE";
+        } else {
+            newStatus = "OCCUPIED";
+        }
+        
+        updateRoomStatus(roomId, newStatus);
+        System.out.println("DEBUG: Updated room " + roomId + " status to " + newStatus + " (" + tenantCount + " tenants)");
     }
     
     private int getCount(String sql) {

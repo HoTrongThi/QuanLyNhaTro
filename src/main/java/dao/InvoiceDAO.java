@@ -302,6 +302,34 @@ public class InvoiceDAO {
     }
     
     /**
+     * Check if invoice exists for room and period
+     */
+    public boolean invoiceExistsForRoomAndPeriod(int roomId, int month, int year) {
+        String sql = "SELECT COUNT(*) FROM invoices i " +
+                    "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? AND i.month = ? AND i.year = ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking invoice existence for room: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+    
+    /**
      * Get total invoice count
      */
     public int getTotalInvoiceCount() {

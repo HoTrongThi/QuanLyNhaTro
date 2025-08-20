@@ -156,6 +156,54 @@ public class ServiceUsageDAO {
     }
     
     /**
+     * Get all service usage records for a specific room and period
+     */
+    public List<ServiceUsage> getServiceUsageByRoomAndPeriod(int roomId, int month, int year) {
+        List<ServiceUsage> usageList = new ArrayList<>();
+        String sql = "SELECT su.usage_id, su.tenant_id, su.service_id, su.month, su.year, su.quantity, " +
+                    "s.service_name, s.unit, s.price_per_unit, u.full_name, r.room_name " +
+                    "FROM service_usage su " +
+                    "JOIN services s ON su.service_id = s.service_id " +
+                    "JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE t.room_id = ? AND su.month = ? AND su.year = ? " +
+                    "ORDER BY s.service_name, u.full_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                ServiceUsage usage = new ServiceUsage();
+                usage.setUsageId(rs.getInt("usage_id"));
+                usage.setTenantId(rs.getInt("tenant_id"));
+                usage.setServiceId(rs.getInt("service_id"));
+                usage.setMonth(rs.getInt("month"));
+                usage.setYear(rs.getInt("year"));
+                usage.setQuantity(rs.getBigDecimal("quantity"));
+                usage.setServiceName(rs.getString("service_name"));
+                usage.setServiceUnit(rs.getString("unit"));
+                usage.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+                usage.setTenantName(rs.getString("full_name"));
+                usage.setRoomName(rs.getString("room_name"));
+                usage.calculateTotalCost();
+                usageList.add(usage);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting service usage by room and period: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return usageList;
+    }
+    
+    /**
      * Get all service usage records
      */
     public List<ServiceUsage> getAllServiceUsage() {
@@ -351,6 +399,41 @@ public class ServiceUsageDAO {
     }
     
     /**
+     * Calculate total service cost for a room and period (room-based calculation)
+     */
+    public BigDecimal calculateServiceTotalByRoom(int roomId, int month, int year) {
+        // Calculate service total for ALL tenants in the room
+        // This avoids the representative tenant inconsistency issue
+        String sql = "SELECT SUM(su.quantity * s.price_per_unit) as total " +
+                    "FROM service_usage su " +
+                    "JOIN services s ON su.service_id = s.service_id " +
+                    "JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? AND su.month = ? AND su.year = ?";
+        
+
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                BigDecimal total = rs.getBigDecimal("total");
+                return total != null ? total : BigDecimal.ZERO;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error calculating service total by room: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return BigDecimal.ZERO;
+    }
+    
+    /**
      * Initialize services for a new tenant with 0 quantity for the current month
      * This creates initial service usage records that can be updated later
      */
@@ -374,17 +457,12 @@ public class ServiceUsageDAO {
                     pstmt.setInt(3, month);
                     pstmt.setInt(4, year);
                     pstmt.addBatch();
-                    
-                    System.out.println("DEBUG: Added service ID " + serviceId + " to batch for tenant " + tenantId);
-                } else {
-                    System.out.println("DEBUG: Service usage already exists for tenant " + tenantId + ", service " + serviceId + ", period " + month + "/" + year);
                 }
             }
             
             int[] results = pstmt.executeBatch();
             conn.commit(); // Commit transaction
             
-            System.out.println("DEBUG: Batch execution completed, " + results.length + " services initialized");
             return true;
             
         } catch (SQLException e) {

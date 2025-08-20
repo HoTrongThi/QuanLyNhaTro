@@ -105,9 +105,21 @@
                             <i class="bi bi-tools me-2"></i>
                             Quản lý Dịch vụ
                         </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/tenants">
+                            <i class="bi bi-person-check me-2"></i>
+                            Quản lý Thuê trọ
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/additional-costs">
+                            <i class="bi bi-receipt-cutoff me-2"></i>
+                            Chi phí phát sinh
+                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>

@@ -97,41 +97,66 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="d-flex flex-column p-3">
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="bi bi-building me-2"></i>
+                        Admin Panel
+                    </h4>
+                    
                     <div class="text-center mb-4">
-                        <i class="bi bi-building fs-1 text-white"></i>
-                        <h4 class="text-white">Admin Panel</h4>
+                        <div class="bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-gear fs-3"></i>
+                        </div>
+                        <div class="mt-2">
+                            <strong>${user.fullName}</strong>
+                            <br>
+                            <small class="text-light">Quản trị viên</small>
+                        </div>
                     </div>
                     
-                    <nav class="nav nav-pills flex-column">
-                        <a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Bảng điều khiển
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/rooms" class="nav-link">
-                            <i class="bi bi-door-open me-2"></i>Phòng trọ
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/users">
+                            <i class="bi bi-people me-2"></i>
+                            Quản lý Người dùng
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/tenants" class="nav-link">
-                            <i class="bi bi-people me-2"></i>Người thuê
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/rooms">
+                            <i class="bi bi-door-open me-2"></i>
+                            Quản lý Phòng trọ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/services" class="nav-link">
-                            <i class="bi bi-tools me-2"></i>Dịch vụ
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/services">
+                            <i class="bi bi-tools me-2"></i>
+                            Quản lý Dịch vụ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/service-usage" class="nav-link">
-                            <i class="bi bi-graph-up me-2"></i>Sử dụng DV
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/tenants">
+                            <i class="bi bi-person-check me-2"></i>
+                            Quản lý Thuê trọ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/additional-costs" class="nav-link">
-                            <i class="bi bi-plus-circle me-2"></i>Chi phí PS
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/additional-costs">
+                            <i class="bi bi-receipt-cutoff me-2"></i>
+                            Chi phí phát sinh
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/bills" class="nav-link active">
-                            <i class="bi bi-receipt me-2"></i>Hóa đơn
+                        <a class="nav-link active" href="${pageContext.request.contextPath}/admin/bills">
+                            <i class="bi bi-receipt me-2"></i>
+                            Quản lý Hóa đơn
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/users" class="nav-link">
-                            <i class="bi bi-person-gear me-2"></i>Người dùng
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
                         </a>
-                        <hr class="text-white">
-                        <a href="${pageContext.request.contextPath}/logout" class="nav-link">
-                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Báo cáo & Thống kê
+                        </a>
+                        <hr class="text-light">
+                        <a class="nav-link text-warning" href="${pageContext.request.contextPath}/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Đăng xuất
                         </a>
                     </nav>
                 </div>

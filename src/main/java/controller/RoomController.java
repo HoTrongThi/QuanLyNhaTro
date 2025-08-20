@@ -233,9 +233,15 @@ public class RoomController {
             return "redirect:/admin/rooms";
         }
         
-        // Check if room can be deleted
+        // Check if room can be deleted - active tenants
         if (roomDAO.isRoomOccupied(id)) {
-            redirectAttributes.addFlashAttribute("error", "Không thể xóa phòng đang có người thuê hoặc có lịch sử thuê");
+            redirectAttributes.addFlashAttribute("error", "Không thể xóa phòng đang có người thuê. Vui lòng chuyển tất cả người thuê ra khỏi phòng trước.");
+            return "redirect:/admin/rooms";
+        }
+        
+        // Check if room has tenant history (including inactive tenants)
+        if (roomDAO.hasRoomHistory(id)) {
+            redirectAttributes.addFlashAttribute("error", "Không thể xóa phòng có lịch sử thuê trọ. Phòng này đã từng có người thuê nên không thể xóa để đảm bảo tính toàn vẹn dữ liệu.");
             return "redirect:/admin/rooms";
         }
         
@@ -271,7 +277,8 @@ public class RoomController {
         }
         
         User user = (User) session.getAttribute("user");
-        boolean canDelete = !roomDAO.isRoomOccupied(id);
+        // Room can only be deleted if it has no active tenants AND no tenant history
+        boolean canDelete = !roomDAO.isRoomOccupied(id) && !roomDAO.hasRoomHistory(id);
         
         model.addAttribute("user", user);
         model.addAttribute("room", room);

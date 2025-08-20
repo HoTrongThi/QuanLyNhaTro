@@ -139,9 +139,15 @@ public class RoomDAO {
      * @return true if successful, false otherwise
      */
     public boolean deleteRoom(int roomId) {
-        // First check if room is occupied or has tenants
+        // First check if room has active tenants
         if (isRoomOccupied(roomId)) {
-            System.err.println("Cannot delete room - room is occupied or has tenant history");
+            System.err.println("Cannot delete room - room has active tenants");
+            return false;
+        }
+        
+        // Check if room has any tenant history (including inactive tenants)
+        if (hasRoomHistory(roomId)) {
+            System.err.println("Cannot delete room - room has tenant history. Use soft delete or archive instead.");
             return false;
         }
         
@@ -200,11 +206,40 @@ public class RoomDAO {
     }
     
     /**
-     * Check if room is occupied or has tenant history
+     * Check if room is currently occupied (has active tenants)
      * @param roomId Room ID to check
-     * @return true if room is occupied or has history, false otherwise
+     * @return true if room has active tenants, false otherwise
      */
     public boolean isRoomOccupied(int roomId) {
+        // Only check for ACTIVE tenants (end_date is NULL)
+        String sql = "SELECT COUNT(*) FROM tenants WHERE room_id = ? AND end_date IS NULL";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, roomId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int activeTenantsCount = rs.getInt(1);
+                System.out.println("DEBUG: Room " + roomId + " has " + activeTenantsCount + " active tenants");
+                return activeTenantsCount > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking room occupation: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if room has any tenant history (for complete deletion check)
+     * @param roomId Room ID to check
+     * @return true if room has any tenant history, false otherwise
+     */
+    public boolean hasRoomHistory(int roomId) {
         String sql = "SELECT COUNT(*) FROM tenants WHERE room_id = ?";
         
         try (Connection conn = DBConnection.getConnection();
@@ -218,7 +253,7 @@ public class RoomDAO {
             }
             
         } catch (SQLException e) {
-            System.err.println("Error checking room occupation: " + e.getMessage());
+            System.err.println("Error checking room history: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -323,5 +358,14 @@ public class RoomDAO {
         }
         
         return 0;
+    }
+    
+    /**
+     * Check if room can be safely deleted
+     * @param roomId Room ID to check
+     * @return true if room can be deleted (no active tenants and no history), false otherwise
+     */
+    public boolean canDeleteRoom(int roomId) {
+        return !isRoomOccupied(roomId) && !hasRoomHistory(roomId);
     }
 }

@@ -29,14 +29,25 @@
         }
         
         .main-content {
-            background-color: #f8f9fa;
+            background: #f8f9fa;
             min-height: 100vh;
+        }
+        
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .card {
             border: none;
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
         }
         
         .table-hover tbody tr:hover {
@@ -122,6 +133,10 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
+                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -136,18 +151,30 @@
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content p-4">
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2><i class="bi bi-receipt me-2"></i>${pageTitle}</h2>
-                        <p class="text-muted mb-0">Quản lý hóa đơn thanh toán của người thuê</p>
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <div class="container-fluid">
+                        <h5 class="navbar-brand mb-0">${pageTitle}</h5>
+                        <div class="navbar-nav ms-auto">
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i>
+                                    ${user.fullName}
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">Thông tin cá nhân</a></li>
+                                    <li><a class="dropdown-item" href="#">Cài đặt</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">Đăng xuất</a></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-end">
-                        <span class="text-muted">Xin chào, </span>
-                        <strong>${user.fullName}</strong>
-                    </div>
-                </div>
+                </nav>
+                
+                <!-- Bills Content -->
+                <div class="p-4">
                 
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
@@ -217,8 +244,8 @@
                                         <thead class="table-light">
                                             <tr>
                                                 <th>ID</th>
-                                                <th>Người thuê</th>
                                                 <th>Phòng</th>
+                                                <th>Người thuê</th>
                                                 <th>Kỳ thanh toán</th>
                                                 <th>Tiền phòng</th>
                                                 <th>Tiền dịch vụ</th>
@@ -235,14 +262,31 @@
                                                     <td><strong>#${invoice.invoiceId}</strong></td>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <i class="bi bi-person-circle fs-5 text-primary me-2"></i>
+                                                            <i class="bi bi-door-open fs-5 text-primary me-2"></i>
                                                             <div>
-                                                                <div class="fw-bold">${invoice.tenantName}</div>
-                                                                <small class="text-muted">${invoice.userPhone}</small>
+                                                                <div class="fw-bold">${invoice.roomName}</div>
+                                                                <small class="text-muted">Hóa đơn theo phòng</small>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td><span class="badge bg-secondary">${invoice.roomName}</span></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <i class="bi bi-people fs-6 text-secondary me-1"></i>
+                                                            <div>
+                                                                <div class="small">${invoice.tenantName}</div>
+                                                                <small class="text-muted">
+                                                                    <c:choose>
+                                                                        <c:when test="${invoice.tenantsCount > 1}">
+                                                                            +${invoice.tenantsCount - 1} người khác
+                                                                        </c:when>
+                                                                        <c:otherwise>
+                                                                            (Duy nhất)
+                                                                        </c:otherwise>
+                                                                    </c:choose>
+                                                                </small>
+                                                            </div>
+                                                        </div>
+                                                    </td>
                                                     <td><strong>${invoice.formattedPeriod}</strong></td>
                                                     <td><fmt:formatNumber value="${invoice.roomPrice}" type="number" maxFractionDigits="0"/> VNĐ</td>
                                                     <td><fmt:formatNumber value="${invoice.serviceTotal}" type="number" maxFractionDigits="0"/> VNĐ</td>
@@ -295,6 +339,7 @@
                             </c:otherwise>
                         </c:choose>
                     </div>
+                </div>
                 </div>
             </div>
         </div>

@@ -24,6 +24,7 @@ public class Invoice {
     private String roomName;
     private String userPhone;
     private String userEmail;
+    private int tenantsCount; // Number of tenants in the room
     
     // Constructors
     public Invoice() {}
@@ -167,6 +168,14 @@ public class Invoice {
     
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+    
+    public int getTenantsCount() {
+        return tenantsCount;
+    }
+    
+    public void setTenantsCount(int tenantsCount) {
+        this.tenantsCount = tenantsCount;
     }
     
     // Helper methods

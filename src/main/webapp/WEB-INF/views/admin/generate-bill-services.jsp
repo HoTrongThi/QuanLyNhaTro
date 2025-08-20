@@ -7,25 +7,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${pageTitle}</title>
+    <title>${pageTitle} - Quản lý Phòng trọ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         .sidebar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            z-index: 1000;
+            color: white;
         }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin: 2px 0;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
         .main-content {
-            margin-left: 250px;
-            padding: 20px;
-            background-color: #f8f9fa;
+            background: #f8f9fa;
             min-height: 100vh;
         }
+        
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        
         .bill-summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -33,6 +58,7 @@
             padding: 20px;
             margin-bottom: 25px;
         }
+        
         .service-card {
             border: none;
             border-radius: 15px;
@@ -40,21 +66,26 @@
             margin-bottom: 15px;
             transition: transform 0.2s;
         }
+        
         .service-card:hover {
             transform: translateY(-2px);
         }
+        
         .form-control:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
+        
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 10px;
         }
+        
         .btn-secondary {
             border-radius: 10px;
         }
+        
         .quantity-input {
             text-align: right;
             font-weight: bold;
@@ -62,62 +93,124 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <div class="text-center py-4">
-            <i class="bi bi-building-gear fs-1 text-white"></i>
-            <h4 class="text-white mt-2">Admin Panel</h4>
-            <p class="text-white-50 mb-0">${user.fullName}</p>
-            <small class="text-white-50">Quản trị viên</small>
-        </div>
-        
-        <nav class="mt-4">
-            <a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-speedometer2 me-2"></i> Bảng điều khiển
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/users" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-people me-2"></i> Quản lý Người dùng
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/rooms" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-door-open me-2"></i> Quản lý Phòng trọ
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/services" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-gear me-2"></i> Quản lý Dịch vụ
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/tenants" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-person-check me-2"></i> Quản lý Thuê trọ
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/bills" class="nav-link text-white px-4 py-3 active" style="background: rgba(255,255,255,0.1);">
-                <i class="bi bi-receipt me-2"></i> Quản lý Hóa đơn
-            </a>
-            <a href="${pageContext.request.contextPath}/admin/reports" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-bar-chart me-2"></i> Báo cáo & Thống kê
-            </a>
-            <hr class="text-white-50 mx-3">
-            <a href="${pageContext.request.contextPath}/logout" class="nav-link text-white px-4 py-3">
-                <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
-            </a>
-        </nav>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="bi bi-receipt-cutoff me-2"></i> ${pageTitle}</h2>
-        </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="bi bi-building me-2"></i>
+                        Admin Panel
+                    </h4>
+                    
+                    <div class="text-center mb-4">
+                        <div class="bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-gear fs-3"></i>
+                        </div>
+                        <div class="mt-2">
+                            <strong>${user.fullName}</strong>
+                            <br>
+                            <small class="text-light">Quản trị viên</small>
+                        </div>
+                    </div>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Bảng điều khiển
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/users">
+                            <i class="bi bi-people me-2"></i>
+                            Quản lý Người dùng
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/rooms">
+                            <i class="bi bi-door-open me-2"></i>
+                            Quản lý Phòng trọ
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/services">
+                            <i class="bi bi-tools me-2"></i>
+                            Quản lý Dịch vụ
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/tenants">
+                            <i class="bi bi-person-check me-2"></i>
+                            Quản lý Thuê trọ
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/additional-costs">
+                            <i class="bi bi-receipt-cutoff me-2"></i>
+                            Chi phí phát sinh
+                        </a>
+                        <a class="nav-link active" href="${pageContext.request.contextPath}/admin/bills">
+                            <i class="bi bi-receipt me-2"></i>
+                            Quản lý Hóa đơn
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Báo cáo & Thống kê
+                        </a>
+                        <hr class="text-light">
+                        <a class="nav-link text-warning" href="${pageContext.request.contextPath}/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Đăng xuất
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <div class="container-fluid">
+                        <h5 class="navbar-brand mb-0">${pageTitle}</h5>
+                        <div class="navbar-nav ms-auto">
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i>
+                                    ${user.fullName}
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">Thông tin cá nhân</a></li>
+                                    <li><a class="dropdown-item" href="#">Cài đặt</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">Đăng xuất</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                
+                <!-- Generate Bill Services Content -->
+                <div class="p-4">
 
         <!-- Bill Summary -->
         <div class="bill-summary">
             <div class="row">
                 <div class="col-md-3">
-                    <h6>Người thuê:</h6>
-                    <h5>${tenant.fullName}</h5>
-                    <small>ID: #${tenant.tenantId}</small>
-                </div>
-                <div class="col-md-3">
                     <h6>Phòng:</h6>
                     <h5>${room.roomName}</h5>
                     <small>Giá phòng: <fmt:formatNumber value="${room.price}" pattern="#,##0" /> VNĐ</small>
+                </div>
+                <div class="col-md-3">
+                    <h6>Người thuê:</h6>
+                    <c:choose>
+                        <c:when test="${not empty tenantsInRoom}">
+                            <c:forEach var="tenant" items="${tenantsInRoom}" varStatus="status">
+                                <div class="small">
+                                    <i class="bi bi-person me-1"></i>${tenant.fullName}
+                                    <c:if test="${!status.last}">, </c:if>
+                                </div>
+                            </c:forEach>
+                            <small>${fn:length(tenantsInRoom)} người thuê</small>
+                        </c:when>
+                        <c:otherwise>
+                            <h5 class="text-muted">Không có người thuê</h5>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
                 <div class="col-md-3">
                     <h6>Kỳ thanh toán:</h6>
@@ -132,31 +225,32 @@
         </div>
 
         <form action="${pageContext.request.contextPath}/admin/bills/generate/final" method="post">
-            <input type="hidden" name="tenantId" value="${tenantId}">
+            <input type="hidden" name="roomId" value="${roomId}">
             <input type="hidden" name="month" value="${month}">
             <input type="hidden" name="year" value="${year}">
 
             <!-- Service Usage Input -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Nhập sử dụng dịch vụ</h5>
-                    <small class="text-muted">Nhập số lượng sử dụng cho từng dịch vụ trong tháng ${month}/${year}</small>
+                    <h5 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Nhập thông tin dịch vụ</h5>
+                    <small class="text-muted">Nhập chỉ số công tơ cho điện/nước và số lượng cho các dịch vụ khác trong tháng ${month}/${year}</small>
                 </div>
                 <div class="card-body">
                     <c:choose>
                         <c:when test="${not empty services}">
                             <div class="alert alert-info mb-3">
                                 <i class="bi bi-info-circle me-2"></i>
-                                <strong>Dịch vụ có sẵn cho ${tenant.fullName}:</strong>
-                                Hiển thị các dịch vụ mà người thuê này đã sử dụng trước đây. 
+                                <strong>Dịch vụ có sẵn cho phòng ${room.roomName}:</strong>
+                                Hiển thị các dịch vụ được sử dụng trong phòng này. 
                                 <c:if test="${fn:length(services) < 10}">Nếu cần thêm dịch vụ mới, vui lòng liên hệ quản trị viên.</c:if>
-                            </div>
+                                <br><br>
+
                             <div class="row">
                                 <c:forEach var="service" items="${services}" varStatus="status">
                                     <div class="col-md-6 col-lg-4">
                                         <div class="service-card card h-100">
                                             <div class="card-body">
-                                                <input type="hidden" name="serviceIds" value="${service.serviceId}">
+
                                                 
                                                 <h6 class="card-title">
                                                     <i class="bi bi-lightning-charge me-2"></i>
@@ -170,30 +264,79 @@
                                                 </div>
                                                 
                                                 <div class="mb-3">
-                                                    <label class="form-label small">Số lượng sử dụng (${service.unit})</label>
-                                                    <c:set var="existingQuantity" value="0" />
-                                                    <c:forEach var="usage" items="${existingUsages}">
-                                                        <c:if test="${usage.serviceId == service.serviceId}">
-                                                            <c:set var="existingQuantity" value="${usage.quantity}" />
-                                                        </c:if>
-                                                    </c:forEach>
+                                                    <c:set var="serviceLower" value="${service.serviceName.toLowerCase()}" />
+                                                    <c:choose>
+                                                        <c:when test="${serviceLower.contains('điện') || serviceLower.contains('nước') || serviceLower.contains('electric') || serviceLower.contains('water')}">
+                                                            <!-- Meter reading input for electricity and water -->
+                                                            <label class="form-label small">Chỉ số công tơ hiện tại (${service.unit})</label>
+                                                            
+                                                            <!-- Display previous reading if available -->
+                                                            <div class="mb-2">
+                                                                <small class="text-muted">
+                                                                    <i class="bi bi-clock-history me-1"></i>
+                                                                    Chỉ số kỳ trước: <span id="prev-reading-${service.serviceId}">Đang tải...</span>
+                                                                </small>
+                                                            </div>
+                                                            
+                                                            <input type="number" 
+                                                                   class="form-control meter-reading-input" 
+                                                                   name="currentReadings" 
+                                                                   min="0" 
+                                                                   step="0.01" 
+                                                                   placeholder="Nhập chỉ số hiện tại"
+                                                                   data-price="${service.pricePerUnit}"
+                                                                   data-service="${service.serviceName}"
+                                                                   data-service-id="${service.serviceId}"
+                                                                   data-has-meter="true"
+                                                                   onchange="calculateConsumption(this)"
+                                                                   required>
+                                                            
+                                                            <!-- Display calculated consumption -->
+                                                            <div class="mt-2">
+                                                                <small class="text-info">
+                                                                    <i class="bi bi-calculator me-1"></i>
+                                                                    Mức tiêu thụ: <span id="consumption-${service.serviceId}">0</span> ${service.unit}
+                                                                </small>
+                                                            </div>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <!-- Quantity input for other services -->
+                                                            <label class="form-label small">Số lượng sử dụng (${service.unit})</label>
+                                                            
+                                                            <c:set var="existingQuantity" value="0" />
+                                                            <c:forEach var="usage" items="${existingUsages}">
+                                                                <c:if test="${usage.serviceId == service.serviceId}">
+                                                                    <c:set var="existingQuantity" value="${usage.quantity}" />
+                                                                </c:if>
+                                                            </c:forEach>
+                                                            
+                                                            <input type="number" 
+                                                                   class="form-control quantity-input" 
+                                                                   name="quantities" 
+                                                                   value="${existingQuantity}"
+                                                                   min="0" 
+                                                                   step="0.01" 
+                                                                   placeholder="Nhập số lượng"
+                                                                   data-price="${service.pricePerUnit}"
+                                                                   data-service="${service.serviceName}"
+                                                                   data-service-id="${service.serviceId}"
+                                                                   data-has-meter="false"
+                                                                   onchange="calculateServiceCost(this)">
+                                                            
+                                                            <div class="form-text small">
+                                                                Nhập số lượng sử dụng ${service.serviceName.toLowerCase()} trong tháng
+                                                            </div>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                     
-                                                    <input type="number" 
-                                                           class="form-control quantity-input" 
-                                                           name="quantities" 
-                                                           value="${existingQuantity}"
-                                                           min="0" 
-                                                           step="0.01" 
-                                                           placeholder="0.00"
-                                                           data-price="${service.pricePerUnit}"
-                                                           data-service="${service.serviceName}"
-                                                           onchange="calculateServiceCost(this)">
+                                                    <!-- Hidden input for service IDs -->
+                                                    <input type="hidden" name="serviceIds" value="${service.serviceId}">
                                                 </div>
                                                 
                                                 <div class="text-end">
                                                     <small class="text-muted">Thành tiền:</small>
                                                     <div class="service-cost h6 text-primary" id="cost-${service.serviceId}">
-                                                        <fmt:formatNumber value="${existingQuantity * service.pricePerUnit}" pattern="#,##0" /> VNĐ
+                                                        0 VNĐ
                                                     </div>
                                                 </div>
                                             </div>
@@ -205,8 +348,8 @@
                         <c:otherwise>
                             <div class="text-center py-4">
                                 <i class="bi bi-info-circle fs-1 text-muted"></i>
-                                <h5 class="text-muted mt-3">Chưa có dịch vụ nào cho ${tenant.fullName}</h5>
-                                <p class="text-muted">Người thuê này chưa sử dụng dịch vụ nào. Bạn có thể:</p>
+                                <h5 class="text-muted mt-3">Chưa có dịch vụ nào cho phòng ${room.roomName}</h5>
+                                <p class="text-muted">Phòng này chưa sử dụng dịch vụ nào. Bạn có thể:</p>
                                 <ul class="list-unstyled text-muted">
                                     <li><i class="bi bi-arrow-right me-2"></i>Thêm dữ liệu sử dụng dịch vụ trước đây qua <a href="${pageContext.request.contextPath}/admin/service-usage/add">Quản lý Sử dụng Dịch vụ</a></li>
                                     <li><i class="bi bi-arrow-right me-2"></i>Hoặc tạo hóa đơn chỉ với tiền phòng và chi phí phát sinh</li>
@@ -271,17 +414,56 @@
                 </button>
             </div>
         </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const roomPrice = ${room.price};
         const additionalTotal = ${additionalTotal};
+        const roomId = ${roomId};
+        const month = ${month};
+        const year = ${year};
+        const contextPath = '${pageContext.request.contextPath}';
+        
+        // Debug context path
+        console.log('DEBUG: Context path from JSP:', contextPath);
+        console.log('DEBUG: Should be: /QuanLyPhongTro');
+        
+        // Store previous readings for each service
+        const previousReadings = {};
+        
+        function calculateConsumption(input) {
+            const currentReading = parseFloat(input.value) || 0;
+            const serviceId = input.dataset.serviceId;
+            const pricePerUnit = parseFloat(input.dataset.price) || 0;
+            const previousReading = previousReadings[serviceId] || 0;
+            
+            // Calculate consumption (current - previous)
+            const consumption = Math.max(0, currentReading - previousReading);
+            const cost = consumption * pricePerUnit;
+            
+            // Update consumption display
+            const consumptionElement = document.getElementById('consumption-' + serviceId);
+            if (consumptionElement) {
+                consumptionElement.textContent = consumption.toFixed(2);
+            }
+            
+            // Update individual service cost display
+            const costElement = document.getElementById('cost-' + serviceId);
+            if (costElement) {
+                costElement.textContent = new Intl.NumberFormat('vi-VN').format(cost) + ' VNĐ';
+            }
+            
+            updateTotalServiceCost();
+        }
         
         function calculateServiceCost(input) {
             const quantity = parseFloat(input.value) || 0;
+            const serviceId = input.dataset.serviceId;
             const pricePerUnit = parseFloat(input.dataset.price) || 0;
-            const serviceId = input.closest('.card').querySelector('input[name="serviceIds"]').value;
             const cost = quantity * pricePerUnit;
             
             // Update individual service cost display
@@ -296,7 +478,18 @@
         function updateTotalServiceCost() {
             let totalServiceCost = 0;
             
-            // Calculate total service cost
+            // Calculate total service cost for meter-based services (electricity, water)
+            const readingInputs = document.querySelectorAll('input[name="currentReadings"]');
+            readingInputs.forEach(input => {
+                const currentReading = parseFloat(input.value) || 0;
+                const serviceId = input.dataset.serviceId;
+                const pricePerUnit = parseFloat(input.dataset.price) || 0;
+                const previousReading = previousReadings[serviceId] || 0;
+                const consumption = Math.max(0, currentReading - previousReading);
+                totalServiceCost += consumption * pricePerUnit;
+            });
+            
+            // Calculate total service cost for quantity-based services (Internet, parking, etc.)
             const quantityInputs = document.querySelectorAll('input[name="quantities"]');
             quantityInputs.forEach(input => {
                 const quantity = parseFloat(input.value) || 0;
@@ -314,8 +507,102 @@
                 new Intl.NumberFormat('vi-VN').format(grandTotal) + ' VNĐ';
         }
         
+        // Load previous meter readings for meter-based services only
+        async function loadPreviousReadings() {
+            const serviceInputs = document.querySelectorAll('input[name="currentReadings"]');
+            
+            for (const input of serviceInputs) {
+                const serviceId = input.dataset.serviceId;
+                const prevReadingElement = document.getElementById('prev-reading-' + serviceId);
+                
+                try {
+                    // Make AJAX call to get the actual previous meter reading
+                    const response = await fetch(contextPath + '/admin/api/meter-readings/previous?roomId=' + roomId + '&serviceId=' + serviceId + '&month=' + month + '&year=' + year);
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    const responseText = await response.text();
+                    
+                    // Try to parse as JSON first
+                    try {
+                        const data = JSON.parse(responseText);
+                        
+                        if (data.error) {
+                            console.error('Server error:', data.error);
+                            previousReadings[serviceId] = 0;
+                            if (prevReadingElement) {
+                                prevReadingElement.textContent = '0.00 (Lỗi)';
+                            }
+                        } else {
+                            const previousReading = parseFloat(data.previousReading) || 0;
+                            previousReadings[serviceId] = previousReading;
+                            
+                            if (prevReadingElement) {
+                                if (data.period) {
+                                    prevReadingElement.textContent = previousReading.toFixed(2) + ' (' + data.period + ')';
+                                } else {
+                                    prevReadingElement.textContent = previousReading.toFixed(2);
+                                }
+                            }
+                            
+                            console.log('Loaded previous reading for service ' + serviceId + ': ' + previousReading);
+                        }
+                    } catch (jsonError) {
+                        // Response is not JSON, try to parse JSP response
+                        console.log('Response is not JSON, parsing JSP response for service', serviceId);
+                        
+                        // Try to extract reading from JSP response
+                        if (responseText.includes('previousReading')) {
+                            // Look for reading value in JSP response
+                            const readingMatch = responseText.match(/reading["']?\s*:\s*([\d.]+)/);
+                            if (readingMatch) {
+                                const previousReading = parseFloat(readingMatch[1]) || 0;
+                                previousReadings[serviceId] = previousReading;
+                                
+                                if (prevReadingElement) {
+                                    prevReadingElement.textContent = previousReading.toFixed(2);
+                                }
+                                
+                                console.log('Parsed previous reading from JSP for service ' + serviceId + ': ' + previousReading);
+                            } else {
+                                // No reading found
+                                previousReadings[serviceId] = 0;
+                                if (prevReadingElement) {
+                                    prevReadingElement.textContent = '0.00 (Chưa có dữ liệu)';
+                                }
+                            }
+                        } else {
+                            // No previous reading data
+                            previousReadings[serviceId] = 0;
+                            if (prevReadingElement) {
+                                prevReadingElement.textContent = '0.00 (Chưa có dữ liệu)';
+                            }
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading previous reading for service', serviceId, error);
+                    previousReadings[serviceId] = 0;
+                    if (prevReadingElement) {
+                        prevReadingElement.textContent = '0.00 (Không có dữ liệu)';
+                    }
+                }
+            }
+            
+            // Initialize costs for quantity-based services
+            const quantityInputs = document.querySelectorAll('input[name="quantities"]');
+            quantityInputs.forEach(input => {
+                if (input.value) {
+                    calculateServiceCost(input);
+                }
+            });
+        }
+        
         // Initialize calculations on page load
         document.addEventListener('DOMContentLoaded', function() {
+            loadPreviousReadings();
             updateTotalServiceCost();
         });
     </script>

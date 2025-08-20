@@ -198,9 +198,18 @@
                             <i class="bi bi-person-check me-2"></i>
                             Quản lý Thuê trọ
                         </a>
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/additional-costs">
+                            <i class="bi bi-receipt-cutoff me-2"></i>
+                            Chi phí phát sinh
+                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
+                        </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
@@ -280,6 +289,11 @@
                                 Chọn Khách hàng <span class="required-field">*</span>
                             </h5>
                             
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Lưu ý:</strong> Chỉ hiển thị những khách hàng chưa thuê phòng nào. Một phòng có thể có tối đa 4 người thuê.
+                            </div>
+                            
                             <c:choose>
                                 <c:when test="${not empty availableUsers}">
                                     <div class="row selection-grid">
@@ -343,6 +357,11 @@
                                 <i class="bi bi-door-open me-2"></i>
                                 Chọn Phòng trọ <span class="required-field">*</span>
                             </h5>
+                            
+                            <div class="alert alert-success mb-3">
+                                <i class="bi bi-people me-2"></i>
+                                <strong>Thông tin:</strong> Chỉ hiển thị các phòng còn chỗ trống (dưới 4 người). Số trong ngoặc cho biết số người hiện tại/tối đa.
+                            </div>
                             
                             <c:choose>
                                 <c:when test="${not empty availableRooms}">
@@ -409,9 +428,9 @@
                             
                             <c:choose>
                                 <c:when test="${not empty availableServices}">
-                                    <p class="text-muted mb-3">
-                                        Chọn các dịch vụ mà khách hàng sẽ sử dụng. Bạn có thể bỏ trống nếu không có dịch vụ nào.
-                                    </p>
+                    <p class="text-muted mb-3">
+                        Chọn các dịch vụ mà khách hàng sẽ sử dụng. Đối với <strong>điện và nước</strong>, bạn cần nhập chỉ số công tơ ban đầu. Các dịch vụ khác (Internet, giữ xe, v.v.) sẽ được tính theo gói cố định.
+                    </p>
                                     <div class="row">
                                         <c:forEach var="service" items="${availableServices}">
                                             <div class="col-md-6 col-lg-4 mb-3">
@@ -422,7 +441,9 @@
                                                                    type="checkbox" 
                                                                    name="serviceIds" 
                                                                    value="${service.serviceId}"
-                                                                   id="service_${service.serviceId}">
+                                                                   id="service_${service.serviceId}"
+                                                                   data-service-name="${service.serviceName}"
+                                                                   data-service-unit="${service.unit}">
                                                             <label class="form-check-label w-100" for="service_${service.serviceId}">
                                                                 <div class="d-flex justify-content-between align-items-start">
                                                                     <div>
@@ -437,6 +458,27 @@
                                                                     <i class="bi bi-tools text-primary"></i>
                                                                 </div>
                                                             </label>
+                                                            
+                                                            <!-- Meter Reading Input (only for electricity and water) -->
+                                                            <c:set var="serviceLower" value="${service.serviceName.toLowerCase()}" />
+                                                            <c:if test="${serviceLower.contains('điện') || serviceLower.contains('nước') || serviceLower.contains('electric') || serviceLower.contains('water')}">
+                                                                <div class="meter-reading-input mt-3" id="meter_${service.serviceId}" style="display: none;">
+                                                                    <label class="form-label small">
+                                                                        <i class="bi bi-speedometer2 me-1"></i>
+                                                                        Chỉ số công tơ ban đầu (${service.unit}):
+                                                                    </label>
+                                                                    <input type="number" 
+                                                                           class="form-control form-control-sm" 
+                                                                           name="initialReadings" 
+                                                                           step="0.01" 
+                                                                           min="0" 
+                                                                           placeholder="Nhập chỉ số hiện tại"
+                                                                           data-has-meter="true">
+                                                                    <div class="form-text small">
+                                                                        Nhập chỉ số công tơ hiện tại của ${service.serviceName.toLowerCase()}
+                                                                    </div>
+                                                                </div>
+                                                            </c:if>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -634,11 +676,37 @@
             document.querySelectorAll('.service-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
                     const serviceCard = this.closest('.service-card');
+                    const meterInput = document.getElementById('meter_' + this.value);
+                    
                     if (this.checked) {
                         serviceCard.classList.add('selected');
+                        // Only show meter input if it exists (for electricity and water)
+                        if (meterInput) {
+                            const readingInput = meterInput.querySelector('input[name="initialReadings"]');
+                            meterInput.style.display = 'block';
+                            if (readingInput) {
+                                readingInput.required = true;
+                            }
+                        }
                     } else {
                         serviceCard.classList.remove('selected');
+                        // Only hide meter input if it exists
+                        if (meterInput) {
+                            const readingInput = meterInput.querySelector('input[name="initialReadings"]');
+                            meterInput.style.display = 'none';
+                            if (readingInput) {
+                                readingInput.required = false;
+                                readingInput.value = '';
+                            }
+                        }
                     }
+                    updateSelectedServices();
+                });
+            });
+            
+            // Add event listeners to meter reading inputs to update display
+            document.querySelectorAll('input[name="initialReadings"]').forEach(input => {
+                input.addEventListener('input', function() {
                     updateSelectedServices();
                 });
             });
@@ -665,7 +733,9 @@
             document.querySelectorAll('.service-card').forEach(card => {
                 card.addEventListener('click', function(e) {
                     const checkbox = this.querySelector('.service-checkbox');
-                    if (e.target.type !== 'checkbox' && e.target.tagName !== 'LABEL') {
+                    // Don't toggle if clicking on meter reading input or its label
+                    if (e.target.type !== 'checkbox' && e.target.tagName !== 'LABEL' && 
+                        e.target.type !== 'number' && !e.target.closest('.meter-reading-input')) {
                         checkbox.checked = !checkbox.checked;
                         checkbox.dispatchEvent(new Event('change'));
                     }
@@ -685,6 +755,23 @@
                     const label = checkbox.nextElementSibling;
                     const serviceName = label.querySelector('h6').textContent;
                     const servicePrice = label.querySelector('small').textContent;
+                    const meterInput = document.getElementById('meter_' + checkbox.value);
+                    
+                    let readingHtml = '';
+                    // Only show meter reading info if meter input exists (for electricity and water)
+                    if (meterInput) {
+                        const readingInput = meterInput.querySelector('input[name="initialReadings"]');
+                        const readingValue = readingInput ? readingInput.value : '';
+                        
+                        if (readingValue) {
+                            readingHtml = '<br><small class="text-info"><i class="bi bi-speedometer2 me-1"></i>Chỉ số: ' + readingValue + ' ' + checkbox.dataset.serviceUnit + '</small>';
+                        } else {
+                            readingHtml = '<br><small class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Chưa nhập chỉ số</small>';
+                        }
+                    } else {
+                        // For services without meter (Internet, parking, etc.)
+                        readingHtml = '<br><small class="text-muted"><i class="bi bi-info-circle me-1"></i>Dịch vụ cố định</small>';
+                    }
                     
                     servicesHtml += 
                         '<div class="col-md-6 mb-2">' +
@@ -693,6 +780,7 @@
                                 '<div>' +
                                     '<strong>' + serviceName + '</strong><br>' +
                                     '<small class="text-muted">' + servicePrice + '</small>' +
+                                    readingHtml +
                                 '</div>' +
                             '</div>' +
                         '</div>';

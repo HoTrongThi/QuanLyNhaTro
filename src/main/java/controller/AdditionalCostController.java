@@ -80,7 +80,7 @@ public class AdditionalCostController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getAllTenants();
+        List<Tenant> tenants = tenantDAO.getActiveTenants();
         
         model.addAttribute("user", user);
         model.addAttribute("additionalCost", new AdditionalCost());
@@ -158,7 +158,7 @@ public class AdditionalCostController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getAllTenants();
+        List<Tenant> tenants = tenantDAO.getActiveTenants();
         
         // Format date for form
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

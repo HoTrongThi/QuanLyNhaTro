@@ -17,9 +17,6 @@
     <context:component-scan base-package="model" />
     <context:component-scan base-package="util" />
 
-    <!-- Enable Spring MVC Annotations -->
-    <mvc:annotation-driven />
-
     <!-- View Resolver for JSP -->
     <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
         <property name="prefix" value="/WEB-INF/views/" />
@@ -53,7 +50,7 @@
         <property name="defaultErrorView" value="error/500" />
     </bean>
 
-    <!-- JSON Message Converter -->
+    <!-- Enable Spring MVC Annotations with JSON Message Converter -->
     <mvc:annotation-driven>
         <mvc:message-converters>
             <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">

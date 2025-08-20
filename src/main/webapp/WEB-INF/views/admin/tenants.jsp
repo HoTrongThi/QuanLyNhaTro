@@ -165,6 +165,10 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
+                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -332,6 +336,7 @@
                                                     <th width="60">#</th>
                                                     <th>Tên khách thuê</th>
                                                     <th>Phòng</th>
+                                                    <th>Số người/Phòng</th>
                                                     <th>Giá phòng</th>
                                                     <th width="200">Dịch vụ đã chọn</th>
                                                     <th width="120">Ngày bắt đầu</th>
@@ -358,6 +363,15 @@
                                                         </td>
                                                         <td class="align-middle">
                                                             <strong>${tenant.roomName}</strong>
+                                                        </td>
+                                                        <td class="align-middle">
+                                                            <c:set var="roomTenantCount" value="${roomTenantCounts[tenant.roomId]}" />
+                                                            <span class="badge bg-info">
+                                                                ${roomTenantCount != null ? roomTenantCount : 1}/4 người
+                                                            </span>
+                                                            <c:if test="${roomTenantCount >= 4}">
+                                                                <br><small class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Đầy phòng</small>
+                                                            </c:if>
                                                         </td>
                                                         <td class="align-middle">
                                                             <span class="fw-bold text-success">

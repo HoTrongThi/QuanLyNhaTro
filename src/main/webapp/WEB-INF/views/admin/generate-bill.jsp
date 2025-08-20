@@ -12,28 +12,41 @@
         .sidebar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            color: white;
         }
         
         .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255, 255, 255, 0.8);
             border-radius: 10px;
             margin: 2px 0;
         }
         
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background: rgba(255,255,255,0.2);
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
             color: white;
         }
         
         .main-content {
-            background-color: #f8f9fa;
+            background: #f8f9fa;
             min-height: 100vh;
+        }
+        
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .card {
             border: none;
             border-radius: 15px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
         }
         
         .form-control, .form-select {
@@ -74,59 +87,96 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="d-flex flex-column p-3">
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="p-3">
+                    <h4 class="text-center mb-4">
+                        <i class="bi bi-building me-2"></i>
+                        Admin Panel
+                    </h4>
+                    
                     <div class="text-center mb-4">
-                        <i class="bi bi-building fs-1 text-white"></i>
-                        <h4 class="text-white">Admin Panel</h4>
+                        <div class="bg-light text-dark rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-gear fs-3"></i>
+                        </div>
+                        <div class="mt-2">
+                            <strong>${user.fullName}</strong>
+                            <br>
+                            <small class="text-light">Quản trị viên</small>
+                        </div>
                     </div>
                     
-                    <nav class="nav nav-pills flex-column">
-                        <a href="${pageContext.request.contextPath}/admin/dashboard" class="nav-link">
-                            <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Bảng điều khiển
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/rooms" class="nav-link">
-                            <i class="bi bi-door-open me-2"></i>Phòng trọ
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/users">
+                            <i class="bi bi-people me-2"></i>
+                            Quản lý Người dùng
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/tenants" class="nav-link">
-                            <i class="bi bi-people me-2"></i>Người thuê
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/rooms">
+                            <i class="bi bi-door-open me-2"></i>
+                            Quản lý Phòng trọ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/services" class="nav-link">
-                            <i class="bi bi-tools me-2"></i>Dịch vụ
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/services">
+                            <i class="bi bi-tools me-2"></i>
+                            Quản lý Dịch vụ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/service-usage" class="nav-link">
-                            <i class="bi bi-graph-up me-2"></i>Sử dụng DV
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/tenants">
+                            <i class="bi bi-person-check me-2"></i>
+                            Quản lý Thuê trọ
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/additional-costs" class="nav-link">
-                            <i class="bi bi-plus-circle me-2"></i>Chi phí PS
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/additional-costs">
+                            <i class="bi bi-receipt-cutoff me-2"></i>
+                            Chi phí phát sinh
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/bills" class="nav-link active">
-                            <i class="bi bi-receipt me-2"></i>Hóa đơn
+                        <a class="nav-link active" href="${pageContext.request.contextPath}/admin/bills">
+                            <i class="bi bi-receipt me-2"></i>
+                            Quản lý Hóa đơn
                         </a>
-                        <a href="${pageContext.request.contextPath}/admin/users" class="nav-link">
-                            <i class="bi bi-person-gear me-2"></i>Người dùng
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
+                            <i class="bi bi-chat-dots me-2"></i>
+                            Tin nhắn
                         </a>
-                        <hr class="text-white">
-                        <a href="${pageContext.request.contextPath}/logout" class="nav-link">
-                            <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
+                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Báo cáo & Thống kê
+                        </a>
+                        <hr class="text-light">
+                        <a class="nav-link text-warning" href="${pageContext.request.contextPath}/logout">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Đăng xuất
                         </a>
                     </nav>
                 </div>
             </div>
             
             <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content p-4">
-                <!-- Header -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2><i class="bi bi-plus-lg me-2"></i>${pageTitle}</h2>
-                        <p class="text-muted mb-0">Tạo hóa đơn mới cho người thuê</p>
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Top Navigation -->
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <div class="container-fluid">
+                        <h5 class="navbar-brand mb-0">${pageTitle}</h5>
+                        <div class="navbar-nav ms-auto">
+                            <div class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle me-1"></i>
+                                    ${user.fullName}
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#">Thông tin cá nhân</a></li>
+                                    <li><a class="dropdown-item" href="#">Cài đặt</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">Đăng xuất</a></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-end">
-                        <span class="text-muted">Xin chào, </span>
-                        <strong>${user.fullName}</strong>
-                    </div>
-                </div>
+                </nav>
+                
+                <!-- Generate Bill Content -->
+                <div class="p-4">
                 
                 <!-- Success/Error Messages -->
                 <c:if test="${not empty success}">
@@ -160,7 +210,7 @@
                                             <small class="text-muted">
                                                 • Hóa đơn sẽ tự động tính tổng: Tiền phòng + Tiền dịch vụ + Chi phí phát sinh<br>
                                                 • Đảm bảo đã nhập đầy đủ thông tin sử dụng dịch vụ và chi phí phát sinh trước khi tạo hóa đơn<br>
-                                                • Mỗi người thuê chỉ có thể có 1 hóa đơn cho mỗi kỳ thanh toán
+                                                • Mỗi phòng chỉ có thể có 1 hóa đơn cho mỗi kỳ thanh toán
                                             </small>
                                         </div>
                                     </div>
@@ -170,17 +220,17 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="mb-3">
-                                                <label for="tenantId" class="form-label">
-                                                    <i class="bi bi-person me-1"></i>Người thuê <span class="text-danger">*</span>
+                                                <label for="roomId" class="form-label">
+                                                    <i class="bi bi-door-open me-1"></i>Phòng <span class="text-danger">*</span>
                                                 </label>
-                                                <select class="form-select" id="tenantId" name="tenantId" required onchange="updateTenantInfo()">
-                                                    <option value="">-- Chọn người thuê --</option>
-                                                    <c:forEach var="tenant" items="${tenants}">
-                                                        <option value="${tenant.tenantId}" 
-                                                                data-name="${tenant.fullName}" 
-                                                                data-room="${tenant.roomName}"
-                                                                data-phone="${tenant.phone}">
-                                                            ${tenant.fullName} - ${tenant.roomName}
+                                                <select class="form-select" id="roomId" name="roomId" required onchange="updateRoomInfo()">
+                                                    <option value="">-- Chọn phòng --</option>
+                                                    <c:forEach var="room" items="${rooms}">
+                                                        <option value="${room.roomId}" 
+                                                                data-name="${room.roomName}" 
+                                                                data-price="${room.price}"
+                                                                data-status="${room.status}">
+                                                            ${room.roomName} - ${room.price} VNĐ
                                                         </option>
                                                     </c:forEach>
                                                 </select>
@@ -220,19 +270,19 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Tenant Info Display -->
-                                    <div id="tenantInfo" class="alert alert-info" style="display: none;">
+                                    <!-- Room Info Display -->
+                                    <div id="roomInfo" class="alert alert-info" style="display: none;">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <strong><i class="bi bi-person me-1"></i>Tên:</strong> <span id="displayTenantName">-</span>
+                                                <strong><i class="bi bi-door-open me-1"></i>Phòng:</strong> <span id="displayRoomName">-</span>
                                             </div>
                                             <div class="col-md-6">
-                                                <strong><i class="bi bi-telephone me-1"></i>SĐT:</strong> <span id="displayTenantPhone">-</span>
+                                                <strong><i class="bi bi-cash me-1"></i>Giá phòng:</strong> <span id="displayRoomPrice">-</span>
                                             </div>
                                         </div>
                                         <div class="row mt-2">
                                             <div class="col-md-6">
-                                                <strong><i class="bi bi-door-open me-1"></i>Phòng:</strong> <span id="displayRoomName">-</span>
+                                                <strong><i class="bi bi-info-circle me-1"></i>Trạng thái:</strong> <span id="displayRoomStatus">-</span>
                                             </div>
                                             <div class="col-md-6">
                                                 <strong><i class="bi bi-calendar-event me-1"></i>Kỳ:</strong> 
@@ -254,28 +304,35 @@
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function updateTenantInfo() {
-            const tenantSelect = document.getElementById('tenantId');
+        function updateRoomInfo() {
+            const roomSelect = document.getElementById('roomId');
             const monthSelect = document.getElementById('month');
             const yearSelect = document.getElementById('year');
-            const tenantInfo = document.getElementById('tenantInfo');
+            const roomInfo = document.getElementById('roomInfo');
             
-            if (tenantSelect.value) {
-                const selectedOption = tenantSelect.options[tenantSelect.selectedIndex];
-                document.getElementById('displayTenantName').textContent = selectedOption.getAttribute('data-name');
-                document.getElementById('displayTenantPhone').textContent = selectedOption.getAttribute('data-phone');
-                document.getElementById('displayRoomName').textContent = selectedOption.getAttribute('data-room');
+            if (roomSelect.value) {
+                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
+                document.getElementById('displayRoomName').textContent = selectedOption.getAttribute('data-name');
+                document.getElementById('displayRoomPrice').textContent = selectedOption.getAttribute('data-price') + ' VNĐ';
+                
+                const status = selectedOption.getAttribute('data-status');
+                let statusText = status;
+                if (status === 'OCCUPIED') statusText = 'Đang thuê';
+                else if (status === 'AVAILABLE') statusText = 'Trống';
+                else if (status === 'MAINTENANCE') statusText = 'Bảo trì';
+                document.getElementById('displayRoomStatus').textContent = statusText;
                 
                 updatePeriodDisplay();
-                tenantInfo.style.display = 'block';
+                roomInfo.style.display = 'block';
             } else {
-                tenantInfo.style.display = 'none';
+                roomInfo.style.display = 'none';
             }
         }
         
@@ -294,13 +351,13 @@
         
         // Update period display when month or year changes
         document.getElementById('month').addEventListener('change', function() {
-            if (document.getElementById('tenantId').value) {
+            if (document.getElementById('roomId').value) {
                 updatePeriodDisplay();
             }
         });
         
         document.getElementById('year').addEventListener('change', function() {
-            if (document.getElementById('tenantId').value) {
+            if (document.getElementById('roomId').value) {
                 updatePeriodDisplay();
             }
         });
@@ -308,11 +365,11 @@
         // Form validation
         document.getElementById('generateBillForm').addEventListener('submit', function(e) {
             const submitBtn = document.getElementById('submitBtn');
-            const tenantId = document.getElementById('tenantId').value;
+            const roomId = document.getElementById('roomId').value;
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
             
-            if (!tenantId || !month || !year) {
+            if (!roomId || !month || !year) {
                 e.preventDefault();
                 alert('Vui lòng điền đầy đủ thông tin!');
                 return;

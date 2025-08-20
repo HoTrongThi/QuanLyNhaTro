@@ -7,11 +7,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.util.ArrayList;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Bill Management Controller
@@ -38,6 +43,9 @@ public class BillController {
     
     @Autowired
     private RoomDAO roomDAO;
+    
+    @Autowired
+    private MeterReadingDAO meterReadingDAO;
     
     /**
      * Check if user is admin
@@ -68,6 +76,18 @@ public class BillController {
         
         User user = (User) session.getAttribute("user");
         List<Invoice> invoices = invoiceDAO.getAllInvoices();
+        
+        // For each invoice, get the room information and tenants count
+        for (Invoice invoice : invoices) {
+            // Get tenant information to find room
+            Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
+            if (tenant != null) {
+                // Get all tenants in the same room
+                List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(tenant.getRoomId());
+                // Set additional info for display
+                invoice.setTenantsCount(tenantsInRoom.size());
+            }
+        }
         
         model.addAttribute("user", user);
         model.addAttribute("invoices", invoices);
@@ -277,7 +297,7 @@ public class BillController {
     }
     
     /**
-     * Show generate bill form (Step 1: Select tenant and period)
+     * Show generate bill form (Step 1: Select room and period)
      */
     @GetMapping("/bills/generate")
     public String showGenerateBillForm(HttpSession session, Model model) {
@@ -287,7 +307,7 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getAllTenants();
+        List<Room> rooms = roomDAO.getAllRooms();
         
         // Get current month and year for default values
         Calendar cal = Calendar.getInstance();
@@ -295,10 +315,10 @@ public class BillController {
         int currentYear = cal.get(Calendar.YEAR);
         
         model.addAttribute("user", user);
-        model.addAttribute("tenants", tenants);
+        model.addAttribute("rooms", rooms);
         model.addAttribute("currentMonth", currentMonth);
         model.addAttribute("currentYear", currentYear);
-        model.addAttribute("pageTitle", "Tạo Hóa đơn - Chọn người thuê");
+        model.addAttribute("pageTitle", "Tạo Hóa đơn - Chọn phòng");
         
         return "admin/generate-bill";
     }
@@ -307,7 +327,7 @@ public class BillController {
      * Show service usage input form (Step 2: Enter service quantities)
      */
     @PostMapping("/bills/generate/services")
-    public String showServiceUsageForm(@RequestParam int tenantId,
+    public String showServiceUsageForm(@RequestParam int roomId,
                                      @RequestParam int month,
                                      @RequestParam int year,
                                      HttpSession session,
@@ -325,40 +345,36 @@ public class BillController {
             return "redirect:/admin/bills/generate";
         }
         
-        // Check if invoice already exists for this period
-        if (invoiceDAO.invoiceExistsForPeriod(tenantId, month, year)) {
-            redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho kỳ này");
-            return "redirect:/admin/bills/generate";
-        }
-        
-        // Get tenant information
-        Tenant tenant = tenantDAO.getTenantById(tenantId);
-        if (tenant == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy người thuê");
-            return "redirect:/admin/bills/generate";
-        }
-        
         // Get room information
-        Room room = roomDAO.getRoomById(tenant.getRoomId());
+        Room room = roomDAO.getRoomById(roomId);
         if (room == null) {
             redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
             return "redirect:/admin/bills/generate";
         }
         
+        // Check if invoice already exists for this room and period
+        if (invoiceDAO.invoiceExistsForRoomAndPeriod(roomId, month, year)) {
+            redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho phòng này trong kỳ này");
+            return "redirect:/admin/bills/generate";
+        }
+        
+        // Get tenants in this room
+        List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
+        
         // Get all available services (simplified to avoid potential database issues)
         List<Service> services = serviceDAO.getAllServices();
         
-        // TODO: Later, we can implement tenant-specific services once the basic flow works
-        // List<Service> servicesUsedByTenant = serviceDAO.getServicesUsedByTenant(tenantId);
-        // if (!servicesUsedByTenant.isEmpty()) {
-        //     services = servicesUsedByTenant;
+        // TODO: Later, we can implement room-specific services once the basic flow works
+        // List<Service> servicesUsedByRoom = serviceDAO.getServicesUsedByRoom(roomId);
+        // if (!servicesUsedByRoom.isEmpty()) {
+        //     services = servicesUsedByRoom;
         // }
         
-        // Get existing service usages for this tenant and period
-        List<ServiceUsage> existingUsages = serviceUsageDAO.getServiceUsageByTenantAndPeriod(tenantId, month, year);
+        // Get existing service usages for this room and period
+        List<ServiceUsage> existingUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(roomId, month, year);
         
-        // Get additional costs for this tenant and period
-        List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByTenantAndPeriod(tenantId, month, year);
+        // Get additional costs for this room and period
+        List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByRoomAndPeriod(roomId, month, year);
         BigDecimal additionalTotal = additionalCosts.stream()
                 .map(AdditionalCost::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -366,13 +382,13 @@ public class BillController {
         User user = (User) session.getAttribute("user");
         
         model.addAttribute("user", user);
-        model.addAttribute("tenant", tenant);
         model.addAttribute("room", room);
+        model.addAttribute("tenantsInRoom", tenantsInRoom);
         model.addAttribute("services", services);
         model.addAttribute("existingUsages", existingUsages);
         model.addAttribute("additionalCosts", additionalCosts);
         model.addAttribute("additionalTotal", additionalTotal);
-        model.addAttribute("tenantId", tenantId);
+        model.addAttribute("roomId", roomId);
         model.addAttribute("month", month);
         model.addAttribute("year", year);
         model.addAttribute("pageTitle", "Tạo Hóa đơn - Nhập sử dụng dịch vụ");
@@ -384,10 +400,11 @@ public class BillController {
      * Process service usage and generate final bill (Step 3: Create bill with service quantities)
      */
     @PostMapping("/bills/generate/final")
-    public String generateBillWithServices(@RequestParam int tenantId,
+    public String generateBillWithServices(@RequestParam int roomId,
                                          @RequestParam int month,
                                          @RequestParam int year,
                                          @RequestParam(required = false) List<Integer> serviceIds,
+                                         @RequestParam(required = false) List<String> currentReadings,
                                          @RequestParam(required = false) List<String> quantities,
                                          HttpSession session,
                                          RedirectAttributes redirectAttributes) {
@@ -398,71 +415,175 @@ public class BillController {
         }
         
         try {
+            
             // Validate basic input
             if (month < 1 || month > 12 || year < 2000 || year > 2100) {
                 redirectAttributes.addFlashAttribute("error", "Tháng và năm không hợp lệ");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Check if invoice already exists for this period
-            if (invoiceDAO.invoiceExistsForPeriod(tenantId, month, year)) {
-                redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho kỳ này");
+            // Check if invoice already exists for this room and period
+            if (invoiceDAO.invoiceExistsForRoomAndPeriod(roomId, month, year)) {
+                redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho phòng này trong kỳ này");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Get tenant and room information
-            Tenant tenant = tenantDAO.getTenantById(tenantId);
-            if (tenant == null) {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy người thuê");
-                return "redirect:/admin/bills/generate";
-            }
-            
-            Room room = roomDAO.getRoomById(tenant.getRoomId());
+            // Get room information
+            Room room = roomDAO.getRoomById(roomId);
             if (room == null) {
                 redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Process service usage data
-            if (serviceIds != null && quantities != null && serviceIds.size() == quantities.size()) {
+            // Get tenants in this room
+            List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
+            if (tenantsInRoom.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Không có người thuê nào trong phòng này");
+                return "redirect:/admin/bills/generate";
+            }
+            
+            // Process meter readings for electricity and water services
+            // For room-based billing, we'll use the first tenant (by ID) for meter readings
+            // This must match the logic in ServiceUsageDAO.calculateServiceTotalByRoom()
+            int representativeTenantId = tenantsInRoom.stream()
+                .mapToInt(Tenant::getTenantId)
+                .min()
+                .orElse(0);
+            
+            if (representativeTenantId == 0) {
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy người thuê đại diện cho phòng này");
+                return "redirect:/admin/bills/generate";
+            }
+            
+            if (serviceIds != null && currentReadings != null) {
+                // Process meter readings - match services that have meters with readings
+                int readingIndex = 0;
                 for (int i = 0; i < serviceIds.size(); i++) {
                     int serviceId = serviceIds.get(i);
-                    String quantityStr = quantities.get(i);
                     
-                    if (quantityStr != null && !quantityStr.trim().isEmpty()) {
-                        try {
-                            BigDecimal quantity = new BigDecimal(quantityStr.trim());
+                    // Check if this service uses meter readings (electricity, water)
+                    Service service = serviceDAO.getServiceById(serviceId);
+                    if (service != null) {
+                        String serviceName = service.getServiceName().toLowerCase();
+                        boolean hasMeter = serviceName.contains("điện") || serviceName.contains("nước") || 
+                                          serviceName.contains("electric") || serviceName.contains("water");
+                        
+                        if (hasMeter && readingIndex < currentReadings.size()) {
+                            String currentReadingStr = currentReadings.get(readingIndex);
+                            readingIndex++; // Increment for next meter service
                             
-                            // Check if service usage already exists
-                            if (serviceUsageDAO.serviceUsageExists(tenantId, serviceId, month, year)) {
-                                // Update existing usage
-                                ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(tenantId, month, year)
-                                    .stream()
-                                    .filter(usage -> usage.getServiceId() == serviceId)
-                                    .findFirst()
-                                    .orElse(null);
-                                
-                                if (existingUsage != null) {
-                                    existingUsage.setQuantity(quantity);
-                                    serviceUsageDAO.updateServiceUsage(existingUsage);
+                            if (currentReadingStr != null && !currentReadingStr.trim().isEmpty()) {
+                                try {
+                                    BigDecimal currentReading = new BigDecimal(currentReadingStr.trim());
+                                    
+                                    // Get previous meter reading (using representative tenant)
+                                    MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
+                                    BigDecimal previousReadingValue = (previousReading != null) ? previousReading.getReading() : BigDecimal.ZERO;
+                                    
+                                    // Calculate consumption
+                                    BigDecimal consumption = currentReading.subtract(previousReadingValue);
+                                    if (consumption.compareTo(BigDecimal.ZERO) < 0) {
+                                        consumption = BigDecimal.ZERO; // Prevent negative consumption
+                                    }
+                                    
+                                    // Save current meter reading (using representative tenant)
+                                    Date currentDate = Date.valueOf(java.time.LocalDate.now());
+                                    MeterReading newReading = new MeterReading(representativeTenantId, serviceId, currentReading, currentDate, month, year);
+                                    
+                                    // Check if meter reading already exists for this period
+                                    if (meterReadingDAO.meterReadingExists(representativeTenantId, serviceId, month, year)) {
+                                        // Update existing reading
+                                        MeterReading existingReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(representativeTenantId, serviceId, month, year);
+                                        if (existingReading != null) {
+                                            existingReading.setReading(currentReading);
+                                            existingReading.setReadingDate(currentDate);
+                                            meterReadingDAO.updateMeterReading(existingReading);
+                                        }
+                                    } else {
+                                        // Add new meter reading
+                                        meterReadingDAO.addMeterReading(newReading);
+                                    }
+                                    
+                                    // Update or create service usage record with calculated consumption (using representative tenant)
+                                    if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
+                                        // Update existing usage
+                                        ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
+                                            .stream()
+                                            .filter(usage -> usage.getServiceId() == serviceId)
+                                            .findFirst()
+                                            .orElse(null);
+                                        
+                                        if (existingUsage != null) {
+                                            existingUsage.setQuantity(consumption);
+                                            serviceUsageDAO.updateServiceUsage(existingUsage);
+                                        }
+                                    } else {
+                                        // Create new usage record
+                                        ServiceUsage newUsage = new ServiceUsage(representativeTenantId, serviceId, month, year, consumption);
+                                        serviceUsageDAO.addServiceUsage(newUsage);
+                                    }
+                                    
+                                } catch (NumberFormatException e) {
+                                    redirectAttributes.addFlashAttribute("error", "Chỉ số công tơ không hợp lệ: " + currentReadingStr);
+                                    return "redirect:/admin/bills/generate";
                                 }
-                            } else {
-                                // Create new usage record
-                                ServiceUsage newUsage = new ServiceUsage(tenantId, serviceId, month, year, quantity);
-                                serviceUsageDAO.addServiceUsage(newUsage);
                             }
-                        } catch (NumberFormatException e) {
-                            redirectAttributes.addFlashAttribute("error", "Số lượng sử dụng dịch vụ không hợp lệ: " + quantityStr);
-                            return "redirect:/admin/bills/generate";
                         }
                     }
                 }
             }
             
-            // Calculate totals after updating service usage
+            // Process quantities for other services (Internet, parking, etc.)
+            if (serviceIds != null && quantities != null) {
+                // Process quantities - match by index
+                int maxIndex = Math.min(serviceIds.size(), quantities.size());
+                for (int i = 0; i < maxIndex; i++) {
+                    int serviceId = serviceIds.get(i);
+                    String quantityStr = (i < quantities.size()) ? quantities.get(i) : null;
+                    
+                    // Check if this service doesn't use meter readings
+                    Service service = serviceDAO.getServiceById(serviceId);
+                    if (service != null) {
+                        String serviceName = service.getServiceName().toLowerCase();
+                        boolean hasMeter = serviceName.contains("điện") || serviceName.contains("nước") || 
+                                          serviceName.contains("electric") || serviceName.contains("water");
+                        
+                        if (!hasMeter && quantityStr != null && !quantityStr.trim().isEmpty()) {
+                            try {
+                                BigDecimal quantity = new BigDecimal(quantityStr.trim());
+                                
+                                // Update or create service usage record with quantity (using representative tenant)
+                                if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
+                                    // Update existing usage
+                                    ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
+                                        .stream()
+                                        .filter(usage -> usage.getServiceId() == serviceId)
+                                        .findFirst()
+                                        .orElse(null);
+                                    
+                                    if (existingUsage != null) {
+                                        existingUsage.setQuantity(quantity);
+                                        serviceUsageDAO.updateServiceUsage(existingUsage);
+                                    }
+                                } else {
+                                    // Create new usage record
+                                    ServiceUsage newUsage = new ServiceUsage(representativeTenantId, serviceId, month, year, quantity);
+                                    serviceUsageDAO.addServiceUsage(newUsage);
+                                }
+                                
+                            } catch (NumberFormatException e) {
+                                redirectAttributes.addFlashAttribute("error", "Số lượng dịch vụ không hợp lệ: " + quantityStr);
+                                return "redirect:/admin/bills/generate";
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Calculate totals after updating service usage - now room-based
             BigDecimal roomPrice = room.getPrice();
-            BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotal(tenantId, month, year);
-            BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotal(tenantId, month, year);
+            BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotalByRoom(roomId, month, year);
+            BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotalByRoom(roomId, month, year);
             
             // Ensure no nulls in calculations
             roomPrice = roomPrice != null ? roomPrice : BigDecimal.ZERO;
@@ -471,15 +592,20 @@ public class BillController {
             
             BigDecimal totalAmount = roomPrice.add(serviceTotal).add(additionalTotal);
             
-            // Create invoice
-            Invoice invoice = new Invoice(tenantId, month, year, roomPrice, serviceTotal, additionalTotal, totalAmount);
+            // Create invoice using the representative tenant (representing the room)
+            Invoice invoice = new Invoice(representativeTenantId, month, year, roomPrice, serviceTotal, additionalTotal, totalAmount);
             invoice.setStatus("UNPAID");
             
             boolean success = invoiceDAO.createInvoice(invoice);
             
             if (success) {
+                String tenantNames = tenantsInRoom.stream()
+                    .map(Tenant::getFullName)
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("Không xác định");
                 redirectAttributes.addFlashAttribute("success", 
-                    "Tạo hóa đơn thành công! Tổng tiền: " + totalAmount.toString() + " VND");
+                    "Tạo hóa đơn thành công cho phòng " + room.getRoomName() + 
+                    " (" + tenantNames + ")! Tổng tiền: " + totalAmount.toString() + " VNĐ");
             } else {
                 redirectAttributes.addFlashAttribute("error", "Tạo hóa đơn thất bại. Vui lòng thử lại.");
             }
@@ -665,6 +791,76 @@ public class BillController {
         
         return "redirect:/admin/bills";
     }
+    
+    /**
+     * Get previous meter reading for AJAX call using JSP
+     */
+    @GetMapping("/api/meter-readings/previous")
+    public String getPreviousMeterReadingJsp(@RequestParam int roomId,
+                                             @RequestParam int serviceId,
+                                             @RequestParam int month,
+                                             @RequestParam int year,
+                                             HttpSession session,
+                                             Model model) {
+        
+        String accessCheck = checkAdminAccess(session);
+        if (accessCheck != null) {
+            model.addAttribute("error", "Access denied");
+            return "admin/previous-meter-reading";
+        }
+        
+        try {
+            // Get tenants in this room
+            List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
+            
+            if (tenantsInRoom.isEmpty()) {
+                model.addAttribute("error", "No tenants in room");
+                return "admin/previous-meter-reading";
+            }
+            
+            // Try to find previous meter reading from any tenant in the room
+            MeterReading previousReading = null;
+            String foundTenantInfo = "";
+            
+            // First, try the representative tenant (minimum tenant ID) for consistency
+            int representativeTenantId = tenantsInRoom.stream()
+                .mapToInt(Tenant::getTenantId)
+                .min()
+                .orElse(0);
+            
+            previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
+            
+            if (previousReading != null) {
+                foundTenantInfo = "from representative tenant " + representativeTenantId;
+            } else {
+                // If not found, try all tenants in the room
+                for (Tenant tenant : tenantsInRoom) {
+                    previousReading = meterReadingDAO.getPreviousMeterReading(tenant.getTenantId(), serviceId, month, year);
+                    if (previousReading != null) {
+                        foundTenantInfo = "from tenant " + tenant.getTenantId() + " (" + tenant.getFullName() + ")";
+                        break;
+                    }
+                }
+            }
+            
+            if (previousReading != null) {
+                model.addAttribute("previousReading", previousReading);
+            }
+            // No previous reading found - JSP will handle this case
+            
+            return "admin/previous-meter-reading";
+            
+        } catch (Exception e) {
+            System.err.println("Error getting previous meter reading: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("error", "Error retrieving previous reading: " + e.getMessage());
+            return "admin/previous-meter-reading";
+        }
+    }
+    
+
+    
+
     
     /**
      * Validate service usage data

@@ -28,6 +28,7 @@ QuanLyPhongTro/
 │   │   │   ├── TenantController.java   # Quản lý khách thuê
 │   │   │   ├── ServiceController.java  # Quản lý dịch vụ
 │   │   │   ├── BillController.java     # Quản lý hóa đơn
+│   │   │   ├── MessageController.java  # Quản lý tin nhắn
 │   │   │   ├── UserController.java     # Dashboard người dùng
 │   │   │   └── ...
 │   │   ├── dao/                        # Data Access Objects
@@ -35,6 +36,7 @@ QuanLyPhongTro/
 │   │   │   ├── RoomDAO.java           # Thao tác CSDL phòng trọ
 │   │   │   ├── TenantDAO.java         # Thao tác CSDL khách thuê
 │   │   │   ├── ServiceDAO.java        # Thao tác CSDL dịch vụ
+│   │   │   ├── MessageDAO.java        # Thao tác CSDL tin nhắn
 │   │   │   └── ...
 │   │   ├── model/                      # Entity Classes
 │   │   │   ├── User.java              # Người dùng (Admin/User)
@@ -42,6 +44,7 @@ QuanLyPhongTro/
 │   │   │   ├── Tenant.java            # Khách thuê
 │   │   │   ├── Service.java           # Dịch vụ (điện, nước, internet...)
 │   │   │   ├── Invoice.java           # Hóa đơn
+│   │   │   ├── Message.java           # Tin nhắn
 │   │   │   └── ...
 │   │   └── util/
 │   │       └── DBConnection.java       # Kết nối cơ sở dữ liệu
@@ -53,6 +56,7 @@ QuanLyPhongTro/
 │       │       ├── auth/              # Trang xác thực
 │       │       ├── admin/             # Giao diện quản trị
 │       │       ├── user/              # Giao diện người dùng
+│       │       ├── messages/          # Giao diện tin nhắn
 │       │       └── error/             # Trang lỗi
 │       ├── resources/                 # Static files (CSS, JS, Images)
 │       └── index.jsp                  # Trang chủ
@@ -70,12 +74,14 @@ QuanLyPhongTro/
 - **`service_usage`** - Lượng sử dụng dịch vụ hàng tháng của từng khách
 - **`invoices`** - Hóa đơn thanh toán hàng tháng
 - **`additional_costs`** - Chi phí phát sinh bổ sung
+- **`messages`** - Tin nhắn giao tiếp giữa admin và user
 
 #### Mối Quan Hệ:
 - `tenants` liên kết `users` và `rooms` (Many-to-One)
 - `service_usage` theo dõi việc sử dụng `services` của `tenants`
 - `invoices` tự động tính toán từ giá phòng + dịch vụ + chi phí phát sinh
 - `additional_costs` ghi nhận các khoản phí bổ sung cho từng khách thuê
+- `messages` lưu trữ cuộc hội thoại giữa admin và các user
 
 ### ⚙️ Các Dependencies Maven
 
@@ -154,6 +160,7 @@ private static final String DB_PASSWORD = "";
 - Ghi nhận chi phí phát sinh
 - Xem báo cáo thống kê
 - Quản lý tài khoản người dùng
+- **✅ Quản lý tin nhắn (Hoàn thành)**
 
 #### 👤 USER (Khách thuê)
 **Quyền hạn giới hạn:**
@@ -161,7 +168,7 @@ private static final String DB_PASSWORD = "";
 - Xem lịch sử hóa đơn và thanh toán
 - Cập nhật thông tin cá nhân
 - Xem chi tiết sử dụng dịch vụ
-- Liên hệ với quản trị viên
+- **✅ Nhắn tin với quản trị viên (Hoàn thành)**
 
 ### 🚀 Hướng Dẫn Cài Đặt
 
@@ -229,6 +236,14 @@ http://localhost:8080/QuanLyPhongTro
 - **Lịch sử hóa đơn**: Theo tháng/năm/khách thuê
 - **Chi phí bổ sung**: Sửa chữa, phạt, tiện ích...
 
+#### 💬 Hệ Thống Tin Nhắn ✅ **HOÀN THÀNH**
+- **Gửi tin nhắn**: User có thể gửi tin nhắn cho admin
+- **Nhận tin nhắn**: Admin nhận và phản hồi tin nhắn từ user
+- **Cuộc hội thoại**: Theo dõi lịch sử trò chuyện theo thời gian thực
+- **Thông báo tin mới**: Hiển thị số lượng tin nhắn chưa đọc
+- **Giao diện thống nhất**: Thiết kế nhất quán với dashboard
+- **Realtime updates**: Tự động cập nhật tin nhắn mới
+
 #### 📊 Báo Cáo & Thống Kê
 - **Dashboard tổng quan**: Số phòng, khách thuê, doanh thu
 - **Báo cáo doanh thu**: Theo tháng, quý, năm
@@ -278,12 +293,5 @@ http://localhost:8080/QuanLyPhongTro
 - Cấu hình Tomcat integration
 - Enable hot deployment cho development
 
-#### Production Deployment
-- **Security Hardening**: Thay đổi database credentials
-- **Performance Tuning**: Connection pooling
-- **Monitoring**: Log files và error tracking
-- **SSL Certificate**: HTTPS cho production
 
 ---
-
-*Đây là hệ thống quản lý phòng trọ hoàn chỉnh được xây dựng với Spring MVC, MySQL và các công nghệ web hiện đại. Hệ thống được thiết kế để dễ sử dụng, bảo trì và mở rộng cho các nhu cầu kinh doanh phòng trọ.*
