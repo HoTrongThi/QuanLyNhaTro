@@ -180,27 +180,24 @@ public class TenantDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             
-            System.out.println("DEBUG DAO: Executing SQL: " + sql);
-            System.out.println("DEBUG DAO: Parameters - UserID: " + tenant.getUserId() + ", RoomID: " + tenant.getRoomId() + ", StartDate: " + tenant.getStartDate());
+
             
             pstmt.setInt(1, tenant.getUserId());
             pstmt.setInt(2, tenant.getRoomId());
             pstmt.setDate(3, tenant.getStartDate());
             
             int rowsAffected = pstmt.executeUpdate();
-            System.out.println("DEBUG DAO: Rows affected: " + rowsAffected);
+
             
             if (rowsAffected > 0) {
                 // Update room status based on tenant count
-                System.out.println("DEBUG DAO: Updating room status for room ID: " + tenant.getRoomId());
+
                 updateRoomStatusBasedOnTenantCount(tenant.getRoomId());
                 return true;
             }
             
         } catch (SQLException e) {
-            System.err.println("DEBUG DAO: SQLException adding tenant: " + e.getMessage());
-            System.err.println("DEBUG DAO: SQL State: " + e.getSQLState());
-            System.err.println("DEBUG DAO: Error Code: " + e.getErrorCode());
+            System.err.println("Error adding tenant: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -501,7 +498,7 @@ public class TenantDAO {
         }
         
         updateRoomStatus(roomId, newStatus);
-        System.out.println("DEBUG: Updated room " + roomId + " status to " + newStatus + " (" + tenantCount + " tenants)");
+
     }
     
     private int getCount(String sql) {

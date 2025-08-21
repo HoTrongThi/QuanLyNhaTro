@@ -50,6 +50,9 @@ public class BillController {
     @Autowired
     private MoMoDAO moMoDAO;
     
+    @Autowired
+    private VonageSmsDAO vonageSmsDAO;
+    
     /**
      * Check if user is admin
      */
@@ -656,6 +659,33 @@ public class BillController {
                     // Don't fail the invoice creation if MoMo fails
                 }
                 
+                // Send SMS notifications to all tenants in the room
+                try {
+                    String period = String.format("%02d/%d", month, year);
+                    String formattedAmount = String.format("%,.0f", totalAmount.doubleValue());
+                    
+                    int smsSuccessCount = 0;
+                    
+                    for (Tenant tenant : tenantsInRoom) {
+                        if (tenant.getPhone() != null && !tenant.getPhone().trim().isEmpty()) {
+                            boolean smsSuccess = vonageSmsDAO.sendInvoiceNotification(
+                                tenant.getPhone(),
+                                room.getRoomName(),
+                                period,
+                                formattedAmount
+                            );
+                            
+                            if (smsSuccess) {
+                                smsSuccessCount++;
+                            }
+                        }
+                    }
+                    
+                } catch (Exception e) {
+                    System.err.println("Error sending SMS notifications: " + e.getMessage());
+                    // Don't fail the invoice creation if SMS fails
+                }
+                
                 String tenantNames = tenantsInRoom.stream()
                     .map(Tenant::getFullName)
                     .reduce((a, b) -> a + ", " + b)
@@ -667,9 +697,28 @@ public class BillController {
                     priceInfo = " (Tiền phòng đã được tính theo tỷ lệ ngày ở thực tế)";
                 }
                 
-                redirectAttributes.addFlashAttribute("success", 
-                    "Tạo hóa đơn thành công cho phòng " + room.getRoomName() + 
-                    " (" + tenantNames + ")! Tổng tiền: " + totalAmount.toString() + " VNĐ" + priceInfo);
+                // Build success message with SMS info
+                StringBuilder successMessage = new StringBuilder();
+                successMessage.append("Tạo hóa đơn thành công cho phòng ").append(room.getRoomName())
+                             .append(" (").append(tenantNames).append(")! Tổng tiền: ")
+                             .append(String.format("%,.0f", totalAmount.doubleValue())).append(" VNĐ")
+                             .append(priceInfo);
+                
+                // Add SMS notification info if any SMS was attempted
+                try {
+                    int tenantsWithPhone = (int) tenantsInRoom.stream()
+                        .filter(t -> t.getPhone() != null && !t.getPhone().trim().isEmpty())
+                        .count();
+                    
+                    if (tenantsWithPhone > 0) {
+                        successMessage.append(" Đã gửi thông báo SMS tới ")
+                                     .append(tenantsWithPhone).append(" người thuê.");
+                    }
+                } catch (Exception e) {
+                    // Ignore SMS count error
+                }
+                
+                redirectAttributes.addFlashAttribute("success", successMessage.toString());
             } else {
                 redirectAttributes.addFlashAttribute("error", "Tạo hóa đơn thất bại. Vui lòng thử lại.");
             }

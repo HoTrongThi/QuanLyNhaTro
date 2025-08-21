@@ -282,8 +282,7 @@ public class AdditionalCostDAO {
                     "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
                     "WHERE t.room_id = ? AND MONTH(ac.date) = ? AND YEAR(ac.date) = ?";
         
-        System.out.println("DEBUG: calculateAdditionalTotalByRoom - RoomID: " + roomId + ", Month: " + month + ", Year: " + year);
-        System.out.println("DEBUG: SQL: " + sql);
+
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -295,7 +294,7 @@ public class AdditionalCostDAO {
             
             if (rs.next()) {
                 BigDecimal total = rs.getBigDecimal("total");
-                System.out.println("DEBUG: Additional total result: " + total);
+
                 return total != null ? total : BigDecimal.ZERO;
             }
             
@@ -304,7 +303,7 @@ public class AdditionalCostDAO {
             e.printStackTrace();
         }
         
-        System.out.println("DEBUG: Additional total returning ZERO");
+
         return BigDecimal.ZERO;
     }
     

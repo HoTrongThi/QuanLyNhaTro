@@ -181,28 +181,24 @@ public class TenantController {
         }
         
         try {
-
-            
             // Validate inputs
             if (userId <= 0 || roomId <= 0 || startDate == null || startDate.trim().isEmpty()) {
                 redirectAttributes.addFlashAttribute("error", "Vui lòng điền đầy đủ thông tin");
                 return "redirect:/admin/tenants/add";
             }
             
-        // Validate that room has space (max 4 tenants)
-        int currentTenantCount = tenantDAO.getRoomTenantCount(roomId);
-        if (currentTenantCount >= 4) {
-            redirectAttributes.addFlashAttribute("error", "Phòng này đã đủ 4 người thuê!");
-            return "redirect:/admin/tenants/add";
-        }
+            // Validate that room has space (max 4 tenants)
+            int currentTenantCount = tenantDAO.getRoomTenantCount(roomId);
+            if (currentTenantCount >= 4) {
+                redirectAttributes.addFlashAttribute("error", "Phòng này đã đủ 4 người thuê!");
+                return "redirect:/admin/tenants/add";
+            }
             
             // Validate date format
             Date parsedDate;
             try {
                 parsedDate = Date.valueOf(startDate);
-                System.out.println("DEBUG: Date parsed successfully: " + parsedDate);
             } catch (IllegalArgumentException e) {
-                System.out.println("DEBUG: Date parsing failed: " + e.getMessage());
                 redirectAttributes.addFlashAttribute("error", "Định dạng ngày không hợp lệ");
                 return "redirect:/admin/tenants/add";
             }
@@ -213,10 +209,7 @@ public class TenantController {
             tenant.setRoomId(roomId);
             tenant.setStartDate(parsedDate);
             
-            System.out.println("DEBUG: Tenant object created: " + tenant.toString());
-            
             boolean success = tenantDAO.addTenant(tenant);
-            System.out.println("DEBUG: Add tenant result: " + success);
             
             if (success) {
                 // Get the newly created tenant to assign services
@@ -225,7 +218,6 @@ public class TenantController {
                     Tenant newTenant = tenantDAO.getActiveTenantByUserId(userId);
                     if (newTenant != null) {
                         int tenantId = newTenant.getTenantId();
-                        System.out.println("DEBUG: Found tenant ID: " + tenantId);
                         
                         // Get current month and year for initial service assignments
                         LocalDate now = LocalDate.now();
@@ -271,7 +263,6 @@ public class TenantController {
                         
                         // Assign selected services with 0 quantity for current month (for backward compatibility)
                         boolean servicesAssigned = serviceUsageDAO.initializeServicesForTenant(tenantId, serviceIds, currentMonth, currentYear);
-                        System.out.println("DEBUG: Services assigned: " + servicesAssigned);
                         
                         if (servicesAssigned && meterReadingsInitialized) {
                             redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ, gán dịch vụ và khởi tạo chỉ số công tơ thành công!");
@@ -281,7 +272,6 @@ public class TenantController {
                             redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ thành công nhưng có lỗi khi gán dịch vụ!");
                         }
                     } else {
-                        System.out.println("DEBUG: Could not find newly created tenant");
                         redirectAttributes.addFlashAttribute("success", "Thêm thuê trọ thành công!");
                     }
                 } else {
@@ -292,7 +282,6 @@ public class TenantController {
             }
             
         } catch (Exception e) {
-            System.err.println("DEBUG: Exception occurred: " + e.getMessage());
             e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
         }

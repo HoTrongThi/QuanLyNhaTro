@@ -24,7 +24,7 @@ public class DBConnection {
         try {
             // Load MySQL JDBC Driver
             Class.forName(DB_DRIVER);
-            System.out.println("MySQL JDBC Driver loaded successfully!");
+            // MySQL JDBC Driver loaded successfully
         } catch (ClassNotFoundException e) {
             System.err.println("MySQL JDBC Driver not found!");
             e.printStackTrace();
@@ -40,7 +40,7 @@ public class DBConnection {
     public static Connection getConnection() throws SQLException {
         try {
             Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
-            System.out.println("Database connection established successfully!");
+            // Database connection established successfully
             return connection;
         } catch (SQLException e) {
             System.err.println("Failed to connect to database: " + e.getMessage());
@@ -56,7 +56,7 @@ public class DBConnection {
         if (connection != null) {
             try {
                 connection.close();
-                System.out.println("Database connection closed successfully!");
+                // Database connection closed successfully
             } catch (SQLException e) {
                 System.err.println("Error closing database connection: " + e.getMessage());
             }

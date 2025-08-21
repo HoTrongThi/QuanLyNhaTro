@@ -1,297 +1,301 @@
-# Hệ Thống Quản Lý Phòng Trọ
-## Room Management System
+# 🏠 Hệ thống Quản lý Phòng trọ
 
-### 📖 Mô Tả Dự Án
+[![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://www.oracle.com/java/)
+[![Spring](https://img.shields.io/badge/Spring-MVC-green.svg)](https://spring.io/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)](https://www.mysql.com/)
+[![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-purple.svg)](https://getbootstrap.com/)
 
-Hệ thống quản lý phòng trọ được xây dựng bằng Spring MVC Framework với kiến trúc Model-View-Controller, hỗ trợ quản lý toàn diện các hoạt động cho thuê phòng trọ, từ quản lý phòng, khách thuê, dịch vụ đến hóa đơn thanh toán.
+Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng Spring MVC, tích hợp thanh toán MoMo và thông báo SMS.
 
-### 🏗️ Kiến Trúc Hệ Thống
+## ✨ Tính năng chính
 
-**Framework**: Spring MVC 5.3.30  
-**Database**: MySQL/MariaDB  
-**Build Tool**: Apache Maven  
-**Java Version**: 17  
-**Web Server**: Servlet Container (Tomcat)
+### 👥 Quản lý người dùng
+- ✅ Đăng ký, đăng nhập với validation
+- ✅ Phân quyền Admin/User
+- ✅ Quản lý thông tin cá nhân
+- ✅ Hệ thống tin nhắn nội bộ
 
-### 📁 Cấu Trúc Thư Mục
+### 🏢 Quản lý phòng trọ
+- ✅ CRUD phòng với validation
+- ✅ Theo dõi trạng thái phòng (Trống/Đã thuê)
+- ✅ Quản lý giá phòng và sức chứa
+- ✅ Dashboard thống kê
+
+### 🏠 Quản lý người thuê
+- ✅ Thêm người thuê với gán dịch vụ tự động
+- ✅ Tính toán prorated theo ngày ở thực tế
+- ✅ Quản lý thời gian thuê và lịch sử
+- ✅ Khởi tạo chỉ số công tơ tự động
+
+### ⚡ Quản lý dịch vụ
+- ✅ Quản lý dịch vụ (điện, nước, internet, v.v.)
+- ✅ Theo dõi chỉ số công tơ
+- ✅ Tính toán chi phí tự động
+- ✅ Báo cáo sử dụng dịch vụ
+
+### 💰 Quản lý hóa đơn
+- ✅ Tạo hóa đơn tự động theo phòng
+- ✅ Tính toán prorated chính xác
+- ✅ Theo dõi trạng thái thanh toán
+- ✅ **Tích hợp MoMo QR Code** 🔥
+- ✅ **Thông báo SMS tự động** 📱
+- ✅ Báo cáo doanh thu chi tiết
+
+### 💳 Thanh toán MoMo
+- ✅ Tạo QR Code tự động sau khi tạo hóa đơn
+- ✅ Xử lý callback và IPN
+- ✅ Cập nhật trạng thái thanh toán real-time
+- ✅ Tái tạo QR Code khi cần
+
+### 📱 Thông báo SMS
+- ✅ Gửi SMS tự động khi tạo hóa đơn
+- ✅ Tích hợp Vonage SMS API
+- ✅ Hỗ trợ số điện thoại Việt Nam
+- ✅ Template tin nhắn tiếng Việt
+
+## 🛠️ Công nghệ sử dụng
+
+- **Backend**: Java 17 + Spring MVC
+- **Database**: MySQL 8.0+
+- **Frontend**: JSP + Bootstrap 5.3
+- **Payment**: MoMo Sandbox API
+- **SMS**: Vonage SMS API
+- **Build Tool**: Maven 3.6+
+- **Server**: Apache Tomcat 10+
+
+## 🚀 Cài đặt
+
+### Yêu cầu hệ thống
+- ☑️ Java 17+
+- ☑️ MySQL 8.0+
+- ☑️ Apache Tomcat 10+
+- ☑️ Maven 3.6+
+- ☑️ MoMo Sandbox Account (optional)
+- ☑️ Vonage Account (optional)
+
+### Hướng dẫn cài đặt
+
+1. **Clone repository**
+   ```bash
+   git clone <repository-url>
+   cd QuanLyPhongTro
+   ```
+
+2. **Tạo database**
+   ```sql
+   CREATE DATABASE quan_ly_phong_tro;
+   ```
+
+3. **Import database schema**
+   ```bash
+   mysql -u root -p quan_ly_phong_tro < database/quan_ly_phong_tro_complete.sql
+   ```
+
+4. **Cấu hình database connection**
+   Chỉnh sửa file `src/main/java/util/DBConnection.java`:
+   ```java
+   private static final String DB_URL = "jdbc:mysql://localhost:3306/quan_ly_phong_tro";
+   private static final String DB_USERNAME = "your_username";
+   private static final String DB_PASSWORD = "your_password";
+   ```
+
+5. **Cấu hình MoMo (Optional)**
+   Chỉnh sửa file `src/main/java/config/MoMoConfig.java`:
+   ```java
+   public static final String PARTNER_CODE = "your_partner_code";
+   public static final String ACCESS_KEY = "your_access_key";
+   public static final String SECRET_KEY = "your_secret_key";
+   ```
+
+6. **Cấu hình Vonage SMS (Optional)**
+   Chỉnh sửa file `src/main/java/config/VonageConfig.java`:
+   ```java
+   public static final String API_KEY = "your_api_key";
+   public static final String API_SECRET = "your_api_secret";
+   ```
+
+7. **Build project**
+   ```bash
+   mvn clean compile
+   ```
+
+8. **Deploy to Tomcat**
+   - Copy file WAR từ `target/` vào thư mục `webapps/` của Tomcat
+   - Hoặc deploy trực tiếp từ IDE
+
+9. **Truy cập ứng dụng**
+   ```
+   http://localhost:8080/QuanLyPhongTro
+   ```
+
+## 👤 Tài khoản mặc định
+
+### Admin
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Quyền**: Quản lý toàn bộ hệ thống
+
+### User
+- **Username**: `user`
+- **Password**: `user123`
+- **Quyền**: Xem thông tin phòng và hóa đơn
+
+## 📁 Cấu trúc project
 
 ```
 QuanLyPhongTro/
-├── database/
-│   └── quan_ly_phong_tro.sql          # Script tạo cơ sở dữ liệu
-├── src/main/
-│   ├── java/
-│   │   ├── controller/                 # Các Controller xử lý HTTP requests
-│   │   │   ├── AuthController.java     # Xác thực đăng nhập/đăng xuất
-│   │   │   ├── AdminController.java    # Dashboard quản trị
-│   │   │   ├── RoomController.java     # CRUD phòng trọ
-│   │   │   ├── TenantController.java   # Quản lý khách thuê
-│   │   │   ├── ServiceController.java  # Quản lý dịch vụ
-│   │   │   ├── BillController.java     # Quản lý hóa đơn
-│   │   │   ├── MessageController.java  # Quản lý tin nhắn
-│   │   │   ├── UserController.java     # Dashboard người dùng
-│   │   │   └── ...
-│   │   ├── dao/                        # Data Access Objects
-│   │   │   ├── UserDAO.java           # Thao tác CSDL người dùng
-│   │   │   ├── RoomDAO.java           # Thao tác CSDL phòng trọ
-│   │   │   ├── TenantDAO.java         # Thao tác CSDL khách thuê
-│   │   │   ├── ServiceDAO.java        # Thao tác CSDL dịch vụ
-│   │   │   ├── MessageDAO.java        # Thao tác CSDL tin nhắn
-│   │   │   └── ...
-│   │   ├── model/                      # Entity Classes
-│   │   │   ├── User.java              # Người dùng (Admin/User)
-│   │   │   ├── Room.java              # Phòng trọ
-│   │   │   ├── Tenant.java            # Khách thuê
-│   │   │   ├── Service.java           # Dịch vụ (điện, nước, internet...)
-│   │   │   ├── Invoice.java           # Hóa đơn
-│   │   │   ├── Message.java           # Tin nhắn
-│   │   │   └── ...
-│   │   └── util/
-│   │       └── DBConnection.java       # Kết nối cơ sở dữ liệu
-│   └── webapp/
-│       ├── WEB-INF/
-│       │   ├── web.xml                # Cấu hình Servlet
-│       │   ├── dispatcher-servlet.xml  # Cấu hình Spring MVC
-│       │   └── views/                 # Thư mục JSP Views (cần tạo)
-│       │       ├── auth/              # Trang xác thực
-│       │       ├── admin/             # Giao diện quản trị
-│       │       ├── user/              # Giao diện người dùng
-│       │       ├── messages/          # Giao diện tin nhắn
-│       │       └── error/             # Trang lỗi
-│       ├── resources/                 # Static files (CSS, JS, Images)
-│       └── index.jsp                  # Trang chủ
-├── pom.xml                            # Maven dependencies
-└── README.md                          # Tài liệu hướng dẫn
+├── src/main/java/
+│   ├── config/         # Configuration Classes
+│   │   ├── MoMoConfig.java
+│   │   └── VonageConfig.java
+│   ├── controller/     # Spring MVC Controllers
+│   │   ├── BillController.java
+│   │   ├── MoMoPaymentController.java
+│   │   └── ...
+│   ├── dao/           # Data Access Objects
+│   │   ├── MoMoDAO.java
+│   │   ├── VonageSmsDAO.java
+│   │   └── ...
+│   ├── model/         # Entity Models
+│   │   ├── MoMoRequest.java
+│   │   ├── VonageSmsResponse.java
+│   │   └── ...
+│   └── util/          # Utility Classes
+├── src/main/webapp/
+│   ├── WEB-INF/views/ # JSP Views
+│   └── resources/     # Static Resources
+├── database/          # SQL Scripts
+│   ├── quan_ly_phong_tro.sql
+│   └── quan_ly_phong_tro_complete.sql
+├── MOMO_INTEGRATION_GUIDE.md
+└── pom.xml           # Maven Configuration
 ```
 
-### 🗄️ Cấu Trúc Cơ Sở Dữ Liệu
+## 🔗 API Endpoints
 
-#### Bảng Chính:
-- **`users`** - Tài khoản người dùng (ADMIN/USER)
-- **`rooms`** - Danh sách phòng trọ với giá và trạng thái
-- **`tenants`** - Liên kết người dùng với phòng (hợp đồng thuê)
-- **`services`** - Các dịch vụ (điện, nước, internet, vệ sinh...)
-- **`service_usage`** - Lượng sử dụng dịch vụ hàng tháng của từng khách
-- **`invoices`** - Hóa đơn thanh toán hàng tháng
-- **`additional_costs`** - Chi phí phát sinh bổ sung
-- **`messages`** - Tin nhắn giao tiếp giữa admin và user
+### Authentication
+- `GET /login` - Trang đăng nhập
+- `POST /login` - Xử lý đăng nhập
+- `GET /register` - Trang đăng ký
+- `POST /register` - Xử lý đăng ký
+- `GET /logout` - Đăng xuất
 
-#### Mối Quan Hệ:
-- `tenants` liên kết `users` và `rooms` (Many-to-One)
-- `service_usage` theo dõi việc sử dụng `services` của `tenants`
-- `invoices` tự động tính toán từ giá phòng + dịch vụ + chi phí phát sinh
-- `additional_costs` ghi nhận các khoản phí bổ sung cho từng khách thuê
-- `messages` lưu trữ cuộc hội thoại giữa admin và các user
+### Admin
+- `GET /admin/dashboard` - Dashboard admin
+- `GET /admin/rooms` - Quản lý phòng
+- `GET /admin/tenants` - Quản lý người thuê
+- `GET /admin/services` - Quản lý dịch vụ
+- `GET /admin/bills` - Quản lý hóa đơn
+- `GET /admin/bills/generate` - Tạo hóa đơn
 
-### ⚙️ Các Dependencies Maven
+### User
+- `GET /user/dashboard` - Dashboard user
+- `GET /user/room` - Thông tin phòng
+- `GET /user/invoices` - Hóa đơn của tôi
+- `GET /user/payments` - Lịch sử thanh toán
 
-```xml
-<dependencies>
-    <!-- Spring MVC Framework -->
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-webmvc</artifactId>
-        <version>5.3.30</version>
-    </dependency>
-    
-    <!-- Spring JDBC -->
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-jdbc</artifactId>
-        <version>5.3.30</version>
-    </dependency>
-    
-    <!-- MySQL Connector -->
-    <dependency>
-        <groupId>mysql</groupId>
-        <artifactId>mysql-connector-java</artifactId>
-        <version>8.0.33</version>
-    </dependency>
-    
-    <!-- BCrypt Password Hashing -->
-    <dependency>
-        <groupId>org.springframework.security</groupId>
-        <artifactId>spring-security-crypto</artifactId>
-        <version>5.7.8</version>
-    </dependency>
-    
-    <!-- JSON Processing -->
-    <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>2.15.2</version>
-    </dependency>
-    
-    <!-- JSP & JSTL Support -->
-    <dependency>
-        <groupId>javax.servlet</groupId>
-        <artifactId>jstl</artifactId>
-        <version>1.2</version>
-    </dependency>
-</dependencies>
+### MoMo Payment
+- `GET /payment/momo/return` - Xử lý return từ MoMo
+- `POST /payment/momo/notify` - Xử lý IPN từ MoMo
+- `POST /payment/momo/regenerate-qr/{invoiceId}` - Tạo QR mới
+
+## 🎯 Tính năng nổi bật
+
+### 💰 Tính toán Prorated chính xác
+- Tự động tính tiền phòng theo ngày ở thực tế
+- Hỗ trợ tenant chuyển vào giữa tháng
+- Tránh sai số làm tròn
+
+### 📱 Thông báo SMS tự động
+```
+Thong bao hoa don moi!
+Phong: P04
+Ky: 09/2025
+Tong tien: 5,990,000 VND
+Vui long xem chi tiet trong he thong.
+Cam on ban!
 ```
 
-### 🔧 Cấu Hình Hệ Thống
+### 💳 MoMo QR Code
+- Tự động tạo QR sau khi tạo hóa đơn
+- Cập nhật trạng thái thanh toán real-time
+- Hỗ trợ tái tạo QR khi cần
 
-#### 1. Database Connection (util/DBConnection.java)
-```java
-// Cấu hình kết nối MySQL
-private static final String DB_URL = "jdbc:mysql://localhost:3306/quan_ly_phong_tro";
-private static final String DB_USERNAME = "root";
-private static final String DB_PASSWORD = "";
-```
+### 📊 Dashboard thống kê
+- Doanh thu theo tháng/năm
+- Tỷ lệ lấp đầy phòng
+- Top dịch vụ được sử dụng
+- Báo cáo chi tiết
 
-#### 2. Spring MVC Configuration
-- **Component Scan**: Tự động phát hiện `@Controller`, `@Repository`, `@Service`
-- **View Resolver**: JSP files trong `/WEB-INF/views/`
-- **Static Resources**: Mapping cho CSS, JS, images
-- **UTF-8 Encoding**: Hỗ trợ tiếng Việt đầy đủ
-- **Exception Handling**: Trang lỗi tùy chỉnh 404/500
+## 🔧 Cấu hình Production
 
-### 👥 Các Vai Trò Người Dùng
+### MoMo Production
+1. Đăng ký tài khoản MoMo Business
+2. Cập nhật credentials trong `MoMoConfig.java`
+3. Thay đổi endpoint từ sandbox sang production
+4. Cấu hình domain thực tế cho callback URLs
 
-#### 🔑 ADMIN (Quản trị viên)
-**Quyền hạn đầy đủ:**
-- Quản lý phòng trọ (CRUD)
-- Quản lý khách thuê (thêm, chuyển phòng, kết thúc hợp đồng)
-- Quản lý dịch vụ (điện, nước, internet...)
-- Theo dõi sử dụng dịch vụ hàng tháng
-- Tạo và quản lý hóa đơn
-- Ghi nhận chi phí phát sinh
-- Xem báo cáo thống kê
-- Quản lý tài khoản người dùng
-- **✅ Quản lý tin nhắn (Hoàn thành)**
+### Vonage SMS Production
+1. Đăng ký tài khoản Vonage
+2. Nạp credit cho tài khoản
+3. Cập nhật API credentials
+4. Test với số điện thoại thực
 
-#### 👤 USER (Khách thuê)
-**Quyền hạn giới hạn:**
-- Xem thông tin phòng đang thuê
-- Xem lịch sử hóa đơn và thanh toán
-- Cập nhật thông tin cá nhân
-- Xem chi tiết sử dụng dịch vụ
-- **✅ Nhắn tin với quản trị viên (Hoàn thành)**
+### Security
+- Sử dụng HTTPS cho production
+- Bảo mật database credentials
+- Validate tất cả input
+- Implement rate limiting
 
-### 🚀 Hướng Dẫn Cài Đặt
+## 🐛 Troubleshooting
 
-#### Bước 1: Yêu Cầu Hệ Thống
-- Java Development Kit (JDK) 17 trở lên
-- Apache Maven 3.6+
-- MySQL/MariaDB Server
-- Apache Tomcat 9+ hoặc servlet container tương tự
-- IDE: Eclipse/IntelliJ IDEA/VS Code (tùy chọn)
-
-#### Bước 2: Chuẩn Bị Database
+### Database Connection
 ```bash
-# 1. Tạo cơ sở dữ liệu
-mysql -u root -p
-CREATE DATABASE quan_ly_phong_tro CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+# Kiểm tra MySQL service
+sudo systemctl status mysql
 
-# 2. Import schema
-mysql -u root -p quan_ly_phong_tro < database/quan_ly_phong_tro.sql
+# Kiểm tra port
+netstat -tlnp | grep :3306
 ```
 
-#### Bước 3: Cấu Hình Kết Nối
-Chỉnh sửa file `src/main/java/util/DBConnection.java`:
-```java
-private static final String DB_URL = "jdbc:mysql://localhost:3306/quan_ly_phong_tro";
-private static final String DB_USERNAME = "your_username";
-private static final String DB_PASSWORD = "your_password";
-```
+### MoMo Integration
+- Kiểm tra credentials
+- Verify callback URLs accessible
+- Check signature validation
 
-#### Bước 4: Build và Deploy
-```bash
-# Compile project
-```
+### SMS Integration
+- Verify Vonage account balance
+- Check phone number format
+- Test with different carriers
 
-#### Bước 5: Khởi Chạy
-```bash
-# Start Tomcat server
+## 📈 Roadmap
 
-# Truy cập ứng dụng
-http://localhost:8080/QuanLyPhongTro
-```
+- [ ] Mobile app (React Native)
+- [ ] Email notifications
+- [ ] Advanced reporting
+- [ ] Multi-language support
+- [ ] API documentation (Swagger)
+- [ ] Docker containerization
 
-### 📋 Chức Năng Chính
+## 🤝 Đóng góp
 
-#### 🏠 Quản Lý Phòng Trọ
-- **Thêm phòng mới**: Tên phòng, giá thuê, mô tả, trạng thái
-- **Chỉnh sửa thông tin phòng**: Cập nhật giá, mô tả, trạng thái
-- **Xóa phòng**: Chỉ được phép khi phòng chưa có người thuê
-- **Tìm kiếm và lọc**: Theo tên, giá, trạng thái
+1. Fork repository
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
 
-#### 👥 Quản Lý Khách Thuê  
-- **Đăng ký thuê phòng**: Gán người dùng vào phòng trống
-- **Chuyển phòng**: Di chuyển khách sang phòng khác
-- **Kết thúc hợp đồng**: Cập nhật ngày kết thúc, giải phóng phòng
-- **Theo dõi lịch sử thuê**: Xem các hợp đồng cũ
+## 📄 License
 
-#### ⚡ Quản Lý Dịch Vụ
-- **Danh mục dịch vụ**: Điện, nước, internet, vệ sinh, bảo vệ...
-- **Đơn vị tính**: kWh, m³, tháng, lần...
-- **Giá dịch vụ**: Linh hoạt theo từng loại
-- **Ghi nhận sử dụng**: Nhập số liệu hàng tháng cho từng khách
+Project này được phân phối dưới MIT License. Xem file `LICENSE` để biết thêm chi tiết.
 
-#### 💰 Quản Lý Hóa Đơn
-- **Tự động tính toán**: Tiền phòng + dịch vụ + chi phí phát sinh
-- **Trạng thái thanh toán**: UNPAID/PAID
-- **Lịch sử hóa đơn**: Theo tháng/năm/khách thuê
-- **Chi phí bổ sung**: Sửa chữa, phạt, tiện ích...
+## 📞 Liên hệ
 
-#### 💬 Hệ Thống Tin Nhắn ✅ **HOÀN THÀNH**
-- **Gửi tin nhắn**: User có thể gửi tin nhắn cho admin
-- **Nhận tin nhắn**: Admin nhận và phản hồi tin nhắn từ user
-- **Cuộc hội thoại**: Theo dõi lịch sử trò chuyện theo thời gian thực
-- **Thông báo tin mới**: Hiển thị số lượng tin nhắn chưa đọc
-- **Giao diện thống nhất**: Thiết kế nhất quán với dashboard
-- **Realtime updates**: Tự động cập nhật tin nhắn mới
-
-#### 📊 Báo Cáo & Thống Kê
-- **Dashboard tổng quan**: Số phòng, khách thuê, doanh thu
-- **Báo cáo doanh thu**: Theo tháng, quý, năm
-- **Tình hình phòng trọ**: Tỷ lệ lấp đầy, phòng trống
-- **Công nợ**: Danh sách hóa đơn chưa thanh toán
-
-### 🔐 Bảo Mật
-
-#### Mã Hóa Mật Khẩu
-- Sử dụng **BCrypt** để hash password
-- Salt ngẫu nhiên cho mỗi mật khẩu
-- Không lưu trữ plain text password
-
-#### Phân Quyền Truy Cập
-- **Session-based Authentication**
-- **Role-based Access Control** (ADMIN/USER)
-- Kiểm tra quyền truy cập ở mỗi controller method
-- Redirect tự động về trang login khi chưa xác thực
-
-#### Xử Lý Lỗi
-- **Custom Error Pages**: 404, 500
-- **Exception Handling**: Bắt và xử lý lỗi database
-- **Input Validation**: Kiểm tra dữ liệu đầu vào
-
-### 📱 Giao Diện Người Dùng
-
-#### Thiết Kế Responsive
-- **Bootstrap Framework** (cần tích hợp)
-- Tương thích mobile và desktop
-- Giao diện trực quan, dễ sử dụng
-
-#### Tính Năng UX/UI
-- **Flash Messages**: Thông báo thành công/lỗi
-- **Pagination**: Phân trang cho danh sách lớn
-- **Search & Filter**: Tìm kiếm và lọc dữ liệu
-- **Confirmation Dialogs**: Xác nhận trước khi xóa
-
-### 🚨 Lưu Ý Quan Trọng
-
-#### Database Configuration
-- Đảm bảo MySQL server đang chạy
-- Kiểm tra charset UTF-8 để hỗ trợ tiếng Việt
-- Backup database định kỳ
-
-#### Development Environment
-- Sử dụng IDE hỗ trợ Maven và Spring
-- Cấu hình Tomcat integration
-- Enable hot deployment cho development
-
+Nếu có bất kỳ câu hỏi nào, vui lòng liên hệ:
+- 📧 Email: your.email@example.com
+- 🐙 GitHub: [your-username](https://github.com/your-username)
+- 💬 Issues: [GitHub Issues](https://github.com/your-username/QuanLyPhongTro/issues)
 
 ---
+
+⭐ **Nếu project này hữu ích, hãy cho một star nhé!** ⭐

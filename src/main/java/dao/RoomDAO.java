@@ -222,7 +222,7 @@ public class RoomDAO {
             
             if (rs.next()) {
                 int activeTenantsCount = rs.getInt(1);
-                System.out.println("DEBUG: Room " + roomId + " has " + activeTenantsCount + " active tenants");
+
                 return activeTenantsCount > 0;
             }
             
