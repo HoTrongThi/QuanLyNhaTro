@@ -1020,6 +1020,7 @@ public class BillController {
         
         // Find the earliest start date among all tenants in the room for this month
         Date earliestStartDate = null;
+        boolean needsProration = false;
         
         for (Tenant tenant : tenantsInRoom) {
             Date startDate = tenant.getStartDate();
@@ -1027,21 +1028,20 @@ public class BillController {
                 // Check if tenant started in this month/year
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    // Tenant started in this billing month
+                    // Tenant started in this billing month - needs proration
+                    needsProration = true;
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
                 } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
-                    // Tenant started before this month, so they should pay for the full month
-                    // Set earliest start date to the first day of the month
-                    earliestStartDate = Date.valueOf(java.time.LocalDate.of(year, month, 1));
-                    break; // No need to check further, full month applies
+                    // Tenant started before this month - no proration needed for this tenant
+                    // Continue checking other tenants
                 }
             }
         }
         
-        if (earliestStartDate == null) {
-            // No valid start date found, charge full month
+        // If no tenant started in this month, charge full month
+        if (!needsProration || earliestStartDate == null) {
             return fullRoomPrice;
         }
         
@@ -1056,17 +1056,14 @@ public class BillController {
         daysToCharge = Math.min(daysToCharge, daysInMonth);
         daysToCharge = Math.max(daysToCharge, 1); // At least 1 day
         
+        // If charging for full month, return full price to avoid rounding errors
+        if (daysToCharge >= daysInMonth) {
+            return fullRoomPrice;
+        }
+        
         // Calculate prorated amount
         BigDecimal dailyRate = fullRoomPrice.divide(new BigDecimal(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
         BigDecimal proratedAmount = dailyRate.multiply(new BigDecimal(daysToCharge));
-        
-        System.out.println("DEBUG: Prorated room price calculation:");
-        System.out.println("  - Full room price: " + fullRoomPrice);
-        System.out.println("  - Days in month: " + daysInMonth);
-        System.out.println("  - Earliest start date: " + earliestStartDate);
-        System.out.println("  - Days to charge: " + daysToCharge);
-        System.out.println("  - Daily rate: " + dailyRate);
-        System.out.println("  - Prorated amount: " + proratedAmount);
         
         return proratedAmount;
     }
@@ -1088,10 +1085,27 @@ public class BillController {
         }
         
         int daysInMonth = getDaysInMonth(month, year);
-        Date earliestStartDate = getEarliestStartDate(tenantsInRoom, month, year);
         
-        if (earliestStartDate == null) {
-            return daysInMonth; // Full month
+        // Check if any tenant started in this month
+        boolean anyTenantStartedThisMonth = false;
+        Date earliestStartDate = null;
+        
+        for (Tenant tenant : tenantsInRoom) {
+            Date startDate = tenant.getStartDate();
+            if (startDate != null) {
+                java.time.LocalDate startLocalDate = startDate.toLocalDate();
+                if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
+                    anyTenantStartedThisMonth = true;
+                    if (earliestStartDate == null || startDate.before(earliestStartDate)) {
+                        earliestStartDate = startDate;
+                    }
+                }
+            }
+        }
+        
+        // If no tenant started in this month, they stayed the full month
+        if (!anyTenantStartedThisMonth || earliestStartDate == null) {
+            return daysInMonth;
         }
         
         java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
@@ -1109,6 +1123,7 @@ public class BillController {
     
     /**
      * Get the earliest start date among tenants for the billing month
+     * Only returns a date if a tenant actually started in this month
      */
     private Date getEarliestStartDate(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -1126,11 +1141,9 @@ public class BillController {
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
-                } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
-                    // Tenant started before this month, so they should pay for the full month
-                    earliestStartDate = Date.valueOf(java.time.LocalDate.of(year, month, 1));
-                    break; // No need to check further, full month applies
                 }
+                // If tenant started before this month, we don't set earliestStartDate
+                // because they should pay for the full month (no proration needed)
             }
         }
         
