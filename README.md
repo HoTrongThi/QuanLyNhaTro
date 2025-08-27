@@ -38,7 +38,7 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 - ✅ Tính toán prorated chính xác
 - ✅ Theo dõi trạng thái thanh toán
 - ✅ **Tích hợp MoMo QR Code** 🔥
-- ✅ **Thông báo SMS tự động** 📱
+- ✅ **Thông báo Email tự động** 📧
 - ✅ Báo cáo doanh thu chi tiết
 
 ### 💳 Thanh toán MoMo
@@ -47,11 +47,12 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 - ✅ Cập nhật trạng thái thanh toán real-time
 - ✅ Tái tạo QR Code khi cần
 
-### 📱 Thông báo SMS
-- ✅ Gửi SMS tự động khi tạo hóa đơn
-- ✅ Tích hợp Vonage SMS API
-- ✅ Hỗ trợ số điện thoại Việt Nam
-- ✅ Template tin nhắn tiếng Việt
+### 📧 Thông báo Email
+- ✅ Gửi Email tự động khi tạo hóa đơn
+- ✅ Tích hợp Gmail SMTP
+- ✅ Template email HTML đẹp mắt
+- ✅ **Bao gồm mã QR MoMo động** 🔥
+- ✅ Hỗ trợ gửi đến nhiều người thuê
 
 ## 🛠️ Công nghệ sử dụng
 
@@ -59,7 +60,7 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 - **Database**: MySQL 8.0+
 - **Frontend**: JSP + Bootstrap 5.3
 - **Payment**: MoMo Sandbox API
-- **SMS**: Vonage SMS API
+- **Email**: Gmail SMTP
 - **Build Tool**: Maven 3.6+
 - **Server**: Apache Tomcat 10+
 
@@ -71,7 +72,7 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 - ☑️ Apache Tomcat 10+
 - ☑️ Maven 3.6+
 - ☑️ MoMo Sandbox Account (optional)
-- ☑️ Vonage Account (optional)
+- ☑️ Gmail Account với App Password (optional)
 
 ### Hướng dẫn cài đặt
 
@@ -107,11 +108,12 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
    public static final String SECRET_KEY = "your_secret_key";
    ```
 
-6. **Cấu hình Vonage SMS (Optional)**
-   Chỉnh sửa file `src/main/java/config/VonageConfig.java`:
+6. **Cấu hình Gmail SMTP (Optional)**
+   Chỉnh sửa file `src/main/java/config/GmailConfig.java`:
    ```java
-   public static final String API_KEY = "your_api_key";
-   public static final String API_SECRET = "your_api_secret";
+   public static final String GMAIL_USERNAME = "your-email@gmail.com";
+   public static final String GMAIL_PASSWORD = "your-app-password";
+   public static final String FROM_EMAIL = "your-email@gmail.com";
    ```
 
 7. **Build project**
@@ -145,20 +147,21 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 ```
 QuanLyPhongTro/
 ├── src/main/java/
-│   ├── config/         # Configuration Classes
-│   │   ├── MoMoConfig.java
-│   │   └── VonageConfig.java
+├── config/         # Configuration Classes
+│   ├── MoMoConfig.java
+│   └── GmailConfig.java
 │   ├── controller/     # Spring MVC Controllers
 │   │   ├── BillController.java
 │   │   ├── MoMoPaymentController.java
 │   │   └── ...
 │   ├── dao/           # Data Access Objects
 │   │   ├── MoMoDAO.java
-│   │   ├── VonageSmsDAO.java
+│   │   ├── GmailDAO.java
 │   │   └── ...
 │   ├── model/         # Entity Models
 │   │   ├── MoMoRequest.java
-│   │   ├── VonageSmsResponse.java
+│   │   ├── EmailRequest.java
+│   │   ├── EmailResponse.java
 │   │   └── ...
 │   └── util/          # Utility Classes
 ├── src/main/webapp/
@@ -206,15 +209,12 @@ QuanLyPhongTro/
 - Hỗ trợ tenant chuyển vào giữa tháng
 - Tránh sai số làm tròn
 
-### 📱 Thông báo SMS tự động
-```
-Thong bao hoa don moi!
-Phong: P04
-Ky: 09/2025
-Tong tien: 5,990,000 VND
-Vui long xem chi tiet trong he thong.
-Cam on ban!
-```
+### 📧 Thông báo Email tự động
+- Template email HTML đẹp mắt với thông tin chi tiết
+- Hiển thị thông tin phòng, kỳ thanh toán và số tiền
+- **Tích hợp mã QR MoMo động** - Quét để thanh toán ngay
+- Gửi tự động đến tất cả người thuê trong phòng
+- Hỗ trợ hiển thị tiếng Việt
 
 ### 💳 MoMo QR Code
 - Tự động tạo QR sau khi tạo hóa đơn
@@ -235,11 +235,11 @@ Cam on ban!
 3. Thay đổi endpoint từ sandbox sang production
 4. Cấu hình domain thực tế cho callback URLs
 
-### Vonage SMS Production
-1. Đăng ký tài khoản Vonage
-2. Nạp credit cho tài khoản
-3. Cập nhật API credentials
-4. Test với số điện thoại thực
+### Gmail SMTP Production
+1. Tạo Gmail App Password
+2. Cập nhật thông tin đăng nhập trong GmailConfig.java
+3. Kiểm tra cấu hình SMTP
+4. Test với email thực
 
 ### Security
 - Sử dụng HTTPS cho production
@@ -263,10 +263,10 @@ netstat -tlnp | grep :3306
 - Verify callback URLs accessible
 - Check signature validation
 
-### SMS Integration
-- Verify Vonage account balance
-- Check phone number format
-- Test with different carriers
+### Email Integration
+- Kiểm tra Gmail App Password
+- Xác nhận địa chỉ email hợp lệ
+- Test với các nhà cung cấp email khác nhau
 
 ## 📈 Roadmap
 

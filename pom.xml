@@ -91,6 +91,20 @@
       <version>5.7.8</version>
     </dependency>
     
+    <!-- JavaMail for email sending -->
+    <dependency>
+      <groupId>com.sun.mail</groupId>
+      <artifactId>javax.mail</artifactId>
+      <version>1.6.2</version>
+    </dependency>
+    
+    <!-- Spring Context Support for email templates -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context-support</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    
   </dependencies>
   
   <build>

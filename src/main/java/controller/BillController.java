@@ -51,7 +51,7 @@ public class BillController {
     private MoMoDAO moMoDAO;
     
     @Autowired
-    private VonageSmsDAO vonageSmsDAO;
+    private GmailDAO gmailDAO;
     
     /**
      * Check if user is admin
@@ -659,31 +659,44 @@ public class BillController {
                     // Don't fail the invoice creation if MoMo fails
                 }
                 
-                // Send SMS notifications to all tenants in the room
+                // Send Email notifications to all tenants in the room with QR code
                 try {
                     String period = String.format("%02d/%d", month, year);
                     String formattedAmount = String.format("%,.0f", totalAmount.doubleValue());
                     
-                    int smsSuccessCount = 0;
+                    // Get QR code URL from the created invoice
+                    String qrCodeUrl = null;
+                    try {
+                        Invoice createdInvoice = invoiceDAO.getInvoiceById(invoice.getInvoiceId());
+                        if (createdInvoice != null && createdInvoice.getMomoQrCodeUrl() != null) {
+                            qrCodeUrl = createdInvoice.getMomoQrCodeUrl();
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error getting QR code URL: " + e.getMessage());
+                    }
+                    
+                    int emailSuccessCount = 0;
                     
                     for (Tenant tenant : tenantsInRoom) {
-                        if (tenant.getPhone() != null && !tenant.getPhone().trim().isEmpty()) {
-                            boolean smsSuccess = vonageSmsDAO.sendInvoiceNotification(
-                                tenant.getPhone(),
+                        if (tenant.getEmail() != null && !tenant.getEmail().trim().isEmpty()) {
+                            boolean emailSuccess = gmailDAO.sendInvoiceNotificationWithQR(
+                                tenant.getEmail(),
+                                tenant.getFullName(),
                                 room.getRoomName(),
                                 period,
-                                formattedAmount
+                                formattedAmount,
+                                qrCodeUrl
                             );
                             
-                            if (smsSuccess) {
-                                smsSuccessCount++;
+                            if (emailSuccess) {
+                                emailSuccessCount++;
                             }
                         }
                     }
                     
                 } catch (Exception e) {
-                    System.err.println("Error sending SMS notifications: " + e.getMessage());
-                    // Don't fail the invoice creation if SMS fails
+                    System.err.println("Error sending Email notifications: " + e.getMessage());
+                    // Don't fail the invoice creation if Email fails
                 }
                 
                 String tenantNames = tenantsInRoom.stream()
@@ -704,18 +717,30 @@ public class BillController {
                              .append(String.format("%,.0f", totalAmount.doubleValue())).append(" VNĐ")
                              .append(priceInfo);
                 
-                // Add SMS notification info if any SMS was attempted
+                // Add Email notification info if any Email was attempted
                 try {
-                    int tenantsWithPhone = (int) tenantsInRoom.stream()
-                        .filter(t -> t.getPhone() != null && !t.getPhone().trim().isEmpty())
+                    int tenantsWithEmail = (int) tenantsInRoom.stream()
+                        .filter(t -> t.getEmail() != null && !t.getEmail().trim().isEmpty())
                         .count();
                     
-                    if (tenantsWithPhone > 0) {
-                        successMessage.append(" Đã gửi thông báo SMS tới ")
-                                     .append(tenantsWithPhone).append(" người thuê.");
+                    if (tenantsWithEmail > 0) {
+                        successMessage.append(" Đã gửi thông báo Email tới ")
+                                     .append(tenantsWithEmail).append(" người thuê");
+                        
+                        // Check if QR code was included
+                        try {
+                            Invoice createdInvoice = invoiceDAO.getInvoiceById(invoice.getInvoiceId());
+                            if (createdInvoice != null && createdInvoice.getMomoQrCodeUrl() != null && !createdInvoice.getMomoQrCodeUrl().trim().isEmpty()) {
+                                successMessage.append(" (bao gồm mã QR MoMo)");
+                            }
+                        } catch (Exception e) {
+                            // Ignore QR check error
+                        }
+                        
+                        successMessage.append(".");
                     }
                 } catch (Exception e) {
-                    // Ignore SMS count error
+                    // Ignore Email count error
                 }
                 
                 redirectAttributes.addFlashAttribute("success", successMessage.toString());
