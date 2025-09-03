@@ -25,45 +25,65 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Tenant Management Controller
- * Handles tenant assignments and user profile management
+ * Controller quản lý Người thuê
+ * Xử lý phân công người thuê và quản lý hồ sơ người dùng
+ * Bao gồm thêm người thuê, kết thúc hợp đồng, chuyển phòng và gán dịch vụ
+ * Tự động khởi tạo chỉ số công tơ và sử dụng dịch vụ ban đầu
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/admin")
 public class TenantController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý người thuê */
     @Autowired
     private TenantDAO tenantDAO;
     
+    /** DAO quản lý người dùng */
     @Autowired
     private UserDAO userDAO;
     
+    /** DAO quản lý dịch vụ */
     @Autowired
     private ServiceDAO serviceDAO;
     
+    /** DAO quản lý sử dụng dịch vụ */
     @Autowired
     private ServiceUsageDAO serviceUsageDAO;
     
+    /** DAO quản lý chỉ số công tơ */
     @Autowired
     private MeterReadingDAO meterReadingDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if service requires meter reading (electricity/water)
+     * Kiểm tra dịch vụ có cần ghi chỉ số công tơ hay không
+     * Dựa trên tên dịch vụ để xác định (điện, nước)
+     * 
+     * @param serviceId ID dịch vụ cần kiểm tra
+     * @return true nếu dịch vụ cần công tơ, false nếu không
      */
     private boolean isServiceWithMeter(int serviceId) {
-        // Check service names from database to determine if it needs meter
+        // Kiểm tra tên dịch vụ từ database để xác định có cần công tơ hay không
         try {
             Service service = serviceDAO.getServiceById(serviceId);
             if (service != null) {
                 String serviceName = service.getServiceName().toLowerCase();
+                // Kiểm tra các từ khóa liên quan đến điện và nước
                 return serviceName.contains("điện") || serviceName.contains("nước") || 
                        serviceName.contains("electric") || serviceName.contains("water");
             }
         } catch (Exception e) {
-            // Log error but continue with fallback
+            // Ghi log lỗi nhưng tiếp tục với phương án dự phòng
         }
         
-        // Fallback to hard-coded IDs for common services
+        // Phương án dự phòng: sử dụng ID cố định cho các dịch vụ phổ biến
         return serviceId == 1 || serviceId == 2 || serviceId == 4;
     }
     

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 27, 2025 at 06:49 AM
+-- Generation Time: Sep 03, 2025 at 07:49 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -43,7 +43,8 @@ INSERT INTO `additional_costs` (`cost_id`, `tenant_id`, `description`, `amount`,
 (4, 11, 'Sửa quạt', 200000.00, '2025-08-19'),
 (6, 21, 'mua thịt chó', 500000.00, '2025-08-19'),
 (7, 22, 'Sửa quạt trần', 100000.00, '2025-08-20'),
-(8, 20, 'Mua bimbim', 50000.00, '2025-08-20');
+(8, 20, 'Mua bimbim', 50000.00, '2025-08-20'),
+(9, 28, 'asdfghjkl;\'', 50000.00, '2025-08-29');
 
 -- --------------------------------------------------------
 
@@ -117,7 +118,8 @@ INSERT INTO `messages` (`message_id`, `sender_id`, `receiver_id`, `content`, `cr
 (4, 3, 2, 'alooo', '2025-08-13 19:00:13', 'READ'),
 (5, 3, 4, 'aloooo', '2025-08-13 19:08:28', 'UNREAD'),
 (6, 2, 7, 'aloooo', '2025-08-14 10:04:07', 'READ'),
-(7, 7, 2, 'cak', '2025-08-14 10:05:25', 'READ');
+(7, 7, 2, 'cak', '2025-08-14 10:05:25', 'READ'),
+(8, 2, 1, 'dsfghjkl;\'vc,./xdfghjkl;fdghjkl;sdfghjkl;cxfdghjkl;dfghjkl/', '2025-08-29 01:28:06', 'UNREAD');
 
 -- --------------------------------------------------------
 
@@ -210,7 +212,9 @@ INSERT INTO `meter_readings` (`reading_id`, `tenant_id`, `service_id`, `reading`
 (68, 31, 4, 300.00, '2025-08-27', 11, 2025, '2025-08-27 04:37:14'),
 (69, 31, 1, 300.00, '2025-08-27', 11, 2025, '2025-08-27 04:37:14'),
 (70, 31, 4, 350.00, '2025-08-27', 12, 2025, '2025-08-27 04:46:43'),
-(71, 31, 1, 350.00, '2025-08-27', 12, 2025, '2025-08-27 04:46:43');
+(71, 31, 1, 350.00, '2025-08-27', 12, 2025, '2025-08-27 04:46:43'),
+(72, 32, 4, 100.00, '2025-08-29', 8, 2025, '2025-08-29 03:34:35'),
+(73, 32, 1, 99.99, '2025-08-29', 8, 2025, '2025-08-29 03:34:35');
 
 -- --------------------------------------------------------
 
@@ -241,20 +245,23 @@ CREATE TABLE `rooms` (
   `room_name` varchar(50) NOT NULL,
   `price` decimal(12,2) NOT NULL,
   `status` enum('AVAILABLE','OCCUPIED') DEFAULT 'AVAILABLE',
-  `description` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `description` text DEFAULT NULL,
+  `amenities` text DEFAULT NULL COMMENT 'Tiện nghi phòng trọ (JSON format)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Bảng quản lý phòng trọ với thông tin tiện nghi';
 
 --
 -- Dumping data for table `rooms`
 --
 
-INSERT INTO `rooms` (`room_id`, `room_name`, `price`, `status`, `description`) VALUES
-(1, 'P01', 3000000.00, 'OCCUPIED', ''),
-(3, 'P02', 2000000.00, 'OCCUPIED', 'Không có'),
-(4, 'P03', 3000000.00, 'OCCUPIED', ''),
-(5, 'P04', 5000000.00, 'OCCUPIED', ''),
-(7, 'P05', 3000000.00, 'OCCUPIED', ''),
-(8, 'P06', 2000000.00, 'AVAILABLE', '');
+INSERT INTO `rooms` (`room_id`, `room_name`, `price`, `status`, `description`, `amenities`) VALUES
+(1, 'P01', 3000000.00, 'OCCUPIED', '', '[]'),
+(3, 'P02', 2000000.00, 'OCCUPIED', 'Không có', '[]'),
+(4, 'P03', 3000000.00, 'OCCUPIED', '', '[\"ac\",\"kitchen\",\"wardrobe\",\"lò vi sóng\"]'),
+(5, 'P04', 5000000.00, 'AVAILABLE', '', '[\"ac\",\"Bàn ủi\"]'),
+(7, 'P05', 3000000.00, 'OCCUPIED', '', '[\"tv\",\"wardrobe\",\"bed\",\"Bàn ủi\"]'),
+(8, 'P06', 2000000.00, 'AVAILABLE', '', '[\"bed\",\"fridge\",\"lò vi sóng\"]'),
+(9, 'P07', 50000000.00, 'OCCUPIED', 'fdsfsf', '[\"ac\",\"wardrobe\",\"bed\",\"bathroom\",\"desk\",\"Máy sấy tóc\"]'),
+(10, 'P08', 2000000.00, 'AVAILABLE', '', '[\"ac\",\"wardrobe\",\"tv\",\"bed\",\"Bàn ủi\"]');
 
 -- --------------------------------------------------------
 
@@ -266,6 +273,8 @@ CREATE TABLE `services` (
   `service_id` int(11) NOT NULL,
   `service_name` varchar(100) NOT NULL,
   `unit` varchar(50) DEFAULT NULL,
+  `service_type` enum('FREE','MONTHLY','METER_READING','PER_PERSON','PER_ROOM') NOT NULL DEFAULT 'MONTHLY',
+  `calculation_config` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`calculation_config`)),
   `price_per_unit` decimal(12,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -273,10 +282,11 @@ CREATE TABLE `services` (
 -- Dumping data for table `services`
 --
 
-INSERT INTO `services` (`service_id`, `service_name`, `unit`, `price_per_unit`) VALUES
-(1, 'Điện', 'kWh', 4000.00),
-(3, 'Internet', 'tháng', 30000.00),
-(4, 'Nước', 'm³', 5000.00);
+INSERT INTO `services` (`service_id`, `service_name`, `unit`, `service_type`, `calculation_config`, `price_per_unit`) VALUES
+(1, 'Điện', 'kWh', 'METER_READING', '{\"type\": \"TIERED_PRICING\", \"tiers\": [{\"from\": 0, \"to\": 50, \"price\": 1500}, {\"from\": 51, \"to\": 100, \"price\": 2000}, {\"from\": 101, \"to\": null, \"price\": 2500}]}', 0.00),
+(3, 'Internet', 'tháng', 'MONTHLY', '{\"type\": \"FIXED_PRICE\", \"price\": 30000.00}', 30000.00),
+(4, 'Nước', 'm³', 'METER_READING', '{\"type\": \"FIXED_PRICE\", \"price\": 5000.00}', 5000.00),
+(5, 'Bảo trì định kỳ', 'tháng', 'MONTHLY', NULL, 50000.00);
 
 -- --------------------------------------------------------
 
@@ -438,7 +448,10 @@ INSERT INTO `service_usage` (`usage_id`, `tenant_id`, `service_id`, `month`, `ye
 (146, 31, 3, 11, 2025, 1.00),
 (147, 31, 4, 12, 2025, 50.00),
 (148, 31, 1, 12, 2025, 50.00),
-(149, 31, 3, 12, 2025, 1.00);
+(149, 31, 3, 12, 2025, 1.00),
+(150, 32, 3, 8, 2025, 0.00),
+(151, 32, 4, 8, 2025, 0.00),
+(152, 32, 1, 8, 2025, 0.00);
 
 -- --------------------------------------------------------
 
@@ -486,10 +499,11 @@ INSERT INTO `tenants` (`tenant_id`, `user_id`, `room_id`, `start_date`, `end_dat
 (25, 6, 4, '2025-08-20', NULL),
 (26, 9, 5, '2025-08-20', '2025-08-20'),
 (27, 10, 5, '2025-08-20', '2025-08-20'),
-(28, 9, 7, '2025-08-20', NULL),
+(28, 9, 1, '2025-08-20', NULL),
 (29, 10, 7, '2025-08-20', NULL),
 (30, 8, 1, '2025-08-20', NULL),
-(31, 1, 5, '2025-08-21', NULL);
+(31, 1, 5, '2025-08-21', '2025-09-01'),
+(32, 11, 9, '2025-08-29', NULL);
 
 -- --------------------------------------------------------
 
@@ -522,7 +536,8 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `full_name`, `phone`, `e
 (7, 'ngan', '$2a$10$dBZZ74lBxxB2PkzHFk2LA.x2fRpsUM1imqfrvZ35jxAElmFolHinq', 'Ngô Thị Kim Ngân', '0394726492', 'ngan@gmail.com', 'Quy Nhơn', 'USER', '2025-08-13 14:44:49'),
 (8, 'test1', '$2a$10$0iDNW7Lp.i8cVKrHz1zWAecbj/ONPwiwaVsbDjIocuy22HL9W1QTC', 'test1', '0385746583', 'test1@example.com', 'Quy Nhơn', 'USER', '2025-08-19 12:15:23'),
 (9, 'test2', '$2a$10$f3YggE5.SfkhO.al1kpbTuxF8H0SegRZqnm/J2nUCDkxvBMke1t0G', 'test2', '0947362746', 'test2@example.com', 'Quy Nhơn', 'USER', '2025-08-19 12:16:11'),
-(10, 'test3', '$2a$10$.VMfGc0/5vZLyvOK21Rl4OXntMrHrLTwQ8uP2nL.ynyNSDLhaUHTy', 'test3', '0947364857', 'test3@example.com', 'Bình Định', 'USER', '2025-08-19 12:17:00');
+(10, 'test3', '$2a$10$.VMfGc0/5vZLyvOK21Rl4OXntMrHrLTwQ8uP2nL.ynyNSDLhaUHTy', 'test3', '0947364857', 'test3@example.com', 'Bình Định', 'USER', '2025-08-19 12:17:00'),
+(11, 'user2', '$2a$10$QW1qW77GG1k3HxQB24YkD.529SXL4mRJWXRu1jmP4jCQj1v6.R4Mm', 'adahdha', '0971911556', 'nguyetthuy2003@gmail.com', 'dalkaladna', 'USER', '2025-08-29 00:39:59');
 
 --
 -- Indexes for dumped tables
@@ -615,7 +630,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `additional_costs`
 --
 ALTER TABLE `additional_costs`
-  MODIFY `cost_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `cost_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `invoices`
@@ -627,13 +642,13 @@ ALTER TABLE `invoices`
 -- AUTO_INCREMENT for table `messages`
 --
 ALTER TABLE `messages`
-  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `message_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `meter_readings`
 --
 ALTER TABLE `meter_readings`
-  MODIFY `reading_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+  MODIFY `reading_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=74;
 
 --
 -- AUTO_INCREMENT for table `momo_payment_logs`
@@ -645,31 +660,31 @@ ALTER TABLE `momo_payment_logs`
 -- AUTO_INCREMENT for table `rooms`
 --
 ALTER TABLE `rooms`
-  MODIFY `room_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `room_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `services`
 --
 ALTER TABLE `services`
-  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `service_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `service_usage`
 --
 ALTER TABLE `service_usage`
-  MODIFY `usage_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=150;
+  MODIFY `usage_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=153;
 
 --
 -- AUTO_INCREMENT for table `tenants`
 --
 ALTER TABLE `tenants`
-  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `tenant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- Constraints for dumped tables

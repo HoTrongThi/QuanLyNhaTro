@@ -21,27 +21,57 @@ import java.time.Duration;
 import java.util.UUID;
 
 /**
- * MoMo Payment Data Access Object
- * Handles MoMo QR code generation and payment processing
+ * Lớp Data Access Object cho Thanh toán MoMo
+ * Xử lý việc tạo QR code và xử lý thanh toán MoMo
+ * Tích hợp với MoMo Sandbox API để tạo QR code và kiểm tra trạng thái thanh toán
+ * Hỗ trợ tạo chữ ký bảo mật HMAC SHA256 và validation callback
+ * Tự động chuyển đổi deep link thành QR image URL
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class MoMoDAO {
     
+    // ==================== CÁC THUỘC TÍNH ====================
+    
+    /** Cấu hình MoMo - chứa thông tin xác thực và đường dẫn API */
     @Autowired
     private MoMoConfig moMoConfig;
     
+    /** HTTP Client để gửi request đến MoMo API */
     private final HttpClient httpClient;
+    
+    /** Object Mapper để chuyển đổi JSON */
     private final ObjectMapper objectMapper;
     
+    // ==================== CONSTRUCTOR ====================
+    
+    /**
+     * Constructor khởi tạo MoMoDAO
+     * Thiết lập HTTP Client với timeout 30 giây và Object Mapper
+     */
     public MoMoDAO() {
+        // Khởi tạo HTTP Client với timeout 30 giây
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
+        // Khởi tạo Object Mapper cho việc xử lý JSON
         this.objectMapper = new ObjectMapper();
     }
     
+    // ==================== CÁC PHƯƠNG THỨC CÔNG KHAI ====================
+    
     /**
-     * Create MoMo QR code for invoice payment
+     * Tạo mã QR MoMo cho thanh toán hóa đơn
+     * Gửi yêu cầu đến MoMo API để tạo QR code cho việc thanh toán
+     * Tự động chuyển đổi deep link thành QR image URL nếu cần
+     * 
+     * @param invoiceId ID của hóa đơn cần thanh toán
+     * @param amount số tiền cần thanh toán
+     * @param orderInfo thông tin đơn hàng
+     * @return MoMoResponse chứa thông tin QR code và trạng thái
      */
     public MoMoResponse createQRCode(int invoiceId, BigDecimal amount, String orderInfo) {
         try {
@@ -86,11 +116,12 @@ public class MoMoDAO {
             // Parse response
             MoMoResponse moMoResponse = objectMapper.readValue(response.body(), MoMoResponse.class);
             
-            // If successful but qrCodeUrl is a deep link, generate QR image URL
+            // Nếu thành công và có QR code URL
             if (moMoResponse.isSuccess() && moMoResponse.getQrCodeUrl() != null) {
                 String qrUrl = moMoResponse.getQrCodeUrl();
+                // Kiểm tra nếu là deep link (momo://)
                 if (qrUrl.startsWith("momo://")) {
-                    // Generate QR code image from deep link using external service
+                    // Chuyển đổi deep link thành QR image URL
                     try {
                         String encodedData = java.net.URLEncoder.encode(qrUrl, "UTF-8");
                         String qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodedData;
@@ -233,7 +264,7 @@ public class MoMoDAO {
      * Generate unique request ID
      */
     private String generateRequestId() {
-        return UUID.randomUUID().toString().replace("-", "");
+        return UUID.randomUUID().toString().replace("-", ""); // Chuyển UUID thành chuỗi dạng chuẩn (36 ký tự, gồm 32 hex + 4 dấu -)
     }
     
     /**

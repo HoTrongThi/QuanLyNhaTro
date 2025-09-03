@@ -63,6 +63,60 @@
         .required {
             color: #dc3545;
         }
+        
+        .amenities-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .amenity-item {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+        }
+        
+        .amenity-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        .amenity-item.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .amenity-item input[type="checkbox"] {
+            display: none;
+        }
+        
+        .custom-amenity {
+            border: 2px dashed #dee2e6;
+            background: #f8f9fa;
+        }
+        
+        #amenitiesList {
+            min-height: 20px;
+        }
+        
+        #amenitiesList .badge {
+            display: inline-flex !important;
+            align-items: center;
+            white-space: nowrap;
+        }
+        
+        #selectedAmenities {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+        }
     </style>
 </head>
 <body>
@@ -264,6 +318,177 @@
                                     <div class="form-text">Tối đa 1000 ký tự</div>
                                 </div>
                                 
+                                <!-- Tiện nghi phòng trọ -->
+                                <div class="amenities-section">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-house-gear me-2"></i>
+                                        Tiện nghi phòng trọ
+                                    </h6>
+                                    <p class="text-muted mb-3">Chọn các tiện nghi có sẵn trong phòng trọ:</p>
+                                    
+                                    <div class="row">
+                                        <!-- Tiện nghi cơ bản -->
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'wifi')">
+                                                <input type="checkbox" name="amenities" value="wifi">
+                                                <i class="bi bi-wifi me-2"></i>
+                                                <span>WiFi miễn phí</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'ac')">
+                                                <input type="checkbox" name="amenities" value="ac">
+                                                <i class="bi bi-snow me-2"></i>
+                                                <span>Điều hòa</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'fridge')">
+                                                <input type="checkbox" name="amenities" value="fridge">
+                                                <i class="bi bi-archive me-2"></i>
+                                                <span>Tủ lạnh</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'washing_machine')">
+                                                <input type="checkbox" name="amenities" value="washing_machine">
+                                                <i class="bi bi-circle me-2"></i>
+                                                <span>Máy giặt</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'tv')">
+                                                <input type="checkbox" name="amenities" value="tv">
+                                                <i class="bi bi-tv me-2"></i>
+                                                <span>TV</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'wardrobe')">
+                                                <input type="checkbox" name="amenities" value="wardrobe">
+                                                <i class="bi bi-door-closed me-2"></i>
+                                                <span>Tủ quần áo</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'bed')">
+                                                <input type="checkbox" name="amenities" value="bed">
+                                                <i class="bi bi-house-door me-2"></i>
+                                                <span>Giường ngủ</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'desk')">
+                                                <input type="checkbox" name="amenities" value="desk">
+                                                <i class="bi bi-table me-2"></i>
+                                                <span>Bàn làm việc</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'chair')">
+                                                <input type="checkbox" name="amenities" value="chair">
+                                                <i class="bi bi-person-workspace me-2"></i>
+                                                <span>Ghế ngồi</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'kitchen')">
+                                                <input type="checkbox" name="amenities" value="kitchen">
+                                                <i class="bi bi-house me-2"></i>
+                                                <span>Bếp ăn</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'bathroom')">
+                                                <input type="checkbox" name="amenities" value="bathroom">
+                                                <i class="bi bi-droplet me-2"></i>
+                                                <span>Nhà tắm riêng</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'balcony')">
+                                                <input type="checkbox" name="amenities" value="balcony">
+                                                <i class="bi bi-building me-2"></i>
+                                                <span>Ban công</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'parking')">
+                                                <input type="checkbox" name="amenities" value="parking">
+                                                <i class="bi bi-car-front me-2"></i>
+                                                <span>Chỗ đậu xe</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'security')">
+                                                <input type="checkbox" name="amenities" value="security">
+                                                <i class="bi bi-shield-check me-2"></i>
+                                                <span>An ninh 24/7</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'elevator')">
+                                                <input type="checkbox" name="amenities" value="elevator">
+                                                <i class="bi bi-arrow-up-square me-2"></i>
+                                                <span>Thang máy</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="amenity-item" onclick="toggleAmenity(this, 'water_heater')">
+                                                <input type="checkbox" name="amenities" value="water_heater">
+                                                <i class="bi bi-thermometer-sun me-2"></i>
+                                                <span>Nước nóng</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Tiện nghi tùy chọn -->
+                                    <div class="mt-3">
+                                        <label for="customAmenity" class="form-label">
+                                            <i class="bi bi-plus-circle me-1"></i>
+                                            Tiện nghi khác (tùy chọn)
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="customAmenity" 
+                                                   placeholder="Nhập tiện nghi khác..." 
+                                                   maxlength="100">
+                                            <button type="button" 
+                                                    class="btn btn-outline-primary" 
+                                                    onclick="addCustomAmenity()">
+                                                <i class="bi bi-plus"></i>
+                                                Thêm
+                                            </button>
+                                        </div>
+                                        <div class="form-text">Ví dụ: Máy sấy tóc, Lò vi sóng, Bàn ủi...</div>
+                                    </div>
+                                    
+                                    <!-- Hiển thị tiện nghi đã chọn -->
+                                    <div class="mt-3" id="selectedAmenities" style="display: none;">
+                                        <h6 class="text-primary">Tiện nghi đã chọn:</h6>
+                                        <div id="amenitiesList" class="d-flex flex-wrap gap-2"></div>
+                                    </div>
+                                    
+                                    <!-- Hidden input để lưu dữ liệu -->
+                                    <input type="hidden" name="amenitiesJson" id="amenitiesJson" value="">
+                                </div>
+                                
                                 <div class="d-flex justify-content-between">
                                     <a href="${pageContext.request.contextPath}/admin/rooms" 
                                        class="btn btn-secondary">
@@ -293,29 +518,176 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Form validation
-        document.getElementById('roomForm').addEventListener('submit', function(e) {
-            const roomName = document.getElementById('roomName').value.trim();
-            const price = document.getElementById('price').value;
+        // Amenities management
+        let selectedAmenities = [];
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Form validation
+            document.getElementById('roomForm').addEventListener('submit', function(e) {
+                const roomName = document.getElementById('roomName').value.trim();
+                const price = document.getElementById('price').value;
+                
+                if (!roomName) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập tên phòng');
+                    return false;
+                }
+                
+                if (!price || price <= 0) {
+                    e.preventDefault();
+                    alert('Vui lòng nhập giá phòng hợp lệ');
+                    return false;
+                }
+            });
             
-            if (!roomName) {
-                e.preventDefault();
-                alert('Vui lòng nhập tên phòng');
-                return false;
-            }
+            // Format price input
+            document.getElementById('price').addEventListener('input', function(e) {
+                // Remove any non-digit characters except for the decimal point
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
             
-            if (!price || price <= 0) {
-                e.preventDefault();
-                alert('Vui lòng nhập giá phòng hợp lệ');
-                return false;
-            }
+            // Handle Enter key in custom amenity input
+            document.getElementById('customAmenity').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomAmenity();
+                }
+            });
+            
+            // Initialize amenities
+            initializeAmenities();
         });
         
-        // Format price input
-        document.getElementById('price').addEventListener('input', function(e) {
-            // Remove any non-digit characters except for the decimal point
-            this.value = this.value.replace(/[^0-9]/g, '');
-        });
+        function initializeAmenities() {
+            // Load existing amenities if editing
+            const existingAmenities = '${room.amenities}';
+            
+            if (existingAmenities && existingAmenities !== '' && existingAmenities !== '[]') {
+                try {
+                    selectedAmenities = JSON.parse(existingAmenities);
+                    updateAmenitiesDisplay();
+                    
+                    // Check corresponding checkboxes
+                    selectedAmenities.forEach(amenity => {
+                        const checkbox = document.querySelector(`input[value="${amenity}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                            checkbox.closest('.amenity-item').classList.add('selected');
+                        }
+                    });
+                } catch (e) {
+                    selectedAmenities = [];
+                }
+            }
+        }
+        
+        function toggleAmenity(element, amenityValue) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                element.classList.add('selected');
+                if (!selectedAmenities.includes(amenityValue)) {
+                    selectedAmenities.push(amenityValue);
+                }
+            } else {
+                element.classList.remove('selected');
+                selectedAmenities = selectedAmenities.filter(item => item !== amenityValue);
+            }
+            
+            updateAmenitiesDisplay();
+        }
+        
+        function addCustomAmenity() {
+            const input = document.getElementById('customAmenity');
+            const value = input.value.trim();
+            
+            if (value && !selectedAmenities.includes(value)) {
+                selectedAmenities.push(value);
+                input.value = '';
+                updateAmenitiesDisplay();
+            }
+        }
+        
+        function removeAmenity(amenityValue) {
+            selectedAmenities = selectedAmenities.filter(item => item !== amenityValue);
+            
+            // Tìm checkbox tương ứng và bỏ chọn (chỉ cho tiện nghi cố định)
+            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+            let checkbox = null;
+            
+            allCheckboxes.forEach(cb => {
+                if (cb.name === 'amenities' && cb.value === amenityValue) {
+                    checkbox = cb;
+                }
+            });
+            
+            if (checkbox) {
+                checkbox.checked = false;
+                const amenityItem = checkbox.closest('.amenity-item');
+                if (amenityItem) {
+                    amenityItem.classList.remove('selected');
+                }
+            }
+            
+            updateAmenitiesDisplay();
+        }
+        
+        function updateAmenitiesDisplay() {
+            const container = document.getElementById('selectedAmenities');
+            const list = document.getElementById('amenitiesList');
+            const hiddenInput = document.getElementById('amenitiesJson');
+            
+            if (selectedAmenities.length > 0) {
+                container.style.display = 'block';
+                
+                // Tạo HTML thủ công
+                let htmlContent = '';
+                
+                selectedAmenities.forEach(function(amenity) {
+                    const amenityInfo = getAmenityInfo(amenity);
+                    
+                    htmlContent += '<span class="badge bg-primary me-1 mb-1" style="font-size: 0.9em;">';
+                    htmlContent += '<i class="bi ' + amenityInfo.icon + ' me-1"></i>';
+                    htmlContent += amenityInfo.name;
+                    htmlContent += '<button type="button" class="btn-close btn-close-white ms-1" ';
+                    htmlContent += 'onclick="removeAmenity(\'' + amenity + '\')" ';
+                    htmlContent += 'style="font-size: 0.7em;"></button>';
+                    htmlContent += '</span>';
+                });
+                
+                list.innerHTML = htmlContent;
+            } else {
+                container.style.display = 'none';
+            }
+            
+            // Update hidden input
+            hiddenInput.value = JSON.stringify(selectedAmenities);
+        }
+        
+        function getAmenityInfo(amenity) {
+            const amenityMap = {
+                'wifi': { name: 'WiFi miễn phí', icon: 'bi-wifi' },
+                'ac': { name: 'Điều hòa', icon: 'bi-snow' },
+                'fridge': { name: 'Tủ lạnh', icon: 'bi-archive' },
+                'washing_machine': { name: 'Máy giặt', icon: 'bi-circle' },
+                'tv': { name: 'TV', icon: 'bi-tv' },
+                'wardrobe': { name: 'Tủ quần áo', icon: 'bi-door-closed' },
+                'bed': { name: 'Giường ngủ', icon: 'bi-house-door' },
+                'desk': { name: 'Bàn làm việc', icon: 'bi-table' },
+                'chair': { name: 'Ghế ngồi', icon: 'bi-person-workspace' },
+                'kitchen': { name: 'Bếp ăn', icon: 'bi-house' },
+                'bathroom': { name: 'Nhà tắm riêng', icon: 'bi-droplet' },
+                'balcony': { name: 'Ban công', icon: 'bi-building' },
+                'parking': { name: 'Chỗ đậu xe', icon: 'bi-car-front' },
+                'security': { name: 'An ninh 24/7', icon: 'bi-shield-check' },
+                'elevator': { name: 'Thang máy', icon: 'bi-arrow-up-square' },
+                'water_heater': { name: 'Nước nóng', icon: 'bi-thermometer-sun' }
+            };
+            
+            return amenityMap[amenity] || { name: amenity, icon: 'bi-plus-circle' };
+        }
     </script>
 </body>
 </html>

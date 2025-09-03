@@ -12,21 +12,38 @@ import javax.mail.internet.MimeMessage;
 import java.util.Properties;
 
 /**
- * Gmail Data Access Object
- * Xử lý gửi email thông qua Gmail SMTP
+ * Lớp Data Access Object cho Gmail
+ * Xử lý việc gửi email thông qua Gmail SMTP
+ * Tích hợp với Gmail API để gửi email thông báo hóa đơn và email test
+ * Hỗ trợ gửi email HTML với QR code MoMo tích hợp
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class GmailDAO {
     
+    // ==================== CÁC THUỘC TÍNH ====================
+    
+    /** Cấu hình Gmail - chứa thông tin SMTP và template email */
     @Autowired
     private GmailConfig gmailConfig;
     
+    // ==================== CÁC PHƯƠNG THỨC CHÍNH ====================
+    
     /**
      * Gửi email thông qua Gmail SMTP
+     * Phương thức chính để gửi email với đầy đủ tính năng xác thực và xử lý lỗi
+     * Hỗ trợ gửi email HTML và text thuần
+     * Tự động xử lý encoding UTF-8 cho tiếng Việt
+     * 
+     * @param emailRequest đối tượng chứa thông tin email cần gửi
+     * @return EmailResponse chứa kết quả gửi email
      */
     public EmailResponse sendEmail(EmailRequest emailRequest) {
         try {
-            // Validate input
+            // Bước 1: Kiểm tra tính hợp lệ của dữ liệu đầu vào
             if (emailRequest == null) {
                 return EmailResponse.failure("Email request không được null");
             }
@@ -43,13 +60,13 @@ public class GmailDAO {
                 return EmailResponse.failure("Nội dung email không được để trống");
             }
             
-            // Tạo properties cho SMTP
+            // Bước 2: Thiết lập cấu hình SMTP
             Properties props = new Properties();
-            props.put("mail.smtp.host", gmailConfig.getSmtpHost());
-            props.put("mail.smtp.port", gmailConfig.getSmtpPort());
-            props.put("mail.smtp.auth", gmailConfig.isSmtpAuth());
-            props.put("mail.smtp.starttls.enable", gmailConfig.isSmtpStarttls());
-            props.put("mail.smtp.ssl.trust", gmailConfig.getSmtpHost());
+            props.put("mail.smtp.host", gmailConfig.getSmtpHost());           // Máy chủ SMTP
+            props.put("mail.smtp.port", gmailConfig.getSmtpPort());           // Cổng SMTP
+            props.put("mail.smtp.auth", gmailConfig.isSmtpAuth());            // Bật xác thực
+            props.put("mail.smtp.starttls.enable", gmailConfig.isSmtpStarttls()); // Bật mã hóa
+            props.put("mail.smtp.ssl.trust", gmailConfig.getSmtpHost());      // Tin cậy SSL
             
             // Tạo session với authentication
             Session session = Session.getInstance(props, new Authenticator() {
@@ -106,8 +123,18 @@ public class GmailDAO {
         }
     }
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Gửi thông báo hóa đơn qua email
+     * Gửi thông báo hóa đơn qua email (không có QR code)
+     * Phương thức tiện ích gọi email thông báo hóa đơn cơ bản
+     * 
+     * @param toEmail địa chỉ email người nhận
+     * @param toName tên người nhận
+     * @param roomName tên phòng
+     * @param period kỳ thanh toán
+     * @param totalAmount tổng số tiền
+     * @return true nếu gửi thành công, false nếu thất bại
      */
     public boolean sendInvoiceNotification(String toEmail, String toName, String roomName, String period, String totalAmount) {
         return sendInvoiceNotificationWithQR(toEmail, toName, roomName, period, totalAmount, null);
@@ -115,6 +142,16 @@ public class GmailDAO {
     
     /**
      * Gửi thông báo hóa đơn qua email với QR code MoMo
+     * Phương thức chính để gửi email thông báo hóa đơn có kèm QR code thanh toán
+     * Sờ dụng template HTML đẹp mắt với QR code MoMo tích hợp
+     * 
+     * @param toEmail địa chỉ email người nhận
+     * @param toName tên người nhận
+     * @param roomName tên phòng
+     * @param period kỳ thanh toán (MM/yyyy)
+     * @param totalAmount tổng số tiền đã format
+     * @param qrCodeUrl URL của QR code MoMo (có thể null)
+     * @return true nếu gửi thành công, false nếu thất bại
      */
     public boolean sendInvoiceNotificationWithQR(String toEmail, String toName, String roomName, String period, String totalAmount, String qrCodeUrl) {
         try {

@@ -10,14 +10,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ServiceUsage Data Access Object
- * Handles database operations for service usage (electricity, water consumption)
+ * Lớp Data Access Object cho Sử dụng Dịch vụ
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho sử dụng dịch vụ
+ * Bao gồm ghi nhận tiêu thụ điện, nước và các dịch vụ khác
+ * Hỗ trợ tính toán chi phí, thống kê và báo cáo sử dụng
+ * Tự động khởi tạo dịch vụ cho người thuê mới
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class ServiceUsageDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    
     /**
-     * Add service usage record
+     * Thêm bản ghi sử dụng dịch vụ
+     * Ghi nhận lượng tiêu thụ dịch vụ của người thuê trong tháng
+     * 
+     * @param usage đối tượng chứa thông tin sử dụng dịch vụ
+     * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addServiceUsage(ServiceUsage usage) {
         String sql = "INSERT INTO service_usage (tenant_id, service_id, month, year, quantity) VALUES (?, ?, ?, ?, ?)";

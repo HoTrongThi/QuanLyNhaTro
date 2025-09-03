@@ -19,59 +19,92 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Bill Management Controller
- * Handles service bills, total bills, and invoice operations
+ * Controller quản lý Hóa đơn
+ * Xử lý các chức năng liên quan đến hóa đơn, sử dụng dịch vụ và thanh toán
+ * Bao gồm tạo hóa đơn, quản lý sử dụng dịch vụ, tích hợp MoMo và gửi email
+ * Hỗ trợ tính toán tiền phòng theo tỷ lệ ngày ở thực tế
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/admin")
 public class BillController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý hóa đơn */
     @Autowired
     private InvoiceDAO invoiceDAO;
     
+    /** DAO quản lý sử dụng dịch vụ */
     @Autowired
     private ServiceUsageDAO serviceUsageDAO;
     
+    /** DAO quản lý chi phí phát sinh */
     @Autowired
     private AdditionalCostDAO additionalCostDAO;
     
+    /** DAO quản lý người thuê */
     @Autowired
     private TenantDAO tenantDAO;
     
+    /** DAO quản lý dịch vụ */
     @Autowired
     private ServiceDAO serviceDAO;
     
+    /** DAO quản lý phòng */
     @Autowired
     private RoomDAO roomDAO;
     
+    /** DAO quản lý chỉ số công tơ */
     @Autowired
     private MeterReadingDAO meterReadingDAO;
     
+    /** DAO tích hợp thanh toán MoMo */
     @Autowired
     private MoMoDAO moMoDAO;
     
+    /** DAO gửi email thông báo */
     @Autowired
     private GmailDAO gmailDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is admin
+     * Kiểm tra quyền truy cập của quản trị viên
+     * Đảm bảo chỉ có admin mới có thể truy cập các chức năng quản lý hóa đơn
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @return null nếu có quyền truy cập, redirect URL nếu không có quyền
      */
     private String checkAdminAccess(HttpSession session) {
         User user = (User) session.getAttribute("user");
         
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
         
+        // Kiểm tra quyền admin
         if (!user.isAdmin()) {
             return "redirect:/access-denied";
         }
         
-        return null; // Access granted
+        return null; // Có quyền truy cập
     }
     
+    // ==================== CÁC PHƯƠNG THỨC HIỂN THỊ TRANG ====================
+    
     /**
-     * Show bills management page
+     * Hiển thị trang quản lý hóa đơn
+     * Liệt kê tất cả hóa đơn với thông tin chi tiết và thống kê
+     * Hiển thị số lượng người thuê trong mỗi phòng
+     * 
+     * @param session HTTP Session để kiểm tra quyền
+     * @param model Model để truyền dữ liệu đến view
+     * @return tên view hoặc redirect URL
      */
     @GetMapping("/bills")
     public String showBillsPage(HttpSession session, Model model) {
@@ -303,7 +336,7 @@ public class BillController {
     }
     
     /**
-     * Show generate bill form (Step 1: Select room and period)
+     * Hiển thị biểu mẫu tạo hóa đơn (Bước 1: Chọn phòng và thời gian)
      */
     @GetMapping("/bills/generate")
     public String showGenerateBillForm(HttpSession session, Model model) {
@@ -330,7 +363,7 @@ public class BillController {
     }
     
     /**
-     * Show service usage input form (Step 2: Enter service quantities)
+     * Hiển thị biểu mẫu nhập liệu sử dụng dịch vụ (Bước 2: Nhập số lượng dịch vụ)
      */
     @PostMapping("/bills/generate/services")
     public String showServiceUsageForm(@RequestParam int roomId,
@@ -367,23 +400,17 @@ public class BillController {
         // Get tenants in this room
         List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
         
-        // Calculate prorated room price for display
+        // Tính giá phòng theo tỷ lệ:
         BigDecimal fullRoomPrice = room.getPrice();
         BigDecimal proratedRoomPrice = calculateProratedRoomPrice(fullRoomPrice, tenantsInRoom, month, year);
         
-        // Calculate days information for display
+        // Tính toán thông tin ngày để hiển thị
         int daysInMonth = getDaysInMonth(month, year);
         int daysStayed = calculateDaysStayed(tenantsInRoom, month, year);
         Date earliestStartDate = getEarliestStartDate(tenantsInRoom, month, year);
         
         // Get all available services (simplified to avoid potential database issues)
         List<Service> services = serviceDAO.getAllServices();
-        
-        // TODO: Later, we can implement room-specific services once the basic flow works
-        // List<Service> servicesUsedByRoom = serviceDAO.getServicesUsedByRoom(roomId);
-        // if (!servicesUsedByRoom.isEmpty()) {
-        //     services = servicesUsedByRoom;
-        // }
         
         // Get existing service usages for this room and period
         List<ServiceUsage> existingUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(roomId, month, year);
@@ -418,7 +445,7 @@ public class BillController {
     }
     
     /**
-     * Process service usage and generate final bill (Step 3: Create bill with service quantities)
+     * Xử lý việc sử dụng dịch vụ và tạo hóa đơn cuối cùng (Bước 3: Tạo hóa đơn với số lượng dịch vụ)
      */
     @PostMapping("/bills/generate/final")
     public String generateBillWithServices(@RequestParam int roomId,
@@ -443,29 +470,29 @@ public class BillController {
                 return "redirect:/admin/bills/generate";
             }
             
-            // Check if invoice already exists for this room and period
+            // Kiểm tra xem hóa đơn đã tồn tại cho phòng và thời gian này chưa
             if (invoiceDAO.invoiceExistsForRoomAndPeriod(roomId, month, year)) {
                 redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho phòng này trong kỳ này");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Get room information
+            // Lấy thông tin phòng
             Room room = roomDAO.getRoomById(roomId);
             if (room == null) {
                 redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Get tenants in this room
+            // Lấy người thuê trong phòng này
             List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
             if (tenantsInRoom.isEmpty()) {
                 redirectAttributes.addFlashAttribute("error", "Không có người thuê nào trong phòng này");
                 return "redirect:/admin/bills/generate";
             }
             
-            // Process meter readings for electricity and water services
-            // For room-based billing, we'll use the first tenant (by ID) for meter readings
-            // This must match the logic in ServiceUsageDAO.calculateServiceTotalByRoom()
+            // Xử lý số đọc đồng hồ điện và nước
+            // Đối với thanh toán theo phòng, sẽ sử dụng người thuê đầu tiên (theo ID) để đọc số đọc đồng hồ
+            // Điều này phải khớp với logic trong ServiceUsageDAO.calculateServiceTotalByRoom()
             int representativeTenantId = tenantsInRoom.stream()
                 .mapToInt(Tenant::getTenantId)
                 .min()
@@ -477,12 +504,12 @@ public class BillController {
             }
             
             if (serviceIds != null && currentReadings != null) {
-                // Process meter readings - match services that have meters with readings
+                // Quy trình đọc đồng hồ đo - kết hợp các dịch vụ có đồng hồ đo với các số đọc
                 int readingIndex = 0;
                 for (int i = 0; i < serviceIds.size(); i++) {
                     int serviceId = serviceIds.get(i);
                     
-                    // Check if this service uses meter readings (electricity, water)
+                    // Kiểm tra xem dịch vụ này có sử dụng đồng hồ đo (điện, nước) không
                     Service service = serviceDAO.getServiceById(serviceId);
                     if (service != null) {
                         String serviceName = service.getServiceName().toLowerCase();
@@ -491,42 +518,42 @@ public class BillController {
                         
                         if (hasMeter && readingIndex < currentReadings.size()) {
                             String currentReadingStr = currentReadings.get(readingIndex);
-                            readingIndex++; // Increment for next meter service
+                            readingIndex++; // Tăng giá cho dịch vụ đồng hồ đo tiếp theo
                             
                             if (currentReadingStr != null && !currentReadingStr.trim().isEmpty()) {
                                 try {
                                     BigDecimal currentReading = new BigDecimal(currentReadingStr.trim());
                                     
-                                    // Get previous meter reading (using representative tenant)
+                                    // Nhận số đọc đồng hồ trước đó (sử dụng đại diện người thuê nhà)
                                     MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
                                     BigDecimal previousReadingValue = BigDecimal.ZERO;
                                     
                                     if (previousReading != null) {
                                         previousReadingValue = previousReading.getReading();
                                     } else {
-                                        // If no previous reading found, check for initial reading in the same period
-                                        // This handles new tenants who have initial readings for their first month
+                                    	// Nếu không tìm thấy số liệu đọc trước đó, hãy kiểm tra số liệu đọc ban đầu trong cùng khoảng thời gian
+                                    	// Điều này áp dụng cho những người thuê nhà mới có số liệu đọc ban đầu trong tháng đầu tiên
                                         MeterReading initialReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(
                                             representativeTenantId, serviceId, month, year);
                                         if (initialReading != null) {
-                                            // Use initial reading as the starting point
+                                        	// Sử dụng số đọc ban đầu làm điểm khởi đầu
                                             previousReadingValue = initialReading.getReading();
                                         }
                                     }
                                     
-                                    // Calculate consumption
+                                    // Tính toán mức tiêu thụ
                                     BigDecimal consumption = currentReading.subtract(previousReadingValue);
                                     if (consumption.compareTo(BigDecimal.ZERO) < 0) {
-                                        consumption = BigDecimal.ZERO; // Prevent negative consumption
+                                        consumption = BigDecimal.ZERO; // Ngăn chặn tiêu thụ tiêu cực
                                     }
                                     
-                                    // Save current meter reading (using representative tenant)
+                                    // Lưu số đọc đồng hồ hiện tại (sử dụng người thuê nhà đại diện)
                                     Date currentDate = Date.valueOf(java.time.LocalDate.now());
                                     MeterReading newReading = new MeterReading(representativeTenantId, serviceId, currentReading, currentDate, month, year);
                                     
-                                    // Check if meter reading already exists for this period
+                                    // Kiểm tra xem số đọc đồng hồ đã tồn tại trong khoảng thời gian này chưa
                                     if (meterReadingDAO.meterReadingExists(representativeTenantId, serviceId, month, year)) {
-                                        // Update existing reading
+                                        // Cập nhật bản đọc hiện có
                                         MeterReading existingReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(representativeTenantId, serviceId, month, year);
                                         if (existingReading != null) {
                                             existingReading.setReading(currentReading);
@@ -534,13 +561,13 @@ public class BillController {
                                             meterReadingDAO.updateMeterReading(existingReading);
                                         }
                                     } else {
-                                        // Add new meter reading
+                                        // Thêm số đọc đồng hồ mới
                                         meterReadingDAO.addMeterReading(newReading);
                                     }
                                     
-                                    // Update or create service usage record with calculated consumption (using representative tenant)
+                                    // Cập nhật hoặc tạo hồ sơ sử dụng dịch vụ với mức tiêu thụ đã tính toán (sử dụng đối tượng thuê đại diện)
                                     if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
-                                        // Update existing usage
+                                        // Cập nhật số lượng sử dụng hiện tại
                                         ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
                                             .stream()
                                             .filter(usage -> usage.getServiceId() == serviceId)
@@ -552,7 +579,7 @@ public class BillController {
                                             serviceUsageDAO.updateServiceUsage(existingUsage);
                                         }
                                     } else {
-                                        // Create new usage record
+                                        // Tạo bản ghi sử dụng mới
                                         ServiceUsage newUsage = new ServiceUsage(representativeTenantId, serviceId, month, year, consumption);
                                         serviceUsageDAO.addServiceUsage(newUsage);
                                     }
@@ -567,15 +594,15 @@ public class BillController {
                 }
             }
             
-            // Process quantities for other services (Internet, parking, etc.)
+            // Xử lý số lượng cho các dịch vụ khác (Internet, parking, etc.)
             if (serviceIds != null && quantities != null) {
-                // Process quantities - match by index
+                // Số lượng - khớp theo chỉ số
                 int maxIndex = Math.min(serviceIds.size(), quantities.size());
                 for (int i = 0; i < maxIndex; i++) {
                     int serviceId = serviceIds.get(i);
                     String quantityStr = (i < quantities.size()) ? quantities.get(i) : null;
                     
-                    // Check if this service doesn't use meter readings
+                    // Kiểm tra xem dịch vụ này có sử dụng số đọc đồng hồ không
                     Service service = serviceDAO.getServiceById(serviceId);
                     if (service != null) {
                         String serviceName = service.getServiceName().toLowerCase();
@@ -586,7 +613,7 @@ public class BillController {
                             try {
                                 BigDecimal quantity = new BigDecimal(quantityStr.trim());
                                 
-                                // Update or create service usage record with quantity (using representative tenant)
+                                // Cập nhật hoặc tạo hồ sơ sử dụng dịch vụ với số lượng (sử dụng người thuê đại diện)
                                 if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
                                     // Update existing usage
                                     ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
@@ -614,30 +641,30 @@ public class BillController {
                 }
             }
             
-            // Calculate totals after updating service usage - now room-based
+            // Tính tổng số sau khi cập nhật mức sử dụng dịch vụ - hiện tại dựa trên phòng
             BigDecimal fullRoomPrice = room.getPrice();
             
-            // Calculate prorated room price based on actual days stayed
+            // Tính giá phòng theo tỷ lệ dựa trên số ngày lưu trú thực tế
             BigDecimal roomPrice = calculateProratedRoomPrice(fullRoomPrice, tenantsInRoom, month, year);
             
             BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotalByRoom(roomId, month, year);
             BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotalByRoom(roomId, month, year);
             
-            // Ensure no nulls in calculations
+            // Đảm bảo không có giá trị null trong phép tính
             roomPrice = roomPrice != null ? roomPrice : BigDecimal.ZERO;
             serviceTotal = serviceTotal != null ? serviceTotal : BigDecimal.ZERO;
             additionalTotal = additionalTotal != null ? additionalTotal : BigDecimal.ZERO;
             
             BigDecimal totalAmount = roomPrice.add(serviceTotal).add(additionalTotal);
             
-            // Create invoice using the representative tenant (representing the room)
+            // Tạo hóa đơn bằng cách sử dụng người thuê đại diện (đại diện cho phòng)
             Invoice invoice = new Invoice(representativeTenantId, month, year, roomPrice, serviceTotal, additionalTotal, totalAmount);
             invoice.setStatus("UNPAID");
             
             boolean success = invoiceDAO.createInvoice(invoice);
             
             if (success) {
-                // Generate MoMo QR Code after successful invoice creation
+                // Tạo mã QR MoMo sau khi tạo hóa đơn thành công
                 try {
                     String orderInfo = "Thanh toán hóa đơn phòng " + room.getRoomName() + " - " + 
                                      String.format("%02d/%d", month, year);
@@ -645,7 +672,7 @@ public class BillController {
                     MoMoResponse moMoResponse = moMoDAO.createQRCode(invoice.getInvoiceId(), totalAmount, orderInfo);
                     
                     if (moMoResponse.isSuccess() && moMoResponse.hasQrCode()) {
-                        // Update invoice with MoMo information
+                        // Cập nhật hóa đơn bằng thông tin MoMo
                         invoiceDAO.updateMoMoPaymentInfo(
                             invoice.getInvoiceId(),
                             moMoResponse.getQrCodeUrl(),
@@ -656,15 +683,15 @@ public class BillController {
                     }
                 } catch (Exception e) {
                     System.err.println("Error creating MoMo QR Code: " + e.getMessage());
-                    // Don't fail the invoice creation if MoMo fails
+                    // Thông báo nếu tạo QR MoMo thất bại
                 }
                 
-                // Send Email notifications to all tenants in the room with QR code
+                // Gửi thông báo qua Email đến tất cả người thuê phòng bằng mã QR
                 try {
                     String period = String.format("%02d/%d", month, year);
                     String formattedAmount = String.format("%,.0f", totalAmount.doubleValue());
                     
-                    // Get QR code URL from the created invoice
+                    // Nhận URL mã QR từ hóa đơn đã tạo
                     String qrCodeUrl = null;
                     try {
                         Invoice createdInvoice = invoiceDAO.getInvoiceById(invoice.getInvoiceId());
@@ -677,6 +704,7 @@ public class BillController {
                     
                     int emailSuccessCount = 0;
                     
+                    // Gửi email cho tất cả tenant trong phòng
                     for (Tenant tenant : tenantsInRoom) {
                         if (tenant.getEmail() != null && !tenant.getEmail().trim().isEmpty()) {
                             boolean emailSuccess = gmailDAO.sendInvoiceNotificationWithQR(
@@ -696,7 +724,7 @@ public class BillController {
                     
                 } catch (Exception e) {
                     System.err.println("Error sending Email notifications: " + e.getMessage());
-                    // Don't fail the invoice creation if Email fails
+                    // Đừng để việc tạo hóa đơn thất bại nếu Email không thành công
                 }
                 
                 String tenantNames = tenantsInRoom.stream()
@@ -704,20 +732,20 @@ public class BillController {
                     .reduce((a, b) -> a + ", " + b)
                     .orElse("Không xác định");
                 
-                // Check if room price was prorated
+                // Kiểm tra xem giá phòng có được tính theo tỷ lệ không
                 String priceInfo = "";
                 if (roomPrice.compareTo(fullRoomPrice) < 0) {
                     priceInfo = " (Tiền phòng đã được tính theo tỷ lệ ngày ở thực tế)";
                 }
                 
-                // Build success message with SMS info
+                // Xây dựng tin nhắn thành công với thông tin SMS
                 StringBuilder successMessage = new StringBuilder();
                 successMessage.append("Tạo hóa đơn thành công cho phòng ").append(room.getRoomName())
                              .append(" (").append(tenantNames).append(")! Tổng tiền: ")
                              .append(String.format("%,.0f", totalAmount.doubleValue())).append(" VNĐ")
                              .append(priceInfo);
                 
-                // Add Email notification info if any Email was attempted
+                // Thêm thông tin thông báo qua Email nếu có Email nào được thử
                 try {
                     int tenantsWithEmail = (int) tenantsInRoom.stream()
                         .filter(t -> t.getEmail() != null && !t.getEmail().trim().isEmpty())
@@ -727,20 +755,20 @@ public class BillController {
                         successMessage.append(" Đã gửi thông báo Email tới ")
                                      .append(tenantsWithEmail).append(" người thuê");
                         
-                        // Check if QR code was included
+                        // Kiểm tra xem mã QR đã được bao gồm chưa
                         try {
                             Invoice createdInvoice = invoiceDAO.getInvoiceById(invoice.getInvoiceId());
                             if (createdInvoice != null && createdInvoice.getMomoQrCodeUrl() != null && !createdInvoice.getMomoQrCodeUrl().trim().isEmpty()) {
                                 successMessage.append(" (bao gồm mã QR MoMo)");
                             }
                         } catch (Exception e) {
-                            // Ignore QR check error
+                            // Bỏ qua lỗi kiểm tra QR
                         }
                         
                         successMessage.append(".");
                     }
                 } catch (Exception e) {
-                    // Ignore Email count error
+                    // Bỏ qua lỗi số lượng Email
                 }
                 
                 redirectAttributes.addFlashAttribute("success", successMessage.toString());
@@ -777,7 +805,7 @@ public class BillController {
             return "redirect:/admin/bills/generate";
         }
         
-        // Check if invoice already exists for this period
+        // Kiểm tra xem hóa đơn đã tồn tại cho kỳ này chưa
         if (invoiceDAO.invoiceExistsForPeriod(tenantId, month, year)) {
             redirectAttributes.addFlashAttribute("error", "Đã có hóa đơn cho kỳ này");
             return "redirect:/admin/bills/generate";
@@ -800,7 +828,7 @@ public class BillController {
         // Calculate totals
         BigDecimal fullRoomPrice = room.getPrice();
         
-        // Calculate prorated room price for this tenant
+        // Tính giá phòng theo tỷ lệ cho người thuê này
         List<Tenant> singleTenantList = new ArrayList<>();
         singleTenantList.add(tenant);
         BigDecimal roomPrice = calculateProratedRoomPrice(fullRoomPrice, singleTenantList, month, year);
@@ -808,7 +836,7 @@ public class BillController {
         BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotal(tenantId, month, year);
         BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotal(tenantId, month, year);
         
-        // Ensure no nulls in calculations
+        // Đảm bảo không có giá trị null trong phép tính
         roomPrice = roomPrice != null ? roomPrice : BigDecimal.ZERO;
         serviceTotal = serviceTotal != null ? serviceTotal : BigDecimal.ZERO;
         additionalTotal = additionalTotal != null ? additionalTotal : BigDecimal.ZERO;
@@ -859,10 +887,10 @@ public class BillController {
             return "redirect:/admin/bills";
         }
         
-        // Get all tenants in the same room for room-based billing
+        // Đưa tất cả người thuê vào cùng một phòng để thanh toán theo phòng
         List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(tenant.getRoomId());
         
-        // Get detailed breakdowns - now room-based and aggregated
+        // Nhận thông tin chi tiết - hiện đã được tổng hợp và phân loại theo phòng
         List<ServiceUsage> roomUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(
             tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
@@ -872,12 +900,12 @@ public class BillController {
             tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
         );
         
-        // Calculate days information for prorated pricing display
+        // Tính toán thông tin ngày để hiển thị giá theo tỷ lệ
         int daysInMonth = getDaysInMonth(invoice.getMonth(), invoice.getYear());
         int daysStayed = calculateDaysStayed(tenantsInRoom, invoice.getMonth(), invoice.getYear());
         Date earliestStartDate = getEarliestStartDate(tenantsInRoom, invoice.getMonth(), invoice.getYear());
         
-        // Calculate what the full room price would be
+        // Tính toán giá phòng đầy đủ sẽ là bao nhiêu
         BigDecimal fullRoomPrice = calculateFullRoomPrice(invoice, tenantsInRoom, daysInMonth, daysStayed);
         boolean isProrated = daysStayed < daysInMonth;
         
@@ -966,7 +994,7 @@ public class BillController {
     }
     
     /**
-     * Get previous meter reading for AJAX call using JSP
+     * Lấy số đọc đồng hồ trước đó cho lệnh gọi AJAX bằng JSP
      */
     @GetMapping("/api/meter-readings/previous")
     public String getPreviousMeterReadingJsp(@RequestParam int roomId,
@@ -991,23 +1019,23 @@ public class BillController {
                 return "admin/previous-meter-reading";
             }
             
-            // Try to find previous meter reading from any tenant in the room
+            // Cố gắng tìm số đọc đồng hồ trước đó của bất kỳ người thuê nhà nào trong phòng
             MeterReading previousReading = null;
             String foundTenantInfo = "";
             
-            // First, try the representative tenant (minimum tenant ID) for consistency
+            // Đầu tiên, hãy thử người thuê đại diện (ID người thuê tối thiểu) để đảm bảo tính nhất quán
             int representativeTenantId = tenantsInRoom.stream()
                 .mapToInt(Tenant::getTenantId)
                 .min()
                 .orElse(0);
             
-            // Try to get previous reading from earlier periods
+            // Cố gắng lấy thông tin đọc trước từ các giai đoạn trước
             previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
             
             if (previousReading != null) {
                 foundTenantInfo = "from representative tenant " + representativeTenantId;
             } else {
-                // If not found, try all tenants in the room for previous periods
+                // Nếu không tìm thấy, hãy thử tất cả người thuê phòng trong các kỳ trước
                 for (Tenant tenant : tenantsInRoom) {
                     previousReading = meterReadingDAO.getPreviousMeterReading(tenant.getTenantId(), serviceId, month, year);
                     if (previousReading != null) {
@@ -1016,16 +1044,16 @@ public class BillController {
                     }
                 }
                 
-                // If still no previous reading found, check if this is the first month for new tenants
-                // Look for initial reading in the same period (for new tenants)
+                // Nếu vẫn không tìm thấy số liệu trước đó, hãy kiểm tra xem đây có phải là tháng đầu tiên cho người thuê mới không.
+                // Tìm số liệu ban đầu trong cùng kỳ (cho người thuê mới)
                 if (previousReading == null) {
-                    // Try to find initial reading for the same period from any tenant in the room
-                    // This handles the case where tenant moved in during the current month
+                    // Cố gắng tìm số liệu ban đầu cho cùng kỳ từ bất kỳ người thuê nào trong phòng
+                	// Điều này xử lý trường hợp người thuê chuyển đến trong tháng hiện tại
                     for (Tenant tenant : tenantsInRoom) {
                         MeterReading initialReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(
                             tenant.getTenantId(), serviceId, month, year);
                         if (initialReading != null) {
-                            // Use this as "previous" reading (it's actually the initial reading for this period)
+                            // Sử dụng phần này như bài đọc "trước" (thực ra đây là bài đọc đầu tiên cho giai đoạn này)
                             previousReading = initialReading;
                             foundTenantInfo = "initial reading for " + month + "/" + year + " from tenant " + tenant.getTenantId() + " (" + tenant.getFullName() + ")";
                             break;
@@ -1037,7 +1065,7 @@ public class BillController {
             if (previousReading != null) {
                 model.addAttribute("previousReading", previousReading);
             }
-            // No previous reading found - JSP will handle this case
+            // Không tìm thấy tài liệu đọc trước đó - JSP sẽ xử lý trường hợp này
             
             return "admin/previous-meter-reading";
             
@@ -1081,61 +1109,61 @@ public class BillController {
     }
     
     /**
-     * Calculate prorated room price based on actual days stayed in the month
-     * For tenants who moved in during the month, only charge for days actually stayed
+     * Tính giá phòng theo tỷ lệ dựa trên số ngày lưu trú thực tế trong tháng
+     * Đối với khách thuê chuyển đến trong tháng, chỉ tính phí theo số ngày thực tế lưu trú
      */
     private BigDecimal calculateProratedRoomPrice(BigDecimal fullRoomPrice, List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
             return BigDecimal.ZERO;
         }
         
-        // Get the number of days in the billing month
+        // Lấy số ngày trong tháng thanh toán
         int daysInMonth = getDaysInMonth(month, year);
         
-        // Find the earliest start date among all tenants in the room for this month
+        // Tìm ngày bắt đầu sớm nhất trong số tất cả người thuê phòng trong tháng này
         Date earliestStartDate = null;
         boolean needsProration = false;
         
         for (Tenant tenant : tenantsInRoom) {
             Date startDate = tenant.getStartDate();
             if (startDate != null) {
-                // Check if tenant started in this month/year
+                // Kiểm tra xem người thuê nhà đã bắt đầu vào tháng/năm này chưa
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    // Tenant started in this billing month - needs proration
+                    // Người thuê nhà bắt đầu vào tháng thanh toán này - cần được phân bổ
                     needsProration = true;
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
                 } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
-                    // Tenant started before this month - no proration needed for this tenant
-                    // Continue checking other tenants
+                    // Người thuê đã bắt đầu trước tháng này - không cần tính tỷ lệ cho người thuê này
+                	// Tiếp tục kiểm tra những người thuê khác
                 }
             }
         }
         
-        // If no tenant started in this month, charge full month
+        // Nếu không có người thuê nào bắt đầu trong tháng này, tính phí toàn bộ tháng
         if (!needsProration || earliestStartDate == null) {
             return fullRoomPrice;
         }
         
-        // Calculate the number of days to charge
+        // Tính toán số ngày cần tính phí
         java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
         java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
         
-        // Calculate days from start date to end of month (inclusive)
+        // Tính số ngày từ ngày bắt đầu đến ngày kết thúc tháng
         int daysToCharge = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
         
-        // Ensure we don't charge for more days than in the month
+        // Đảm bảo không tính phí cho nhiều ngày hơn trong tháng
         daysToCharge = Math.min(daysToCharge, daysInMonth);
-        daysToCharge = Math.max(daysToCharge, 1); // At least 1 day
+        daysToCharge = Math.max(daysToCharge, 1); // Ít nhất 1 ngày
         
-        // If charging for full month, return full price to avoid rounding errors
+        // Nếu tính phí cho cả tháng, hãy trả lại giá đầy đủ để tránh lỗi làm tròn
         if (daysToCharge >= daysInMonth) {
             return fullRoomPrice;
         }
         
-        // Calculate prorated amount
+        // Tính toán số tiền được chia theo tỷ lệ
         BigDecimal dailyRate = fullRoomPrice.divide(new BigDecimal(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
         BigDecimal proratedAmount = dailyRate.multiply(new BigDecimal(daysToCharge));
         
@@ -1143,7 +1171,7 @@ public class BillController {
     }
     
     /**
-     * Get number of days in a specific month and year
+     * Lấy số ngày trong một tháng và năm cụ thể
      */
     private int getDaysInMonth(int month, int year) {
         java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
@@ -1151,7 +1179,7 @@ public class BillController {
     }
     
     /**
-     * Calculate the number of days stayed in the billing month
+     * Tính số ngày lưu trú trong tháng thanh toán
      */
     private int calculateDaysStayed(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -1160,7 +1188,7 @@ public class BillController {
         
         int daysInMonth = getDaysInMonth(month, year);
         
-        // Check if any tenant started in this month
+        // Kiểm tra xem có người thuê nhà nào bắt đầu vào tháng này không
         boolean anyTenantStartedThisMonth = false;
         Date earliestStartDate = null;
         
@@ -1177,7 +1205,7 @@ public class BillController {
             }
         }
         
-        // If no tenant started in this month, they stayed the full month
+        // Nếu không có người thuê nhà nào bắt đầu vào tháng này, họ sẽ ở lại cả tháng
         if (!anyTenantStartedThisMonth || earliestStartDate == null) {
             return daysInMonth;
         }
@@ -1185,19 +1213,19 @@ public class BillController {
         java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
         java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
         
-        // Calculate days from start date to end of month (inclusive)
+        // Tính số ngày từ ngày bắt đầu đến ngày kết thúc tháng
         int daysStayed = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
         
-        // Ensure we don't count more days than in the month
+        // Đảm bảo chúng ta không tính nhiều ngày hơn trong tháng
         daysStayed = Math.min(daysStayed, daysInMonth);
-        daysStayed = Math.max(daysStayed, 1); // At least 1 day
+        daysStayed = Math.max(daysStayed, 1); // Ít nhất 1 ngày
         
         return daysStayed;
     }
     
     /**
-     * Get the earliest start date among tenants for the billing month
-     * Only returns a date if a tenant actually started in this month
+     * Lấy ngày bắt đầu sớm nhất trong số những người thuê nhà cho tháng thanh toán
+     * Chỉ trả về ngày nếu người thuê nhà thực sự bắt đầu trong tháng này
      */
     private Date getEarliestStartDate(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -1211,13 +1239,13 @@ public class BillController {
             if (startDate != null) {
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    // Tenant started in this billing month
+                    // Người thuê nhà bắt đầu vào tháng thanh toán này
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
                 }
-                // If tenant started before this month, we don't set earliestStartDate
-                // because they should pay for the full month (no proration needed)
+                // Nếu người thuê bắt đầu trước tháng này, chúng tôi không đặt earlierStartDate
+                // vì họ phải trả tiền cho cả tháng (không cần chia nhỏ theo tỷ lệ)
             }
         }
         
@@ -1225,31 +1253,31 @@ public class BillController {
     }
     
     /**
-     * Aggregate service usages by service to avoid duplicates
-     * Combines multiple tenant usages for the same service into one record
+     * Tổng hợp việc sử dụng dịch vụ theo từng dịch vụ để tránh trùng lặp
+     * Kết hợp nhiều cách sử dụng của cùng một dịch vụ thành một bản ghi
      */
     private List<ServiceUsage> aggregateServiceUsagesByService(List<ServiceUsage> usages) {
         if (usages == null || usages.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // Group by service ID and aggregate quantities
+        // Nhóm theo ID dịch vụ và tổng số lượng
         Map<Integer, ServiceUsage> serviceMap = new HashMap<>();
         
         for (ServiceUsage usage : usages) {
             int serviceId = usage.getServiceId();
             
             if (serviceMap.containsKey(serviceId)) {
-                // Service already exists, add to quantity and recalculate total cost
+                // Dịch vụ đã tồn tại, thêm vào số lượng và tính toán lại tổng chi phí
                 ServiceUsage existing = serviceMap.get(serviceId);
                 BigDecimal newQuantity = existing.getQuantity().add(usage.getQuantity());
                 existing.setQuantity(newQuantity);
                 existing.calculateTotalCost();
             } else {
-                // New service, create a copy and add to map
+                // Dịch vụ mới, tạo bản sao và thêm vào bản đồ
                 ServiceUsage aggregated = new ServiceUsage();
-                aggregated.setUsageId(usage.getUsageId()); // Keep first usage ID for reference
-                aggregated.setTenantId(usage.getTenantId()); // Keep first tenant ID for reference
+                aggregated.setUsageId(usage.getUsageId()); // Giữ lại ID sử dụng đầu tiên để tham khảo
+                aggregated.setTenantId(usage.getTenantId()); // Giữ lại ID người thuê đầu tiên để tham khảo
                 aggregated.setServiceId(usage.getServiceId());
                 aggregated.setMonth(usage.getMonth());
                 aggregated.setYear(usage.getYear());
@@ -1257,7 +1285,7 @@ public class BillController {
                 aggregated.setServiceName(usage.getServiceName());
                 aggregated.setServiceUnit(usage.getServiceUnit());
                 aggregated.setPricePerUnit(usage.getPricePerUnit());
-                aggregated.setTenantName("Tất cả người thuê"); // Indicate it's aggregated
+                aggregated.setTenantName("Tất cả người thuê"); // Chỉ ra nó được tổng hợp
                 aggregated.setRoomName(usage.getRoomName());
                 aggregated.calculateTotalCost();
                 
@@ -1265,7 +1293,7 @@ public class BillController {
             }
         }
         
-        // Convert map values to list and sort by service name
+        // Chuyển đổi giá trị bản đồ thành danh sách và sắp xếp theo tên dịch vụ
         List<ServiceUsage> result = new ArrayList<>(serviceMap.values());
         result.sort((a, b) -> a.getServiceName().compareToIgnoreCase(b.getServiceName()));
         
@@ -1273,17 +1301,17 @@ public class BillController {
     }
     
     /**
-     * Calculate what the full room price would be (reverse calculation from prorated price)
+     * Tính toán giá phòng đầy đủ sẽ là bao nhiêu (tính ngược lại từ giá theo tỷ lệ)
      */
     private BigDecimal calculateFullRoomPrice(Invoice invoice, List<Tenant> tenantsInRoom, int daysInMonth, int daysStayed) {
         if (daysStayed >= daysInMonth) {
-            // Full month, so current room price is the full price
+            // Cả tháng, vì vậy giá phòng hiện tại là giá đầy đủ
             return invoice.getRoomPrice();
         }
         
-        // Prorated month, calculate full price from prorated price
-        // proratedPrice = fullPrice * (daysStayed / daysInMonth)
-        // fullPrice = proratedPrice * (daysInMonth / daysStayed)
+        // Tháng tính theo tỷ lệ, tính giá đầy đủ từ giá tính theo tỷ lệ
+        // proratedPrice = fullPrice * (ngày lưu trú / ngày trong tháng)
+        // fullPrice = proratedPrice * (ngày trong tháng / ngày lưu trú)
         BigDecimal proratedPrice = invoice.getRoomPrice();
         BigDecimal fullPrice = proratedPrice.multiply(new BigDecimal(daysInMonth))
                                            .divide(new BigDecimal(daysStayed), 2, java.math.RoundingMode.HALF_UP);

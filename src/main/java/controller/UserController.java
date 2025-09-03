@@ -23,43 +23,65 @@ import java.util.*;
 import java.math.BigDecimal;
 
 /**
- * User Controller
- * Handles user-specific functionality with role-based access control
+ * Controller cho Người dùng thường
+ * Xử lý các chức năng dành riêng cho người dùng thường (không phải admin)
+ * Bao gồm dashboard, xem thông tin phòng, hóa đơn và lịch sử thanh toán
+ * Kiểm soát truy cập dựa trên vai trò và trạng thái đăng nhập
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/user")
 public class UserController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý người thuê */
     @Autowired
     private TenantDAO tenantDAO;
     
+    /** DAO quản lý phòng trọ */
     @Autowired
     private RoomDAO roomDAO;
     
+    /** DAO quản lý dịch vụ */
     @Autowired
     private ServiceDAO serviceDAO;
     
+    /** DAO quản lý sử dụng dịch vụ */
     @Autowired
     private ServiceUsageDAO serviceUsageDAO;
     
+    /** DAO quản lý hóa đơn */
     @Autowired
     private InvoiceDAO invoiceDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is authenticated regular user, redirect if not authenticated or if admin
+     * Kiểm tra quyền truy cập của người dùng thường
+     * Đảm bảo chỉ có người dùng thường (không phải admin) mới truy cập được
+     * Nếu là admin sẽ chuyển hướng đến trang quản trị
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @return null nếu có quyền truy cập, redirect URL nếu không có quyền
      */
     private String checkUserAccess(HttpSession session) {
         User user = (User) session.getAttribute("user");
         
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
         
+        // Nếu là admin thì chuyển đến trang quản trị
         if (user.isAdmin()) {
             return "redirect:/admin/dashboard";
         }
         
-        return null; // Access granted
+        return null; // Có quyền truy cập
     }
     
     /**
@@ -193,14 +215,14 @@ public class UserController {
         // Get all invoices for this user's room (room-based billing)
         List<Invoice> allInvoices = getInvoicesForUser(user);
         
-        // Filter invoices based on parameters
+        // Lọc hóa đơn dựa trên các tham số
         List<Invoice> payments = new ArrayList<>();
         java.math.BigDecimal totalPaid = java.math.BigDecimal.ZERO;
         java.math.BigDecimal totalUnpaid = java.math.BigDecimal.ZERO;
         int paidCount = 0;
         int unpaidCount = 0;
         
-        // Calculate statistics for all invoices (without filters for overall stats)
+        // Tính toán số liệu thống kê cho tất cả các hóa đơn (không có bộ lọc cho số liệu thống kê tổng thể)
         for (Invoice invoice : allInvoices) {
             if ("PAID".equals(invoice.getStatus())) {
                 totalPaid = totalPaid.add(invoice.getTotalAmount());
@@ -211,23 +233,23 @@ public class UserController {
             }
         }
         
-        // Filter invoices for display - only show PAID invoices (payment history)
+        // Lọc hóa đơn để hiển thị - chỉ hiển thị hóa đơn ĐÃ THANH TOÁN (lịch sử thanh toán)
         for (Invoice invoice : allInvoices) {
-            // Only include PAID invoices for payment history
+            // Chỉ bao gồm hóa đơn ĐÃ THANH TOÁN cho lịch sử thanh toán
             if (!"PAID".equals(invoice.getStatus())) {
                 continue;
             }
             
-            // Apply year filter if specified
+            // Áp dụng bộ lọc năm nếu được chỉ định
             if (filterYear != null && invoice.getYear() != filterYear) {
                 continue;
             }
             
-            // Add to payments list for display
+            // Thêm vào danh sách thanh toán để hiển thị
             payments.add(invoice);
         }
         
-        // Get unique years for filter dropdown
+        // Nhận những năm duy nhất cho danh sách thả xuống bộ lọc
         Set<Integer> availableYears = new HashSet<>();
         for (Invoice invoice : allInvoices) {
             availableYears.add(invoice.getYear());
@@ -235,7 +257,7 @@ public class UserController {
         List<Integer> yearsList = new ArrayList<>(availableYears);
         Collections.sort(yearsList, Collections.reverseOrder());
         
-        // Get current tenant info for context
+        // Nhận thông tin về người thuê hiện tại
         Tenant currentTenant = tenantDAO.getActiveTenantByUserId(user.getUserId());
         
         model.addAttribute("user", user);

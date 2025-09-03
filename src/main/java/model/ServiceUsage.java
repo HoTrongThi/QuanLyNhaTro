@@ -3,24 +3,56 @@ package model;
 import java.math.BigDecimal;
 
 /**
- * ServiceUsage Entity
- * Represents service usage data (electricity, water consumption) for tenants
+ * Lớp Model cho Sử dụng Dịch vụ
+ * Đại diện cho dữ liệu sử dụng dịch vụ của người thuê
+ * Bao gồm số lượng tiêu thụ điện, nước và các dịch vụ khác
+ * Hỗ trợ tính toán tự động tổng chi phí dựa trên số lượng và đơn giá
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 public class ServiceUsage {
+    
+    // ==================== CÁC THUỘC TÍNH CƠ BẢN ====================
+    
+    /** ID duy nhất của bản ghi sử dụng (Primary Key) */
     private int usageId;
+    
+    /** ID người thuê (Foreign Key đến bảng tenants) */
     private int tenantId;
+    
+    /** ID dịch vụ (Foreign Key đến bảng services) */
     private int serviceId;
+    
+    /** Tháng sử dụng (1-12) */
     private int month;
+    
+    /** Năm sử dụng */
     private int year;
+    
+    /** Số lượng sử dụng (kWh, m3, tháng, xe, v.v.) */
     private BigDecimal quantity;
     
-    // Related entities for display purposes
+    // ==================== THUỘC TÍNH HIỂN THỊ (TỮ JOIN) ====================
+    
+    /** Tên dịch vụ (từ bảng services) */
     private String serviceName;
+    
+    /** Đơn vị tính của dịch vụ (từ bảng services) */
     private String serviceUnit;
+    
+    /** Giá trên đơn vị (từ bảng services) */
     private BigDecimal pricePerUnit;
+    
+    /** Tên người thuê (từ bảng tenants/users) */
     private String tenantName;
+    
+    /** Tên phòng (từ bảng rooms) */
     private String roomName;
-    private BigDecimal totalCost; // quantity * pricePerUnit
+    
+    /** Tổng chi phí (quantity * pricePerUnit) */
+    private BigDecimal totalCost;
     
     // Constructors
     public ServiceUsage() {}
@@ -140,11 +172,52 @@ public class ServiceUsage {
         this.totalCost = totalCost;
     }
     
-    // Helper method to calculate total cost
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
+    /**
+     * Tính toán tổng chi phí dịch vụ
+     * Tự động tính toán dựa trên số lượng sử dụng và đơn giá
+     * Công thức: totalCost = quantity * pricePerUnit
+     */
     public void calculateTotalCost() {
         if (quantity != null && pricePerUnit != null) {
             this.totalCost = quantity.multiply(pricePerUnit);
+        } else {
+            this.totalCost = BigDecimal.ZERO;
         }
+    }
+    
+    /**
+     * Lấy chuỗi hiển thị kỳ sử dụng
+     * 
+     * @return chuỗi dạng "MM/yyyy" (ví dụ: "03/2025")
+     */
+    public String getPeriodDisplay() {
+        return String.format("%02d/%d", month, year);
+    }
+    
+    /**
+     * Lấy số lượng đã format với đơn vị
+     * 
+     * @return chuỗi số lượng kèm đơn vị (ví dụ: "150 kWh")
+     */
+    public String getFormattedQuantity() {
+        if (quantity != null && serviceUnit != null) {
+            return String.format("%.2f %s", quantity, serviceUnit);
+        }
+        return "0";
+    }
+    
+    /**
+     * Lấy tổng chi phí đã format
+     * 
+     * @return chuỗi tiền đã format (ví dụ: "450,000 VNĐ")
+     */
+    public String getFormattedTotalCost() {
+        if (totalCost != null) {
+            return String.format("%,.0f VNĐ", totalCost);
+        }
+        return "0 VNĐ";
     }
     
     @Override

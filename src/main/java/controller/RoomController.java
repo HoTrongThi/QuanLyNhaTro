@@ -14,38 +14,64 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Room Management Controller
- * Handles room CRUD operations for admins
+ * Controller quản lý Phòng trọ
+ * Xử lý các thao tác CRUD cho phòng trọ dành cho quản trị viên
+ * Bao gồm thêm, sửa, xóa, xem chi tiết và quản lý trạng thái phòng
+ * Kiểm tra quyền truy cập và validation dữ liệu đầy đủ
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/admin")
 public class RoomController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý phòng trọ */
     @Autowired
     private RoomDAO roomDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is admin, redirect to login if not authenticated or not admin
+     * Kiểm tra quyền truy cập của quản trị viên
+     * Đảm bảo chỉ có admin mới có thể quản lý phòng trọ
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @return null nếu có quyền truy cập, redirect URL nếu không có quyền
      */
     private String checkAdminAccess(HttpSession session) {
         User user = (User) session.getAttribute("user");
         
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
         
+        // Kiểm tra quyền admin
         if (!user.isAdmin()) {
             return "redirect:/access-denied";
         }
         
-        return null; // Access granted
+        return null; // Có quyền truy cập
     }
     
+    // ==================== CÁC PHƯƠNG THỨC HIỂN THỊ TRANG ====================
+    
     /**
-     * Show rooms management page
+     * Hiển thị trang quản lý phòng trọ
+     * Liệt kê tất cả phòng với thống kê tổng quan
+     * Bao gồm số phòng tổng, phòng trống và phòng đã thuê
+     * 
+     * @param session HTTP Session để kiểm tra quyền
+     * @param model Model để truyền dữ liệu đến view
+     * @return tên view quản lý phòng hoặc redirect URL
      */
     @GetMapping("/rooms")
     public String showRoomsPage(HttpSession session, Model model) {
+        // Kiểm tra quyền truy cập
         String accessCheck = checkAdminAccess(session);
         if (accessCheck != null) {
             return accessCheck;
@@ -54,12 +80,13 @@ public class RoomController {
         User user = (User) session.getAttribute("user");
         List<Room> rooms = roomDAO.getAllRooms();
         
+        // Truyền dữ liệu đến view
         model.addAttribute("user", user);
         model.addAttribute("rooms", rooms);
         model.addAttribute("pageTitle", "Quản lý Phòng trọ");
-        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());
-        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCount());
-        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());
+        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());       // Tổng số phòng
+        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCount()); // Phòng còn trống
+        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());   // Phòng đã thuê
         
         return "admin/rooms";
     }
@@ -89,6 +116,7 @@ public class RoomController {
      */
     @PostMapping("/rooms/add")
     public String processAddRoom(@ModelAttribute Room room,
+                                @RequestParam(value = "amenitiesJson", required = false) String amenitiesJson,
                                 HttpSession session,
                                 RedirectAttributes redirectAttributes) {
         
@@ -117,6 +145,13 @@ public class RoomController {
         }
         if (room.getDescription() != null) {
             room.setDescription(room.getDescription().trim());
+        }
+        
+        // Set amenities
+        if (amenitiesJson != null && !amenitiesJson.trim().isEmpty()) {
+            room.setAmenities(amenitiesJson);
+        } else {
+            room.setAmenities("[]");
         }
         
         // Add room
@@ -167,6 +202,7 @@ public class RoomController {
     @PostMapping("/rooms/edit/{id}")
     public String processEditRoom(@PathVariable int id,
                                  @ModelAttribute Room room,
+                                 @RequestParam(value = "amenitiesJson", required = false) String amenitiesJson,
                                  HttpSession session,
                                  RedirectAttributes redirectAttributes) {
         
@@ -200,6 +236,13 @@ public class RoomController {
         room.setRoomName(room.getRoomName().trim());
         if (room.getDescription() != null) {
             room.setDescription(room.getDescription().trim());
+        }
+        
+        // Set amenities
+        if (amenitiesJson != null && !amenitiesJson.trim().isEmpty()) {
+            room.setAmenities(amenitiesJson);
+        } else {
+            room.setAmenities("[]");
         }
         
         // Update room

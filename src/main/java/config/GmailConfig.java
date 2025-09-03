@@ -3,29 +3,67 @@ package config;
 import org.springframework.stereotype.Component;
 
 /**
- * Gmail SMTP Configuration
- * Cấu hình gửi email thông qua Gmail SMTP
+ * Lớp cấu hình Gmail SMTP
+ * Chứa tất cả thông tin cấu hình để gửi email thông qua Gmail SMTP
+ * Bao gồm thông tin đăng nhập, cấu hình SMTP và template email
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Component
 public class GmailConfig {
     
-    // Gmail SMTP Configuration
+    // ==================== CẤU HÌNH GMAIL SMTP ====================
+    
+    /** Địa chỉ máy chủ SMTP của Gmail */
     public static final String SMTP_HOST = "smtp.gmail.com";
+    
+    /** Cổng SMTP của Gmail (587 cho STARTTLS) */
     public static final String SMTP_PORT = "587";
+    
+    /** Bật xác thực SMTP */
     public static final boolean SMTP_AUTH = true;
+    
+    /** Bật mã hóa STARTTLS */
     public static final boolean SMTP_STARTTLS = true;
     
-    // Gmail Account Credentials (Cần cập nhật với thông tin thực tế)
-    public static final String GMAIL_USERNAME = "hotrongthi2709@gmail.com"; // Thay bằng email thực tế
-    public static final String GMAIL_PASSWORD = "ktyb waeu giyk jnpe";     // Thay bằng App Password thực tế
+    // ==================== THÔNG TIN ĐĂNG NHẬP GMAIL ====================
     
-    // Email Configuration
-    public static final String FROM_EMAIL = "hotrongthi2709@gmail.com";      // Thay bằng email thực tế
+    /** Tên đăng nhập Gmail (địa chỉ email) */
+    public static final String GMAIL_USERNAME = "hotrongthi2709@gmail.com";
+    
+    /** Mật khẩu ứng dụng Gmail (App Password) - KHÔNG PHẢI mật khẩu thường */
+    public static final String GMAIL_PASSWORD = "ktyb waeu giyk jnpe";
+    
+    // ==================== CẤU HÌNH EMAIL ====================
+    
+    /** Địa chỉ email người gửi */
+    public static final String FROM_EMAIL = "hotrongthi2709@gmail.com";
+    
+    /** Tên hiển thị của người gửi */
     public static final String FROM_NAME = "Hệ thống Quản lý Phòng trọ";
     
-    // Email Templates
+    // ==================== TEMPLATE EMAIL ====================
+    
+    /** Tiêu đề email thông báo hóa đơn mới (%s sẽ được thay thế bằng tên phòng) */
     public static final String INVOICE_CREATED_SUBJECT = "Thông báo hóa đơn mới - Phòng %s";
     
+    /** 
+     * Template HTML cho email thông báo hóa đơn mới
+     * Bao gồm:
+     * - Header với tiêu đề
+     * - Thông tin chi tiết hóa đơn
+     * - Phần QR code MoMo (nếu có)
+     * - Footer với thông tin liên hệ
+     * 
+     * Các tham số %s theo thứ tự:
+     * 1. Tên người nhận
+     * 2. Tên phòng
+     * 3. Kỳ thanh toán
+     * 4. Tổng tiền
+     * 5. Phần QR code (có thể rỗng)
+     */
     public static final String INVOICE_CREATED_TEMPLATE = 
         "<!DOCTYPE html>" +
         "<html>" +
@@ -71,48 +109,100 @@ public class GmailConfig {
         "</body>" +
         "</html>";
     
-    // Getters
+    // ==================== CÁC PHƯƠNG THỨC GETTER ====================
+    
+    /**
+     * Lấy địa chỉ máy chủ SMTP
+     * @return địa chỉ SMTP host
+     */
     public String getSmtpHost() {
         return SMTP_HOST;
     }
     
+    /**
+     * Lấy cổng SMTP
+     * @return cổng SMTP
+     */
     public String getSmtpPort() {
         return SMTP_PORT;
     }
     
+    /**
+     * Kiểm tra có bật xác thực SMTP hay không
+     * @return true nếu bật xác thực
+     */
     public boolean isSmtpAuth() {
         return SMTP_AUTH;
     }
     
+    /**
+     * Kiểm tra có bật STARTTLS hay không
+     * @return true nếu bật STARTTLS
+     */
     public boolean isSmtpStarttls() {
         return SMTP_STARTTLS;
     }
     
+    /**
+     * Lấy tên đăng nhập Gmail
+     * @return địa chỉ email Gmail
+     */
     public String getGmailUsername() {
         return GMAIL_USERNAME;
     }
     
+    /**
+     * Lấy mật khẩu ứng dụng Gmail
+     * @return App Password của Gmail
+     */
     public String getGmailPassword() {
         return GMAIL_PASSWORD;
     }
     
+    /**
+     * Lấy địa chỉ email người gửi
+     * @return địa chỉ email người gửi
+     */
     public String getFromEmail() {
         return FROM_EMAIL;
     }
     
+    /**
+     * Lấy tên hiển thị của người gửi
+     * @return tên người gửi
+     */
     public String getFromName() {
         return FROM_NAME;
     }
     
+    /**
+     * Lấy template tiêu đề email hóa đơn
+     * @return template tiêu đề email
+     */
     public String getInvoiceCreatedSubject() {
         return INVOICE_CREATED_SUBJECT;
     }
     
+    /**
+     * Lấy template HTML cho email hóa đơn
+     * @return template HTML email
+     */
     public String getInvoiceCreatedTemplate() {
         return INVOICE_CREATED_TEMPLATE;
     }
     
-    // QR Code Payment Section Template
+    // ==================== TEMPLATE QR CODE MOMO ====================
+    
+    /** 
+     * Template HTML cho phần QR code MoMo trong email
+     * Bao gồm:
+     * - Tiêu đề phần thanh toán
+     * - Hình ảnh QR code
+     * - Hướng dẫn sử dụng
+     * - Thông tin hiệu lực
+     * 
+     * Tham số %s: URL của hình ảnh QR code
+     */
     public static final String QR_CODE_SECTION_TEMPLATE = 
         "<div class='payment-section'>" +
         "    <h3>📱 Thanh toán nhanh với MoMo</h3>" +
@@ -124,6 +214,10 @@ public class GmailConfig {
         "    <p style='font-size: 12px; color: #666;'>Mã QR có hiệu lực trong 24 giờ</p>" +
         "</div>";
     
+    /**
+     * Lấy template HTML cho phần QR code MoMo
+     * @return template HTML QR code
+     */
     public String getQrCodeSectionTemplate() {
         return QR_CODE_SECTION_TEMPLATE;
     }

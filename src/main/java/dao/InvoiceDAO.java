@@ -10,17 +10,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Invoice Data Access Object
- * Handles database operations for invoices/bills
+ * Lớp Data Access Object cho Hóa đơn
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho hóa đơn/bill
+ * Bao gồm tạo hóa đơn, cập nhật trạng thái, tích hợp MoMo và thống kê
+ * Hỗ trợ quản lý thanh toán và báo cáo doanh thu
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class InvoiceDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC TẠO VÀ CẬP NHẬT ====================
+    
     /**
-     * Create/Generate invoice
-     */
-    /**
-     * Create a new invoice
+     * Tạo hóa đơn mới
+     * Thêm hóa đơn vào database với đầy đủ thông tin bao gồm MoMo
+     * Tự động tạo ID hóa đơn và cập nhật vào đối tượng
+     * 
+     * @param invoice đối tượng hóa đơn chứa thông tin cần tạo
+     * @return true nếu tạo thành công, false nếu thất bại
      */
     public boolean createInvoice(Invoice invoice) {
         String sql = "INSERT INTO invoices (tenant_id, month, year, room_price, service_total, additional_total, total_amount, status, " +

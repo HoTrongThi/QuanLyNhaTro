@@ -10,15 +10,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Room Data Access Object
- * Handles all database operations for Room entity
+ * Lớp Data Access Object cho Phòng trọ
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho thực thể Room
+ * Bao gồm CRUD operations, kiểm tra trạng thái và validation
+ * Hỗ trợ quản lý trạng thái phòng và kiểm tra lịch sử thuê
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class RoomDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    
     /**
-     * Get all rooms
-     * @return List of all rooms
+     * Lấy danh sách tất cả phòng
+     * Sắp xếp theo tên phòng tăng dần
+     * 
+     * @return danh sách tất cả phòng trong hệ thống
      */
     public List<Room> getAllRooms() {
         List<Room> rooms = new ArrayList<>();
@@ -28,19 +38,21 @@ public class RoomDAO {
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             
+            // Duyệt qua tất cả kết quả và tạo đối tượng Room
             while (rs.next()) {
                 Room room = new Room();
-                room.setRoomId(rs.getInt("room_id"));
-                room.setRoomName(rs.getString("room_name"));
-                room.setPrice(rs.getBigDecimal("price"));
-                room.setStatus(rs.getString("status"));
-                room.setDescription(rs.getString("description"));
+                room.setRoomId(rs.getInt("room_id"));           // ID phòng
+                room.setRoomName(rs.getString("room_name"));     // Tên phòng
+                room.setPrice(rs.getBigDecimal("price"));        // Giá phòng
+                room.setStatus(rs.getString("status"));          // Trạng thái
+                room.setDescription(rs.getString("description")); // Mô tả
+                room.setAmenities(rs.getString("amenities"));    // Tiện nghi
                 
                 rooms.add(room);
             }
             
         } catch (SQLException e) {
-            System.err.println("Error getting all rooms: " + e.getMessage());
+            System.err.println("Lỗi khi lấy danh sách phòng: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -48,9 +60,10 @@ public class RoomDAO {
     }
     
     /**
-     * Get room by ID
-     * @param roomId Room ID
-     * @return Room object if found, null otherwise
+     * Lấy thông tin phòng theo ID
+     * 
+     * @param roomId ID của phòng cần tìm
+     * @return đối tượng Room nếu tìm thấy, null nếu không
      */
     public Room getRoomById(int roomId) {
         String sql = "SELECT * FROM rooms WHERE room_id = ?";
@@ -68,6 +81,7 @@ public class RoomDAO {
                 room.setPrice(rs.getBigDecimal("price"));
                 room.setStatus(rs.getString("status"));
                 room.setDescription(rs.getString("description"));
+                room.setAmenities(rs.getString("amenities"));
                 
                 return room;
             }
@@ -81,12 +95,14 @@ public class RoomDAO {
     }
     
     /**
-     * Add new room
-     * @param room Room object to add
-     * @return true if successful, false otherwise
+     * Thêm phòng mới vào hệ thống
+     * Kiểm tra tính hợp lệ và thêm vào database
+     * 
+     * @param room đối tượng Room chứa thông tin phòng mới
+     * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addRoom(Room room) {
-        String sql = "INSERT INTO rooms (room_name, price, status, description) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO rooms (room_name, price, status, description, amenities) VALUES (?, ?, ?, ?, ?)";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -95,6 +111,7 @@ public class RoomDAO {
             stmt.setBigDecimal(2, room.getPrice());
             stmt.setString(3, room.getStatus());
             stmt.setString(4, room.getDescription());
+            stmt.setString(5, room.getAmenities() != null ? room.getAmenities() : "[]");
             
             int result = stmt.executeUpdate();
             return result > 0;
@@ -112,7 +129,7 @@ public class RoomDAO {
      * @return true if successful, false otherwise
      */
     public boolean updateRoom(Room room) {
-        String sql = "UPDATE rooms SET room_name = ?, price = ?, status = ?, description = ? WHERE room_id = ?";
+        String sql = "UPDATE rooms SET room_name = ?, price = ?, status = ?, description = ?, amenities = ? WHERE room_id = ?";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -121,7 +138,8 @@ public class RoomDAO {
             stmt.setBigDecimal(2, room.getPrice());
             stmt.setString(3, room.getStatus());
             stmt.setString(4, room.getDescription());
-            stmt.setInt(5, room.getRoomId());
+            stmt.setString(5, room.getAmenities() != null ? room.getAmenities() : "[]");
+            stmt.setInt(6, room.getRoomId());
             
             int result = stmt.executeUpdate();
             return result > 0;
@@ -279,6 +297,7 @@ public class RoomDAO {
                 room.setPrice(rs.getBigDecimal("price"));
                 room.setStatus(rs.getString("status"));
                 room.setDescription(rs.getString("description"));
+                room.setAmenities(rs.getString("amenities"));
                 
                 rooms.add(room);
             }

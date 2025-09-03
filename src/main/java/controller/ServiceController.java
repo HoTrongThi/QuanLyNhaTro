@@ -14,31 +14,48 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Service Management Controller
- * Handles service CRUD operations for admins
+ * Controller quản lý Dịch vụ
+ * Xử lý các thao tác CRUD cho dịch vụ dành cho quản trị viên
+ * Bao gồm thêm, sửa, xóa, xem chi tiết và tìm kiếm dịch vụ
+ * Kiểm tra sử dụng trước khi xóa và validation dữ liệu đầy đủ
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/admin")
 public class ServiceController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý dịch vụ */
     @Autowired
     private ServiceDAO serviceDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is admin, redirect to login if not authenticated or not admin
+     * Kiểm tra quyền truy cập của quản trị viên
+     * Đảm bảo chỉ có admin mới có thể quản lý dịch vụ
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @return null nếu có quyền truy cập, redirect URL nếu không có quyền
      */
     private String checkAdminAccess(HttpSession session) {
         User user = (User) session.getAttribute("user");
         
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
         
+        // Kiểm tra quyền admin
         if (!user.isAdmin()) {
             return "redirect:/access-denied";
         }
         
-        return null; // Access granted
+        return null; // Có quyền truy cập
     }
     
     /**

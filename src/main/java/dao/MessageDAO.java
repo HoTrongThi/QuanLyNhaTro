@@ -10,16 +10,28 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Message Data Access Object
- * Handles all database operations for Message entity
+ * Lớp Data Access Object cho Tin nhắn
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho entity Tin nhắn
+ * Bao gồm gửi, nhận, đánh dấu đã đọc và quản lý cuộc hội thoại
+ * Hỗ trợ hệ thống nhắn tin giữa người dùng và quản trị viên
+ * Quản lý trạng thái tin nhắn và thống kê tin nhắn chưa đọc
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class MessageDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC GỬI VÀ NHẬN TIN NHẮN ====================
+    
     /**
-     * Send a new message
-     * @param message Message object to send
-     * @return true if successful, false otherwise
+     * Gửi tin nhắn mới
+     * Tạo và lưu tin nhắn vào cơ sở dữ liệu
+     * Mặc định trạng thái là UNREAD
+     * 
+     * @param message đối tượng tin nhắn cần gửi
+     * @return true nếu gửi thành công, false nếu thất bại
      */
     public boolean sendMessage(Message message) {
         String sql = "INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)";

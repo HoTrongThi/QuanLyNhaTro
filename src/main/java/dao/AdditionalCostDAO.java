@@ -10,14 +10,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * AdditionalCost Data Access Object
- * Handles database operations for additional/incidental costs
+ * Lớp Data Access Object cho Chi phí Phát sinh
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho chi phí phát sinh/bổ sung
+ * Bao gồm sửa chữa, vệ sinh, phạt, đền bù và các chi phí khác
+ * Hỗ trợ tính toán tổng chi phí theo người thuê và phòng
+ * Quản lý theo thời gian và thống kê báo cáo
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class AdditionalCostDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    
     /**
-     * Add additional cost record
+     * Thêm bản ghi chi phí phát sinh
+     * Ghi nhận các chi phí bổ sung như sửa chữa, phạt, đền bù
+     * 
+     * @param cost đối tượng chứa thông tin chi phí phát sinh
+     * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addAdditionalCost(AdditionalCost cost) {
         String sql = "INSERT INTO additional_costs (tenant_id, description, amount, date) VALUES (?, ?, ?, ?)";

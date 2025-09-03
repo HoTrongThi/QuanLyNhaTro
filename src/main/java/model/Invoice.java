@@ -4,37 +4,97 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 /**
- * Invoice Entity
- * Represents a complete invoice/bill for a tenant including room fee, services, and additional costs
+ * Lớp Model cho Hóa đơn
+ * Đại diện cho một hóa đơn hoàn chỉnh bao gồm tiền phòng, dịch vụ và chi phí phát sinh
+ * Tích hợp với hệ thống thanh toán MoMo và hỗ trợ quản lý trạng thái thanh toán
+ * Hỗ trợ tính toán tự động và hiển thị thông tin chi tiết
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 public class Invoice {
+    
+    // ==================== CÁC THUỘC TÍNH CƠ BẢN ====================
+    
+    /** ID duy nhất của hóa đơn (Primary Key) */
     private int invoiceId;
+    
+    /** ID người thuê (Foreign Key) */
     private int tenantId;
+    
+    /** Tháng của hóa đơn (1-12) */
     private int month;
+    
+    /** Năm của hóa đơn */
     private int year;
+    
+    /** Tiền phòng (có thể được tính theo tỷ lệ) */
     private BigDecimal roomPrice;
+    
+    /** Tổng tiền dịch vụ (điện, nước, internet, v.v.) */
     private BigDecimal serviceTotal;
+    
+    /** Tổng chi phí phát sinh (phạt, sửa chữa, v.v.) */
     private BigDecimal additionalTotal;
+    
+    /** Tổng số tiền cần thanh toán */
     private BigDecimal totalAmount;
-    private String status; // UNPAID, PAID
+    
+    /** Trạng thái hóa đơn (UNPAID: chưa thanh toán, PAID: đã thanh toán) */
+    private String status;
+    
+    /** Thời gian tạo hóa đơn */
     private Timestamp createdAt;
     
-    // Related entities for display purposes
+    // ==================== THUỘC TÍNH HIỂN THỊ ====================
+    
+    /** Tên người thuê (dùng cho hiển thị) */
     private String tenantName;
+    
+    /** Tên phòng (dùng cho hiển thị) */
     private String roomName;
+    
+    /** Số điện thoại người dùng (dùng cho hiển thị) */
     private String userPhone;
+    
+    /** Email người dùng (dùng cho hiển thị) */
     private String userEmail;
-    private int tenantsCount; // Number of tenants in the room
     
-    // MoMo Payment fields
+    /** Số lượng người thuê trong phòng */
+    private int tenantsCount;
+    
+    // ==================== THUỘC TÍNH THANH TOÁN MOMO ====================
+    
+    /** URL của QR code MoMo */
     private String momoQrCodeUrl;
-    private String momoOrderId;
-    private String momoRequestId;
-    private String momoPaymentStatus; // PENDING, PAID, FAILED
     
-    // Constructors
+    /** Mã đơn hàng MoMo */
+    private String momoOrderId;
+    
+    /** Mã yêu cầu MoMo */
+    private String momoRequestId;
+    
+    /** Trạng thái thanh toán MoMo (PENDING: chờ, PAID: thành công, FAILED: thất bại) */
+    private String momoPaymentStatus;
+    
+    // ==================== CÁC CONSTRUCTOR ====================
+    
+    /**
+     * Constructor mặc định
+     */
     public Invoice() {}
     
+    /**
+     * Constructor để tạo hóa đơn mới
+     * @param tenantId ID người thuê
+     * @param month tháng hóa đơn
+     * @param year năm hóa đơn
+     * @param roomPrice tiền phòng
+     * @param serviceTotal tổng tiền dịch vụ
+     * @param additionalTotal tổng chi phí phát sinh
+     * @param totalAmount tổng số tiền
+     */
     public Invoice(int tenantId, int month, int year, BigDecimal roomPrice, 
                   BigDecimal serviceTotal, BigDecimal additionalTotal, BigDecimal totalAmount) {
         this.tenantId = tenantId;
@@ -44,9 +104,22 @@ public class Invoice {
         this.serviceTotal = serviceTotal;
         this.additionalTotal = additionalTotal;
         this.totalAmount = totalAmount;
-        this.status = "UNPAID";
+        this.status = "UNPAID"; // Mặc định là chưa thanh toán
     }
     
+    /**
+     * Constructor đầy đủ với tất cả thông tin cơ bản
+     * @param invoiceId ID hóa đơn
+     * @param tenantId ID người thuê
+     * @param month tháng hóa đơn
+     * @param year năm hóa đơn
+     * @param roomPrice tiền phòng
+     * @param serviceTotal tổng tiền dịch vụ
+     * @param additionalTotal tổng chi phí phát sinh
+     * @param totalAmount tổng số tiền
+     * @param status trạng thái hóa đơn
+     * @param createdAt thời gian tạo
+     */
     public Invoice(int invoiceId, int tenantId, int month, int year, BigDecimal roomPrice, 
                   BigDecimal serviceTotal, BigDecimal additionalTotal, BigDecimal totalAmount,
                   String status, Timestamp createdAt) {

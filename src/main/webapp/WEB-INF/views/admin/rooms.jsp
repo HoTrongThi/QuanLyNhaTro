@@ -245,7 +245,6 @@
                                         <table class="table table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>ID</th>
                                                     <th>Tên Phòng</th>
                                                     <th>Giá</th>
                                                     <th>Trạng thái</th>
@@ -256,7 +255,6 @@
                                             <tbody>
                                                 <c:forEach var="room" items="${rooms}">
                                                     <tr>
-                                                        <td>${room.roomId}</td>
                                                         <td>
                                                             <strong>${room.roomName}</strong>
                                                         </td>

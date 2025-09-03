@@ -11,37 +11,56 @@ import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.util.*;
 /**
- * Report and Statistics Controller
- * Handles comprehensive reports and analytics dashboard
+ * Controller Báo cáo và Thống kê
+ * Xử lý báo cáo tổng hợp và dashboard phân tích
+ * Bao gồm thống kê doanh thu, tỷ lệ lấp đầy và biểu đồ theo tháng
+ * Hiển thị dữ liệu thời gian thực và xu hướng kinh doanh
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/admin")
 public class ReportController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý hóa đơn */
     @Autowired
     private InvoiceDAO invoiceDAO;
     
+    /** DAO quản lý người thuê */
     @Autowired
     private TenantDAO tenantDAO;
     
+    /** DAO quản lý phòng trọ */
     @Autowired
     private RoomDAO roomDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is admin
+     * Kiểm tra quyền truy cập của quản trị viên
+     * Đảm bảo chỉ có admin mới có thể xem báo cáo
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @return null nếu có quyền truy cập, redirect URL nếu không có quyền
      */
     private String checkAdminAccess(HttpSession session) {
         User user = (User) session.getAttribute("user");
         
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
         
+        // Kiểm tra quyền admin
         if (!user.isAdmin()) {
             return "redirect:/access-denied";
         }
         
-        return null; // Access granted
+        return null; // Có quyền truy cập
     }
     
     /**

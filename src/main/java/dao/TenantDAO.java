@@ -11,14 +11,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Tenant Data Access Object
- * Handles database operations for tenant management
+ * Lớp Data Access Object cho Người thuê
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho quản lý người thuê
+ * Bao gồm phân công phòng, kết thúc hợp đồng, chuyển phòng và thống kê
+ * Tự động cập nhật trạng thái phòng dựa trên số người thuê
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class TenantDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC LẤY DỮ LIỆU ====================
+    
     /**
-     * Get all tenants with user and room information
+     * Lấy danh sách tất cả người thuê kèm thông tin người dùng và phòng
+     * Bao gồm cả người thuê đang hoạt động và đã kết thúc hợp đồng
+     * Sắp xếp theo ID người thuê giảm dần (mới nhất trước)
+     * 
+     * @return danh sách tất cả người thuê với thông tin đầy đủ
      */
     public List<Tenant> getAllTenants() {
         List<Tenant> tenants = new ArrayList<>();

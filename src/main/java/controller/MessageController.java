@@ -13,27 +13,48 @@ import javax.servlet.http.HttpSession;
 import java.util.List;
 
 /**
- * Message Controller
- * Handles messaging functionality between users and admins with role-based routing
+ * Controller quản lý Tin nhắn
+ * Xử lý chức năng nhắn tin giữa người dùng và quản trị viên
+ * Hỗ trợ định tuyến dựa trên vai trò và quản lý cuộc hội thoại
+ * Bao gồm gửi, nhận, đánh dấu đã đọc và soạn tin nhắn mới
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 public class MessageController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý tin nhắn */
     @Autowired
     private MessageDAO messageDAO;
     
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
     /**
-     * Check if user is authenticated and has correct role
+     * Kiểm tra xác thực và quyền truy cập
+     * Đảm bảo người dùng đã đăng nhập và có vai trò phù hợp
+     * 
+     * @param session HTTP Session chứa thông tin người dùng
+     * @param requiredRole vai trò yêu cầu (ADMIN hoặc USER)
+     * @return null nếu hợp lệ, redirect URL nếu không hợp lệ
      */
     private String checkAuthentication(HttpSession session, String requiredRole) {
         User user = (User) session.getAttribute("user");
+        
+        // Kiểm tra đăng nhập
         if (user == null) {
             return "redirect:/login";
         }
+        
+        // Kiểm tra vai trò
         if (requiredRole != null && !requiredRole.equals(user.getRole())) {
             return "redirect:/access-denied";
         }
-        return null;
+        
+        return null; // Hợp lệ
     }
     
     // ADMIN ROUTES

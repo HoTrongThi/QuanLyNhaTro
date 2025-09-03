@@ -13,16 +13,26 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.servlet.http.HttpSession;
 
 /**
- * Profile Controller
- * Handles user profile management for regular users
+ * Controller Quản lý Hồ sơ Cá nhân
+ * Xử lý quản lý hồ sơ cá nhân cho người dùng thường
+ * Bao gồm xem, chỉnh sửa thông tin cá nhân và đổi mật khẩu
+ * Hỗ trợ xem lịch sử thuê và thông tin người thuê hiện tại
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/user/profile")
 public class ProfileController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý người dùng */
     @Autowired
     private UserDAO userDAO;
     
+    /** DAO quản lý người thuê */
     @Autowired
     private TenantDAO tenantDAO;
     

@@ -8,18 +8,32 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.sql.*;
 
 /**
- * User Data Access Object
- * Handles all database operations for User entity
+ * Lớp Data Access Object cho Người dùng
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho thực thể User
+ * Bao gồm đăng ký, đăng nhập, cập nhật thông tin và quản lý người dùng
+ * Sử dụng BCrypt để mã hóa mật khẩu an toàn
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class UserDAO {
     
+    // ==================== CÁC THUỘC TÍNH ====================
+    
+    /** Bộ mã hóa mật khẩu BCrypt - đảm bảo bảo mật cao */
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
+    // ==================== CÁC PHƯƠNG THỨC ĐĂNG KÝ VÀ ĐĂNG NHẬP ====================
+    
     /**
-     * Register a new user
-     * @param user User object with registration details
-     * @return true if registration successful, false otherwise
+     * Đăng ký người dùng mới
+     * Mã hóa mật khẩu bằng BCrypt trước khi lưu vào database
+     * Kiểm tra tính duy nhất của username và email
+     * 
+     * @param user đối tượng User chứa thông tin đăng ký
+     * @return true nếu đăng ký thành công, false nếu thất bại
      */
     public boolean registerUser(User user) {
         String sql = "INSERT INTO users (username, password, full_name, phone, email, address, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -27,31 +41,36 @@ public class UserDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Hash password before storing
+            // Mã hóa mật khẩu trước khi lưu vào database
             String hashedPassword = passwordEncoder.encode(user.getPassword());
             
-            stmt.setString(1, user.getUsername());
-            stmt.setString(2, hashedPassword);
-            stmt.setString(3, user.getFullName());
-            stmt.setString(4, user.getPhone());
-            stmt.setString(5, user.getEmail());
-            stmt.setString(6, user.getAddress());
-            stmt.setString(7, user.getRole());
+            // Đặt các tham số cho câu lệnh SQL
+            stmt.setString(1, user.getUsername());   // Tên đăng nhập
+            stmt.setString(2, hashedPassword);       // Mật khẩu đã mã hóa
+            stmt.setString(3, user.getFullName());   // Họ tên đầy đủ
+            stmt.setString(4, user.getPhone());      // Số điện thoại
+            stmt.setString(5, user.getEmail());      // Địa chỉ email
+            stmt.setString(6, user.getAddress());    // Địa chỉ nhà
+            stmt.setString(7, user.getRole());       // Vai trò (ADMIN/USER)
             
+            // Thực thi câu lệnh và kiểm tra kết quả
             int result = stmt.executeUpdate();
             return result > 0;
             
         } catch (SQLException e) {
-            System.err.println("Error registering user: " + e.getMessage());
+            System.err.println("Lỗi đăng ký người dùng: " + e.getMessage());
             return false;
         }
     }
     
     /**
-     * Authenticate user login
-     * @param username Username
-     * @param password Plain text password
-     * @return User object if login successful, null otherwise
+     * Xác thực đăng nhập người dùng
+     * Kiểm tra tên đăng nhập và mật khẩu
+     * Sử dụng BCrypt để so sánh mật khẩu đã mã hóa
+     * 
+     * @param username tên đăng nhập
+     * @param password mật khẩu chưa mã hóa
+     * @return đối tượng User nếu đăng nhập thành công, null nếu thất bại
      */
     public User loginUser(String username, String password) {
         String sql = "SELECT * FROM users WHERE username = ?";

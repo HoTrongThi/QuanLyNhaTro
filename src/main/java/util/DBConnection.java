@@ -6,60 +6,110 @@ import java.sql.SQLException;
 import org.springframework.stereotype.Component;
 
 /**
- * Database Connection Utility Class
- * Quản lý kết nối cơ sở dữ liệu MySQL cho ứng dụng quản lý phòng trọ
+ * Lớp tiện ích quản lý kết nối cơ sở dữ liệu
+ * Cung cấp các phương thức để kết nối và đóng kết nối MySQL
+ * Sử dụng pattern Singleton để quản lý kết nối hiệu quả
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Component
 public class DBConnection {
     
-    // Database connection parameters
+    // ==================== CÁC THAM SỐ KẾT NỐI CƠ Sở DỮ LIỆU ====================
+    
+    /** Đường dẫn kết nối đến cơ sở dữ liệu MySQL */
     private static final String DB_URL = "jdbc:mysql://localhost:3306/quan_ly_phong_tro";
+    
+    /** Tên đăng nhập cơ sở dữ liệu */
     private static final String DB_USERNAME = "root";
+    
+    /** Mật khẩu cơ sở dữ liệu */
     private static final String DB_PASSWORD = "";
     
-    // Database driver
+    /** Tên driver JDBC cho MySQL */
     private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
     
+    // ==================== KHỐI TẠO DRIVER ====================
+    
+    /**
+     * Khối static để tải MySQL JDBC Driver khi lớp được load
+     * Đảm bảo driver được tải trước khi sử dụng
+     */
     static {
         try {
-            // Load MySQL JDBC Driver
+            // Tải MySQL JDBC Driver
             Class.forName(DB_DRIVER);
-            // MySQL JDBC Driver loaded successfully
+            System.out.println("MySQL JDBC Driver đã được tải thành công!");
         } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver not found!");
+            System.err.println("Không tìm thấy MySQL JDBC Driver!");
             e.printStackTrace();
-            throw new RuntimeException("Failed to load MySQL JDBC Driver", e);
+            throw new RuntimeException("Không thể tải MySQL JDBC Driver", e);
         }
     }
     
+    // ==================== CÁC PHƯƠNG THỨC CÔNG KHAI ====================
+    
     /**
-     * Get database connection
-     * @return Connection object
-     * @throws SQLException if connection fails
+     * Lấy kết nối đến cơ sở dữ liệu
+     * Tạo một kết nối mới đến MySQL database
+     * 
+     * @return đối tượng Connection để thực hiện các thao tác database
+     * @throws SQLException nếu kết nối thất bại
      */
     public static Connection getConnection() throws SQLException {
         try {
             Connection connection = DriverManager.getConnection(DB_URL, DB_USERNAME, DB_PASSWORD);
-            // Database connection established successfully
+            System.out.println("Kết nối cơ sở dữ liệu thành công!");
             return connection;
         } catch (SQLException e) {
-            System.err.println("Failed to connect to database: " + e.getMessage());
+            System.err.println("Kết nối cơ sở dữ liệu thất bại: " + e.getMessage());
             throw e;
         }
     }
     
     /**
-     * Close database connection safely
-     * @param connection Connection to close
+     * Đóng kết nối cơ sở dữ liệu một cách an toàn
+     * Kiểm tra và đóng kết nối nếu nó không null
+     * Xử lý ngoại lệ nếu có lỗi khi đóng kết nối
+     * 
+     * @param connection kết nối cần đóng
      */
     public static void closeConnection(Connection connection) {
         if (connection != null) {
             try {
                 connection.close();
-                // Database connection closed successfully
+                System.out.println("Kết nối cơ sở dữ liệu đã được đóng thành công!");
             } catch (SQLException e) {
-                System.err.println("Error closing database connection: " + e.getMessage());
+                System.err.println("Lỗi khi đóng kết nối cơ sở dữ liệu: " + e.getMessage());
             }
         }
+    }
+    
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
+    /**
+     * Kiểm tra kết nối cơ sở dữ liệu có hoạt động hay không
+     * 
+     * @return true nếu kết nối thành công, false nếu thất bại
+     */
+    public static boolean testConnection() {
+        try (Connection connection = getConnection()) {
+            return connection != null && !connection.isClosed();
+        } catch (SQLException e) {
+            System.err.println("Kiểm tra kết nối thất bại: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Lấy thông tin cấu hình cơ sở dữ liệu
+     * 
+     * @return chuỗi chứa thông tin cấu hình
+     */
+    public static String getDatabaseInfo() {
+        return String.format("Database URL: %s | Username: %s | Driver: %s", 
+                           DB_URL, DB_USERNAME, DB_DRIVER);
     }
 }

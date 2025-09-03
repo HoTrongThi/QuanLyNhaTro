@@ -3,35 +3,83 @@ package model;
 import java.sql.Timestamp;
 
 /**
- * User Model Class
- * Represents the users table in the database
+ * Lớp Model cho Người dùng
+ * Đại diện cho bảng users trong cơ sở dữ liệu
+ * Chứa thông tin cơ bản của người dùng và các thuộc tính liên quan đến tin nhắn
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 public class User {
+    
+    // ==================== CÁC THUỘC TÍNH CƠ BẢN ====================
+    
+    /** ID duy nhất của người dùng (Primary Key) */
     private int userId;
+    
+    /** Tên đăng nhập (duy nhất) */
     private String username;
+    
+    /** Mật khẩu đã được mã hóa */
     private String password;
+    
+    /** Họ và tên đầy đủ của người dùng */
     private String fullName;
+    
+    /** Số điện thoại liên hệ */
     private String phone;
+    
+    /** Địa chỉ email */
     private String email;
+    
+    /** Địa chỉ nhà */
     private String address;
-    private String role; // ADMIN or USER
+    
+    /** Vai trò của người dùng (ADMIN hoặc USER) */
+    private String role;
+    
+    /** Thời gian tạo tài khoản */
     private Timestamp createdAt;
     
-    // Message-related properties (for contact list)
+    // ==================== THUỘC TÍNH LIÊN QUAN ĐẾN TIN NHẮN ====================
+    
+    /** Có tin nhắn chưa đọc hay không (dùng cho danh sách liên hệ) */
     private boolean hasUnreadMessages;
+    
+    /** Nội dung tin nhắn cuối cùng */
     private String lastMessage;
+    
+    /** Thời gian tin nhắn cuối cùng */
     private Timestamp lastMessageTime;
     
-    // Default constructor
+    // ==================== CÁC CONSTRUCTOR ====================
+    
+    /**
+     * Constructor mặc định
+     */
     public User() {}
     
-    // Constructor for login
+    /**
+     * Constructor cho đăng nhập
+     * @param username tên đăng nhập
+     * @param password mật khẩu
+     */
     public User(String username, String password) {
         this.username = username;
         this.password = password;
     }
     
-    // Constructor for registration
+    /**
+     * Constructor cho đăng ký tài khoản mới
+     * @param username tên đăng nhập
+     * @param password mật khẩu
+     * @param fullName họ tên đầy đủ
+     * @param phone số điện thoại
+     * @param email địa chỉ email
+     * @param address địa chỉ nhà
+     * @param role vai trò (ADMIN/USER)
+     */
     public User(String username, String password, String fullName, String phone, String email, String address, String role) {
         this.username = username;
         this.password = password;
@@ -42,7 +90,18 @@ public class User {
         this.role = role;
     }
     
-    // Full constructor
+    /**
+     * Constructor đầy đủ với tất cả thuộc tính
+     * @param userId ID người dùng
+     * @param username tên đăng nhập
+     * @param password mật khẩu
+     * @param fullName họ tên đầy đủ
+     * @param phone số điện thoại
+     * @param email địa chỉ email
+     * @param address địa chỉ nhà
+     * @param role vai trò (ADMIN/USER)
+     * @param createdAt thời gian tạo tài khoản
+     */
     public User(int userId, String username, String password, String fullName, String phone, String email, String address, String role, Timestamp createdAt) {
         this.userId = userId;
         this.username = username;
@@ -55,19 +114,36 @@ public class User {
         this.createdAt = createdAt;
     }
     
-    // Getters and Setters
+    // ==================== CÁC PHƯƠNG THỨC GETTER VÀ SETTER ====================
+    
+    /**
+     * Lấy ID người dùng
+     * @return ID người dùng
+     */
     public int getUserId() {
         return userId;
     }
     
+    /**
+     * Đặt ID người dùng
+     * @param userId ID người dùng mới
+     */
     public void setUserId(int userId) {
         this.userId = userId;
     }
     
+    /**
+     * Lấy tên đăng nhập
+     * @return tên đăng nhập
+     */
     public String getUsername() {
         return username;
     }
     
+    /**
+     * Đặt tên đăng nhập
+     * @param username tên đăng nhập mới
+     */
     public void setUsername(String username) {
         this.username = username;
     }
@@ -128,12 +204,20 @@ public class User {
         this.createdAt = createdAt;
     }
     
-    // Check if user is admin
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
+    /**
+     * Kiểm tra người dùng có phải là quản trị viên hay không
+     * @return true nếu là admin, false nếu không
+     */
     public boolean isAdmin() {
         return "ADMIN".equals(this.role);
     }
     
-    // Check if user is regular user
+    /**
+     * Kiểm tra người dùng có phải là người dùng thường hay không
+     * @return true nếu là user thường, false nếu không
+     */
     public boolean isUser() {
         return "USER".equals(this.role);
     }

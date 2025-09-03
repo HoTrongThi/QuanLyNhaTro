@@ -5,14 +5,26 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Error Controller
- * Handles error pages and access denied scenarios
+ * Controller Xử lý Lỗi
+ * Xử lý các trang lỗi và tình huống bị từ chối truy cập
+ * Bao gồm lỗi 404 (không tìm thấy trang), 500 (lỗi máy chủ) và access denied
+ * Hiển thị thông báo lỗi thân thiện với người dùng
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 public class ErrorController {
     
+    // ==================== CÁC TRANG LỖI ====================
+    
     /**
-     * Access Denied Page
+     * Trang Từ chối Truy cập
+     * Hiển thị khi người dùng không có quyền truy cập tài nguyên
+     * 
+     * @param model Model để truyền dữ liệu đến view
+     * @return tên view của trang access denied
      */
     @GetMapping("/access-denied")
     public String accessDenied(Model model) {

@@ -487,24 +487,24 @@
         
         // Store previous readings for each service
         const previousReadings = {};
-        
+        // Tính toán mức tiêu thụ điện/nước
         function calculateConsumption(input) {
             const currentReading = parseFloat(input.value) || 0;
             const serviceId = input.dataset.serviceId;
             const pricePerUnit = parseFloat(input.dataset.price) || 0;
             const previousReading = previousReadings[serviceId] || 0;
             
-            // Calculate consumption (current - previous)
+            // Tính mức tiêu thụ (hiện tại - trước đó)
             const consumption = Math.max(0, currentReading - previousReading);
             const cost = consumption * pricePerUnit;
             
-            // Update consumption display
+            // Cập nhật hiển thị mức tiêu thụ
             const consumptionElement = document.getElementById('consumption-' + serviceId);
             if (consumptionElement) {
                 consumptionElement.textContent = consumption.toFixed(2);
             }
             
-            // Update individual service cost display
+            // Cập nhật thành tiền
             const costElement = document.getElementById('cost-' + serviceId);
             if (costElement) {
                 costElement.textContent = new Intl.NumberFormat('vi-VN').format(cost) + ' VNĐ';
@@ -513,13 +513,14 @@
             updateTotalServiceCost();
         }
         
+        // Tính toán chi phí dịch vụ khác
         function calculateServiceCost(input) {
             const quantity = parseFloat(input.value) || 0;
             const serviceId = input.dataset.serviceId;
             const pricePerUnit = parseFloat(input.dataset.price) || 0;
             const cost = quantity * pricePerUnit;
             
-            // Update individual service cost display
+            // Cập nhật thành tiền
             const costElement = document.getElementById('cost-' + serviceId);
             if (costElement) {
                 costElement.textContent = new Intl.NumberFormat('vi-VN').format(cost) + ' VNĐ';
@@ -528,10 +529,11 @@
             updateTotalServiceCost();
         }
         
+        // Cập nhật tổng tiền real-time
         function updateTotalServiceCost() {
             let totalServiceCost = 0;
             
-            // Calculate total service cost for meter-based services (electricity, water)
+            // Tính tổng từ các dịch vụ có công tơ
             const readingInputs = document.querySelectorAll('input[name="currentReadings"]');
             readingInputs.forEach(input => {
                 const currentReading = parseFloat(input.value) || 0;
@@ -542,7 +544,7 @@
                 totalServiceCost += consumption * pricePerUnit;
             });
             
-            // Calculate total service cost for quantity-based services (Internet, parking, etc.)
+            // Tính tổng từ các dịch vụ theo số lượng
             const quantityInputs = document.querySelectorAll('input[name="quantities"]');
             quantityInputs.forEach(input => {
                 const quantity = parseFloat(input.value) || 0;
@@ -550,17 +552,17 @@
                 totalServiceCost += quantity * pricePerUnit;
             });
             
-            // Update total service cost display
+            // Cập nhật hiển thị
             document.getElementById('total-service-cost').textContent = 
                 new Intl.NumberFormat('vi-VN').format(totalServiceCost) + ' VNĐ';
             
-            // Update grand total
+            // Cập nhật tổng tiền cuối cùng
             const grandTotal = roomPrice + totalServiceCost + additionalTotal;
             document.getElementById('grand-total').textContent = 
                 new Intl.NumberFormat('vi-VN').format(grandTotal) + ' VNĐ';
         }
         
-        // Load previous meter readings for meter-based services only
+        // Load dữ liệu chỉ số trước đó (AJAX)
         async function loadPreviousReadings() {
             const serviceInputs = document.querySelectorAll('input[name="currentReadings"]');
             
@@ -569,7 +571,7 @@
                 const prevReadingElement = document.getElementById('prev-reading-' + serviceId);
                 
                 try {
-                    // Make AJAX call to get the actual previous meter reading
+                    // AJAX call để lấy chỉ số trước đó
                     const response = await fetch(contextPath + '/admin/api/meter-readings/previous?roomId=' + roomId + '&serviceId=' + serviceId + '&month=' + month + '&year=' + year);
                     
                     if (!response.ok) {
@@ -578,7 +580,7 @@
                     
                     const responseText = await response.text();
                     
-                    // Try to parse as JSON first
+                    // Parse response và cập nhật hiển thị
                     try {
                         const data = JSON.parse(responseText);
                         

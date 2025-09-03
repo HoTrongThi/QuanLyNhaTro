@@ -13,21 +13,53 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.servlet.http.HttpSession;
 
 /**
- * MoMo Payment Controller
- * Handles MoMo payment callbacks and status updates
+ * Controller Thanh toán MoMo
+ * Xử lý các callback và cập nhật trạng thái thanh toán MoMo
+ * Bao gồm xử lý kết quả trả về, IPN và tạo lại mã QR
+ * Tự động cập nhật trạng thái hóa đơn sau khi thanh toán
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Controller
 @RequestMapping("/payment/momo")
 public class MoMoPaymentController {
     
+    // ==================== CÁC THUỘC TÍNH DAO ====================
+    
+    /** DAO quản lý MoMo */
     @Autowired
     private MoMoDAO moMoDAO;
     
+    /** DAO quản lý hóa đơn */
     @Autowired
     private InvoiceDAO invoiceDAO;
     
+    // ==================== XỬ LÝ CALLBACK VÀ KẾT QUẢ ====================
+    
     /**
-     * Handle MoMo payment return (user redirected back from MoMo)
+     * Xử lý kết quả thanh toán MoMo (người dùng được chuyển hướng từ MoMo)
+     * Nhận các tham số trả về từ MoMo và cập nhật trạng thái thanh toán
+     * Hiển thị thông báo kết quả cho người dùng
+     * 
+     * @param partnerCode mã đối tác MoMo
+     * @param orderId mã đơn hàng
+     * @param requestId mã yêu cầu
+     * @param amount số tiền
+     * @param orderInfo thông tin đơn hàng
+     * @param orderType loại đơn hàng
+     * @param transId mã giao dịch MoMo
+     * @param resultCode mã kết quả (0: thành công)
+     * @param message thông báo kết quả
+     * @param payType loại thanh toán
+     * @param responseTime thời gian phản hồi
+     * @param extraData dữ liệu bổ sung
+     * @param signature chữ ký xác thực
+     * @param session HTTP Session
+     * @param model Model để truyền dữ liệu
+     * @param redirectAttributes thuộc tính redirect
+     * @return redirect URL đến trang hóa đơn
      */
     @GetMapping("/return")
     public String handlePaymentReturn(@RequestParam(required = false) String partnerCode,

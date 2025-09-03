@@ -67,7 +67,7 @@ public class UserBillController {
         User user = (User) session.getAttribute("user");
         List<Invoice> invoices = getInvoicesForUser(user);
         
-        // Calculate statistics for all invoices
+        // Tính toán số liệu thống kê cho tất cả các hóa đơn
         java.math.BigDecimal totalPaid = java.math.BigDecimal.ZERO;
         java.math.BigDecimal totalUnpaid = java.math.BigDecimal.ZERO;
         int paidCount = 0;
@@ -170,23 +170,23 @@ public class UserBillController {
     }
     
     /**
-     * Helper method to get invoices for a user (room-based)
+     * Lấy hóa đơn cho người dùng (theo phòng)
      */
     private List<Invoice> getInvoicesForUser(User user) {
-        // Get user's active tenant record to find their room
+        // Lấy hồ sơ người thuê nhà đang hoạt động của người dùng để tìm phòng của họ
         Tenant activeTenant = tenantDAO.getActiveTenantByUserId(user.getUserId());
         
         if (activeTenant != null) {
-            // Get all invoices for the room (room-based billing)
+            // Nhận tất cả hóa đơn cho phòng (thanh toán theo phòng)
             return invoiceDAO.getInvoicesByRoomId(activeTenant.getRoomId());
         } else {
-            // Fallback: get invoices by user ID for legacy support
+            // Giải pháp dự phòng: lấy hóa đơn theo ID người dùng để hỗ trợ
             return invoiceDAO.getInvoicesByUserId(user.getUserId());
         }
     }
     
     /**
-     * Get number of days in a specific month and year
+     * Lấy số ngày trong một tháng và năm cụ thể
      */
     private int getDaysInMonth(int month, int year) {
         java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
@@ -194,7 +194,7 @@ public class UserBillController {
     }
     
     /**
-     * Calculate the number of days stayed in the billing month
+     * Tính số ngày lưu trú trong tháng thanh toán
      */
     private int calculateDaysStayed(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -211,10 +211,10 @@ public class UserBillController {
         java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
         java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
         
-        // Calculate days from start date to end of month (inclusive)
+        // Tính số ngày từ ngày bắt đầu đến ngày kết thúc tháng
         int daysStayed = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
         
-        // Ensure we don't count more days than in the month
+        // Đảm bảo không tính nhiều ngày hơn trong tháng
         daysStayed = Math.min(daysStayed, daysInMonth);
         daysStayed = Math.max(daysStayed, 1); // At least 1 day
         
@@ -222,7 +222,7 @@ public class UserBillController {
     }
     
     /**
-     * Get the earliest start date among tenants for the billing month
+     * Lấy ngày bắt đầu sớm nhất trong số những người thuê nhà cho tháng thanh toán
      */
     private Date getEarliestStartDate(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -236,14 +236,14 @@ public class UserBillController {
             if (startDate != null) {
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    // Tenant started in this billing month
+                    // Người thuê nhà bắt đầu vào tháng thanh toán này
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
                 } else if (startLocalDate.isBefore(java.time.LocalDate.of(year, month, 1))) {
-                    // Tenant started before this month, so they should pay for the full month
+                    // Người thuê nhà đã bắt đầu trước tháng này, vì vậy họ phải trả tiền cho cả tháng
                     earliestStartDate = Date.valueOf(java.time.LocalDate.of(year, month, 1));
-                    break; // No need to check further, full month applies
+                    break; // Không cần kiểm tra thêm, áp dụng cho cả tháng
                 }
             }
         }
@@ -252,17 +252,17 @@ public class UserBillController {
     }
     
     /**
-     * Calculate what the full room price would be (reverse calculation from prorated price)
+     * Tính toán giá phòng đầy đủ sẽ là bao nhiêu
      */
     private BigDecimal calculateFullRoomPrice(Invoice invoice, List<Tenant> tenantsInRoom, int daysInMonth, int daysStayed) {
         if (daysStayed >= daysInMonth) {
-            // Full month, so current room price is the full price
+            // Cả tháng, giá phòng hiện tại là giá đầy đủ
             return invoice.getRoomPrice();
         }
         
-        // Prorated month, calculate full price from prorated price
-        // proratedPrice = fullPrice * (daysStayed / daysInMonth)
-        // fullPrice = proratedPrice * (daysInMonth / daysStayed)
+        // Tháng tính theo tỷ lệ, tính giá đầy đủ từ giá tính theo tỷ lệ
+        // proratedPrice = fullPrice * (ngày lưu trú / ngày trong tháng)
+        // fullPrice = proratedPrice * (ngày trong tháng / ngày lưu trú)
         BigDecimal proratedPrice = invoice.getRoomPrice();
         BigDecimal fullPrice = proratedPrice.multiply(new BigDecimal(daysInMonth))
                                            .divide(new BigDecimal(daysStayed), 2, java.math.RoundingMode.HALF_UP);
@@ -280,20 +280,19 @@ public class UserBillController {
     }
     
     /**
-     * Helper method to get service usages for an invoice (room-based, aggregated)
+     * Lấy thông tin sử dụng dịch vụ cho hóa đơn (theo phòng, tổng hợp)
      */
     private List<ServiceUsage> getServiceUsagesForInvoice(Invoice invoice) {
         Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
         
         if (tenant != null) {
-            // Get all service usages for the room and aggregate by service
+            // Lấy tất cả các dịch vụ sử dụng cho phòng và tổng hợp theo dịch vụ
             List<ServiceUsage> roomUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(
                 tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
             );
             
             return aggregateServiceUsagesByService(roomUsages);
         } else {
-            // Fallback for legacy invoices
             return serviceUsageDAO.getServiceUsageByTenantAndPeriod(
                 invoice.getTenantId(), invoice.getMonth(), invoice.getYear()
             );
@@ -301,31 +300,31 @@ public class UserBillController {
     }
     
     /**
-     * Aggregate service usages by service to avoid duplicates
-     * Combines multiple tenant usages for the same service into one record
+     * Tổng hợp việc sử dụng dịch vụ theo từng dịch vụ để tránh trùng lặp
+     * Kết hợp nhiều cách sử dụng của cùng một dịch vụ thành một bản ghi
      */
     private List<ServiceUsage> aggregateServiceUsagesByService(List<ServiceUsage> usages) {
         if (usages == null || usages.isEmpty()) {
             return new ArrayList<>();
         }
         
-        // Group by service ID and aggregate quantities
+        // Nhóm theo ID dịch vụ và tổng số lượng
         java.util.Map<Integer, ServiceUsage> serviceMap = new java.util.HashMap<>();
         
         for (ServiceUsage usage : usages) {
             int serviceId = usage.getServiceId();
             
             if (serviceMap.containsKey(serviceId)) {
-                // Service already exists, add to quantity and recalculate total cost
+                // Dịch vụ đã tồn tại, thêm vào số lượng và tính toán lại tổng chi phí
                 ServiceUsage existing = serviceMap.get(serviceId);
                 BigDecimal newQuantity = existing.getQuantity().add(usage.getQuantity());
                 existing.setQuantity(newQuantity);
                 existing.calculateTotalCost();
             } else {
-                // New service, create a copy and add to map
+                // Dịch vụ mới, tạo bản sao và thêm vào
                 ServiceUsage aggregated = new ServiceUsage();
-                aggregated.setUsageId(usage.getUsageId()); // Keep first usage ID for reference
-                aggregated.setTenantId(usage.getTenantId()); // Keep first tenant ID for reference
+                aggregated.setUsageId(usage.getUsageId()); 
+                aggregated.setTenantId(usage.getTenantId()); 
                 aggregated.setServiceId(usage.getServiceId());
                 aggregated.setMonth(usage.getMonth());
                 aggregated.setYear(usage.getYear());
@@ -333,7 +332,7 @@ public class UserBillController {
                 aggregated.setServiceName(usage.getServiceName());
                 aggregated.setServiceUnit(usage.getServiceUnit());
                 aggregated.setPricePerUnit(usage.getPricePerUnit());
-                aggregated.setTenantName("Tất cả người thuê"); // Indicate it's aggregated
+                aggregated.setTenantName("Tất cả người thuê");
                 aggregated.setRoomName(usage.getRoomName());
                 aggregated.calculateTotalCost();
                 
@@ -349,7 +348,7 @@ public class UserBillController {
     }
     
     /**
-     * Helper method to get additional costs for an invoice (room-based)
+     * Tính chi phí phát sinh cho hóa đơn (theo phòng)
      */
     private List<AdditionalCost> getAdditionalCostsForInvoice(Invoice invoice) {
         Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
@@ -359,7 +358,6 @@ public class UserBillController {
                 tenant.getRoomId(), invoice.getMonth(), invoice.getYear()
             );
         } else {
-            // Fallback for legacy invoices
             return additionalCostDAO.getAdditionalCostsByTenantAndPeriod(
                 invoice.getTenantId(), invoice.getMonth(), invoice.getYear()
             );

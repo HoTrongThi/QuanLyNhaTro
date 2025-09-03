@@ -10,14 +10,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * MeterReading Data Access Object
- * Handles database operations for meter readings (electricity, water meters)
+ * Lớp Data Access Object cho Chỉ số Công tơ
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho chỉ số công tơ
+ * Bao gồm ghi nhận chỉ số điện, nước và tính toán tiêu thụ
+ * Hỗ trợ khởi tạo chỉ số ban đầu và theo dõi lịch sử
+ * Tự động tính toán lượng tiêu thụ dựa trên chỉ số trước
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class MeterReadingDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    
     /**
-     * Add meter reading record
+     * Thêm bản ghi chỉ số công tơ
+     * Ghi nhận chỉ số điện, nước của người thuê trong tháng
+     * 
+     * @param reading đối tượng chứa thông tin chỉ số công tơ
+     * @return true nếu thêm thành công, false nếu thất bại
      */
     public boolean addMeterReading(MeterReading reading) {
         String sql = "INSERT INTO meter_readings (tenant_id, service_id, reading, reading_date, month, year) VALUES (?, ?, ?, ?, ?, ?)";

@@ -10,14 +10,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Service Data Access Object
- * Handles database operations for services
+ * Lớp Data Access Object cho Dịch vụ
+ * Xử lý tất cả các thao tác cơ sở dữ liệu cho dịch vụ
+ * Bao gồm CRUD operations, kiểm tra sử dụng và tìm kiếm dịch vụ
+ * Hỗ trợ quản lý dịch vụ theo người thuê và phòng
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 @Repository
 public class ServiceDAO {
     
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    
     /**
-     * Get all services
+     * Lấy danh sách tất cả dịch vụ
+     * Sắp xếp theo tên dịch vụ tăng dần
+     * 
+     * @return danh sách tất cả dịch vụ trong hệ thống
      */
     public List<Service> getAllServices() {
         List<Service> services = new ArrayList<>();

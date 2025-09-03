@@ -71,6 +71,36 @@
             text-align: center;
             padding: 3rem;
         }
+        
+        .amenities-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .amenity-badge {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 3px;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .amenity-badge i {
+            margin-right: 6px;
+        }
+        
+        .amenities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -239,6 +269,17 @@
                                                             <div class="text-muted">${not empty roomDetails.description ? roomDetails.description : 'Không có mô tả'}</div>
                                                         </div>
                                                     </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Tiện nghi phòng trọ -->
+                                            <div class="amenities-section" id="amenitiesSection" style="display: none;">
+                                                <h6 class="mb-3">
+                                                    <i class="bi bi-house-gear me-2"></i>
+                                                    Tiện nghi phòng trọ
+                                                </h6>
+                                                <div id="amenitiesDisplay" class="amenities-grid">
+                                                    <!-- Tiện nghi sẽ được hiển thị ở đây -->
                                                 </div>
                                             </div>
                                         </div>
@@ -413,5 +454,63 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Display amenities for user room
+        document.addEventListener('DOMContentLoaded', function() {
+            const amenitiesData = `${roomDetails.amenities}`;
+            const amenitiesDisplay = document.getElementById('amenitiesDisplay');
+            const amenitiesSection = document.getElementById('amenitiesSection');
+            
+            if (amenitiesData && amenitiesData !== '' && amenitiesData !== '[]' && amenitiesData !== 'null') {
+                try {
+                    const amenities = JSON.parse(amenitiesData);
+                    
+                    if (amenities && Array.isArray(amenities) && amenities.length > 0) {
+                        amenitiesSection.style.display = 'block';
+                        
+                        // Tạo HTML cho từng tiện nghi
+                        let htmlContent = '';
+                        
+                        amenities.forEach(function(amenity) {
+                            const amenityInfo = getAmenityInfo(amenity);
+                            htmlContent += '<div class="amenity-badge">';
+                            htmlContent += '<i class="bi ' + amenityInfo.icon + '"></i>';
+                            htmlContent += amenityInfo.name;
+                            htmlContent += '</div>';
+                        });
+                        
+                        amenitiesDisplay.innerHTML = htmlContent;
+                    }
+                } catch (e) {
+                    // Nếu có lỗi, ẩn section
+                    amenitiesSection.style.display = 'none';
+                }
+            }
+        });
+        
+        // Function lấy thông tin tiện nghi
+        function getAmenityInfo(amenity) {
+            const amenityMap = {
+                'wifi': { name: 'WiFi miễn phí', icon: 'bi-wifi' },
+                'ac': { name: 'Điều hòa', icon: 'bi-snow' },
+                'fridge': { name: 'Tủ lạnh', icon: 'bi-archive' },
+                'washing_machine': { name: 'Máy giặt', icon: 'bi-circle' },
+                'tv': { name: 'TV', icon: 'bi-tv' },
+                'wardrobe': { name: 'Tủ quần áo', icon: 'bi-door-closed' },
+                'bed': { name: 'Giường ngủ', icon: 'bi-house-door' },
+                'desk': { name: 'Bàn làm việc', icon: 'bi-table' },
+                'chair': { name: 'Ghế ngồi', icon: 'bi-person-workspace' },
+                'kitchen': { name: 'Bếp ăn', icon: 'bi-house' },
+                'bathroom': { name: 'Nhà tắm riêng', icon: 'bi-droplet' },
+                'balcony': { name: 'Ban công', icon: 'bi-building' },
+                'parking': { name: 'Chỗ đậu xe', icon: 'bi-car-front' },
+                'security': { name: 'An ninh 24/7', icon: 'bi-shield-check' },
+                'elevator': { name: 'Thang máy', icon: 'bi-arrow-up-square' },
+                'water_heater': { name: 'Nước nóng', icon: 'bi-thermometer-sun' }
+            };
+            
+            return amenityMap[amenity] || { name: amenity, icon: 'bi-plus-circle' };
+        }
+    </script>
 </body>
 </html>

@@ -3,34 +3,88 @@ package model;
 import java.sql.Date;
 
 /**
- * Tenant Entity
- * Represents a tenant assignment (user renting a room) in the room management system
+ * Lớp Model cho Người thuê
+ * Đại diện cho việc phân công người dùng thuê phòng trong hệ thống
+ * Quản lý mối quan hệ giữa người dùng và phòng trọ
+ * Hỗ trợ theo dõi thời gian thuê và trạng thái hoạt động
+ * 
+ * @author Hệ thống Quản lý Phòng trọ
+ * @version 1.0
+ * @since 2025
  */
 public class Tenant {
+    
+    // ==================== CÁC THUỘC TÍNH CƠ BẢN ====================
+    
+    /** ID duy nhất của người thuê (Primary Key) */
     private int tenantId;
+    
+    /** ID người dùng (Foreign Key đến bảng users) */
     private int userId;
+    
+    /** ID phòng (Foreign Key đến bảng rooms) */
     private int roomId;
+    
+    /** Ngày bắt đầu thuê phòng */
     private Date startDate;
+    
+    /** Ngày kết thúc thuê (null nếu vẫn đang thuê) */
     private Date endDate;
     
-    // Additional information from joins
+    // ==================== THUỘC TÍNH HIỂN THỊ (TỪ JOIN) ====================
+    
+    /** Tên đăng nhập của người dùng (từ bảng users) */
     private String userName;
+    
+    /** Họ tên đầy đủ của người thuê (từ bảng users) */
     private String fullName;
+    
+    /** Số điện thoại liên hệ (từ bảng users) */
     private String phone;
+    
+    /** Địa chỉ email (từ bảng users) */
     private String email;
+    
+    /** Địa chỉ nhà (từ bảng users) */
     private String address;
+    
+    /** Tên phòng đang thuê (từ bảng rooms) */
     private String roomName;
+    
+    /** Giá phòng hiện tại (từ bảng rooms) */
     private java.math.BigDecimal roomPrice;
     
-    // Constructors
+    // ==================== CÁC CONSTRUCTOR ====================
+    
+    /**
+     * Constructor mặc định
+     */
     public Tenant() {}
     
+    /**
+     * Constructor để tạo người thuê mới
+     * Sử dụng khi thêm người thuê mới vào phòng
+     * 
+     * @param userId ID người dùng
+     * @param roomId ID phòng
+     * @param startDate ngày bắt đầu thuê
+     */
     public Tenant(int userId, int roomId, Date startDate) {
         this.userId = userId;
         this.roomId = roomId;
         this.startDate = startDate;
     }
     
+    /**
+     * Constructor đầy đủ với tất cả thuộc tính cơ bản
+     * Sử dụng khi lấy dữ liệu từ database
+     * 
+     * @param tenantId ID người thuê
+     * @param userId ID người dùng
+     * @param roomId ID phòng
+     * @param startDate ngày bắt đầu thuê
+     * @param endDate ngày kết thúc thuê
+     */
     public Tenant(int tenantId, int userId, int roomId, Date startDate, Date endDate) {
         this.tenantId = tenantId;
         this.userId = userId;
@@ -136,11 +190,23 @@ public class Tenant {
         this.roomPrice = roomPrice;
     }
     
-    // Helper methods
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
+    /**
+     * Kiểm tra người thuê có đang hoạt động hay không
+     * Người thuê được coi là hoạt động nếu chưa có ngày kết thúc
+     * 
+     * @return true nếu đang hoạt động, false nếu đã kết thúc
+     */
     public boolean isActive() {
         return endDate == null;
     }
     
+    /**
+     * Lấy trạng thái hiển thị của người thuê
+     * 
+     * @return "Đang thuê" nếu hoạt động, "Đã kết thúc" nếu không
+     */
     public String getStatus() {
         return isActive() ? "Đang thuê" : "Đã kết thúc";
     }
