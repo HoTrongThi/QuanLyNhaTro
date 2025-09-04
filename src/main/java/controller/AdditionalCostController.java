@@ -53,14 +53,24 @@ public class AdditionalCostController {
      * Show additional costs management page
      */
     @GetMapping("/additional-costs")
-    public String showAdditionalCostsPage(HttpSession session, Model model) {
+    public String showAdditionalCostsPage(@RequestParam(value = "search", required = false) String searchTerm,
+                                        HttpSession session, 
+                                        Model model) {
         String accessCheck = checkAdminAccess(session);
         if (accessCheck != null) {
             return accessCheck;
         }
         
         User user = (User) session.getAttribute("user");
-        List<AdditionalCost> costs = additionalCostDAO.getAllAdditionalCosts();
+        List<AdditionalCost> costs;
+        
+        // Handle search
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            costs = additionalCostDAO.searchAdditionalCosts(searchTerm.trim());
+            model.addAttribute("searchTerm", searchTerm.trim());
+        } else {
+            costs = additionalCostDAO.getAllAdditionalCosts();
+        }
         
         model.addAttribute("user", user);
         model.addAttribute("additionalCosts", costs);

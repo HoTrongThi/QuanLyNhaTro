@@ -32,7 +32,7 @@ public class ServiceDAO {
      */
     public List<Service> getAllServices() {
         List<Service> services = new ArrayList<>();
-        String sql = "SELECT service_id, service_name, unit, price_per_unit FROM services ORDER BY service_name";
+        String sql = "SELECT service_id, service_name, unit, service_type, calculation_config, price_per_unit FROM services ORDER BY service_name";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -43,6 +43,8 @@ public class ServiceDAO {
                 service.setServiceId(rs.getInt("service_id"));
                 service.setServiceName(rs.getString("service_name"));
                 service.setUnit(rs.getString("unit"));
+                service.setServiceType(rs.getString("service_type"));
+                service.setCalculationConfig(rs.getString("calculation_config"));
                 service.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
                 services.add(service);
             }
@@ -59,7 +61,7 @@ public class ServiceDAO {
      * Get service by ID
      */
     public Service getServiceById(int serviceId) {
-        String sql = "SELECT service_id, service_name, unit, price_per_unit FROM services WHERE service_id = ?";
+        String sql = "SELECT service_id, service_name, unit, service_type, calculation_config, price_per_unit FROM services WHERE service_id = ?";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -72,6 +74,8 @@ public class ServiceDAO {
                 service.setServiceId(rs.getInt("service_id"));
                 service.setServiceName(rs.getString("service_name"));
                 service.setUnit(rs.getString("unit"));
+                service.setServiceType(rs.getString("service_type"));
+                service.setCalculationConfig(rs.getString("calculation_config"));
                 service.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
                 return service;
             }
@@ -348,12 +352,12 @@ public class ServiceDAO {
     }
     
     /**
-     * Get services that have been used in a specific room
-     * This shows services that any tenant in this room has used
+     * Get services that have been configured for a specific room
+     * This shows services that any tenant in this room has been assigned
      */
     public List<Service> getServicesByRoomId(int roomId) {
         List<Service> services = new ArrayList<>();
-        String sql = "SELECT DISTINCT s.service_id, s.service_name, s.unit, s.price_per_unit " +
+        String sql = "SELECT DISTINCT s.service_id, s.service_name, s.unit, s.service_type, s.calculation_config, s.price_per_unit " +
                     "FROM services s " +
                     "INNER JOIN service_usage su ON s.service_id = su.service_id " +
                     "INNER JOIN tenants t ON su.tenant_id = t.tenant_id " +
@@ -371,6 +375,8 @@ public class ServiceDAO {
                 service.setServiceId(rs.getInt("service_id"));
                 service.setServiceName(rs.getString("service_name"));
                 service.setUnit(rs.getString("unit"));
+                service.setServiceType(rs.getString("service_type"));
+                service.setCalculationConfig(rs.getString("calculation_config"));
                 service.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
                 services.add(service);
             }

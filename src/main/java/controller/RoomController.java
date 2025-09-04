@@ -84,9 +84,16 @@ public class RoomController {
         model.addAttribute("user", user);
         model.addAttribute("rooms", rooms);
         model.addAttribute("pageTitle", "Quản lý Phòng trọ");
-        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());       // Tổng số phòng
-        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCount()); // Phòng còn trống
-        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());   // Phòng đã thuê
+        
+        // Thống kê phòng theo trạng thái
+        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());
+        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCount());
+        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());
+        model.addAttribute("maintenanceRooms", roomDAO.getMaintenanceRoomCount());
+        model.addAttribute("reservedRooms", roomDAO.getReservedRoomCount());
+        model.addAttribute("suspendedRooms", roomDAO.getSuspendedRoomCount());
+        model.addAttribute("cleaningRooms", roomDAO.getCleaningRoomCount());
+        model.addAttribute("contractExpiredRooms", roomDAO.getContractExpiredRoomCount());
         
         return "admin/rooms";
     }
@@ -355,7 +362,16 @@ public class RoomController {
             return "Trạng thái phòng không được để trống";
         }
         
-        if (!"AVAILABLE".equals(room.getStatus()) && !"OCCUPIED".equals(room.getStatus())) {
+        // Kiểm tra trạng thái hợp lệ
+        String[] validStatuses = {"AVAILABLE", "OCCUPIED", "MAINTENANCE", "RESERVED", "SUSPENDED", "CLEANING", "CONTRACT_EXPIRED"};
+        boolean isValidStatus = false;
+        for (String validStatus : validStatuses) {
+            if (validStatus.equals(room.getStatus())) {
+                isValidStatus = true;
+                break;
+            }
+        }
+        if (!isValidStatus) {
             return "Trạng thái phòng không hợp lệ";
         }
         

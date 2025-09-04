@@ -4,6 +4,25 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 /**
+ * Enum for Additional Cost Payment Status
+ */
+enum PaymentStatus {
+    PAID("Đã thanh toán"),
+    PENDING("Đang chờ thanh toán"), 
+    UNPAID("Chưa thanh toán");
+    
+    private final String displayName;
+    
+    PaymentStatus(String displayName) {
+        this.displayName = displayName;
+    }
+    
+    public String getDisplayName() {
+        return displayName;
+    }
+}
+
+/**
  * Lớp Model cho Chi phí phát sinh
  * Đại diện cho các chi phí phát sinh/bổ sung của người thuê
  * Bao gồm sửa chữa, vệ sinh, phạt, đền bù, thay thế thiết bị, v.v.
@@ -39,6 +58,9 @@ public class AdditionalCost {
     
     /** Tên phòng (từ bảng rooms) */
     private String roomName;
+    
+    /** Trạng thái thanh toán (từ bảng invoices) */
+    private PaymentStatus paymentStatus;
     
     // ==================== CÁC CONSTRUCTOR ====================
     
@@ -139,6 +161,26 @@ public class AdditionalCost {
         this.roomName = roomName;
     }
     
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+    
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+    
+    public void setPaymentStatus(String paymentStatusString) {
+        if (paymentStatusString != null) {
+            try {
+                this.paymentStatus = PaymentStatus.valueOf(paymentStatusString.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                this.paymentStatus = PaymentStatus.UNPAID;
+            }
+        } else {
+            this.paymentStatus = PaymentStatus.UNPAID;
+        }
+    }
+    
     @Override
     public String toString() {
         return "AdditionalCost{" +
@@ -149,6 +191,7 @@ public class AdditionalCost {
                 ", date=" + date +
                 ", tenantName='" + tenantName + '\'' +
                 ", roomName='" + roomName + '\'' +
+                ", paymentStatus=" + paymentStatus +
                 '}';
     }
     

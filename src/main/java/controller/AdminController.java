@@ -1,6 +1,7 @@
 package controller;
 
 import dao.RoomDAO;
+import dao.InvoiceDAO;
 import model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpSession;
+import java.math.BigDecimal;
+import java.util.Calendar;
 
 /**
  * Controller quản trị hệ thống
@@ -29,6 +32,10 @@ public class AdminController {
     /** DAO quản lý phòng - dùng cho thống kê dashboard */
     @Autowired
     private RoomDAO roomDAO;
+    
+    /** DAO quản lý hóa đơn - dùng cho thống kê doanh thu và nợ */
+    @Autowired
+    private InvoiceDAO invoiceDAO;
     
     // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
     
@@ -81,12 +88,37 @@ public class AdminController {
         int availableRooms = roomDAO.getAvailableRoomCount(); // Phòng còn trống
         int occupiedRooms = roomDAO.getOccupiedRoomCount();   // Phòng đã thuê
         
+        // Lấy thống kê doanh thu
+        BigDecimal totalRevenue = invoiceDAO.getTotalRevenue(); // Tổng doanh thu
+        
+        // Lấy doanh thu tháng hiện tại
+        Calendar cal = Calendar.getInstance();
+        int currentMonth = cal.get(Calendar.MONTH) + 1;
+        int currentYear = cal.get(Calendar.YEAR);
+        BigDecimal currentMonthRevenue = invoiceDAO.getRevenueByPeriod(currentMonth, currentYear);
+        
+        // Lấy thống kê hóa đơn và nợ
+        int unpaidInvoices = invoiceDAO.getUnpaidInvoiceCount(); // Số hóa đơn chưa thanh toán
+        
+        // Đếm số phòng có nợ (phòng có hóa đơn chưa thanh toán)
+        int roomsWithDebt = invoiceDAO.getRoomsWithUnpaidBills();
+        
         // Truyền dữ liệu đến view
         model.addAttribute("user", user);
         model.addAttribute("pageTitle", "Bảng điều khiển Quản trị");
+        
+        // Thống kê phòng
         model.addAttribute("totalRooms", totalRooms);
         model.addAttribute("availableRooms", availableRooms);
         model.addAttribute("occupiedRooms", occupiedRooms);
+        
+        // Thống kê doanh thu
+        model.addAttribute("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+        model.addAttribute("currentMonthRevenue", currentMonthRevenue != null ? currentMonthRevenue : BigDecimal.ZERO);
+        
+        // Thống kê nợ và hóa đơn
+        model.addAttribute("unpaidInvoices", unpaidInvoices);
+        model.addAttribute("roomsWithDebt", roomsWithDebt);
         
         return "admin/dashboard";
     }

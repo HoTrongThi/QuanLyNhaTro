@@ -135,10 +135,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -198,7 +194,7 @@
                     <div class="col-md-8">
                         <div class="card">
                             <div class="card-header py-3">
-                                <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i>Thông tin Hóa đơn</h5>
+                                <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i>Chọn kỳ thanh toán</h5>
                             </div>
                             <div class="card-body">
                                 <!-- Info Box -->
@@ -206,44 +202,25 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-info-circle fs-3 text-primary me-3"></i>
                                         <div>
-                                            <h6 class="mb-1">Lưu ý khi tạo hóa đơn:</h6>
+                                            <h6 class="mb-1">Tạo hóa đơn hàng loạt:</h6>
                                             <small class="text-muted">
-                                                • Hóa đơn sẽ tự động tính tổng: Tiền phòng + Tiền dịch vụ + Chi phí phát sinh<br>
-                                                • Đảm bảo đã nhập đầy đủ thông tin sử dụng dịch vụ và chi phí phát sinh trước khi tạo hóa đơn<br>
-                                                • Mỗi phòng chỉ có thể có 1 hóa đơn cho mỗi kỳ thanh toán
+                                                • Chọn tháng và năm để tạo hóa đơn cho tất cả phòng đang thuê<br>
+                                                • Hệ thống sẽ hiển thị tất cả phòng có người thuê để nhập dịch vụ<br>
+                                                • Tất cả hóa đơn sẽ được tạo cùng lúc cho kỳ đã chọn
                                             </small>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <form action="${pageContext.request.contextPath}/admin/bills/generate/services" method="POST" id="generateBillForm">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="roomId" class="form-label">
-                                                    <i class="bi bi-door-open me-1"></i>Phòng <span class="text-danger">*</span>
-                                                </label>
-                                                <select class="form-select" id="roomId" name="roomId" required onchange="updateRoomInfo()">
-                                                    <option value="">-- Chọn phòng --</option>
-                                                    <c:forEach var="room" items="${rooms}">
-                                                        <option value="${room.roomId}" 
-                                                                data-name="${room.roomName}" 
-                                                                data-price="${room.price}"
-                                                                data-status="${room.status}">
-                                                            ${room.roomName} - ${room.price} VNĐ
-                                                        </option>
-                                                    </c:forEach>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-md-3">
+                                <form action="${pageContext.request.contextPath}/admin/bills/generate/bulk-services" method="POST" id="generateBillForm">
+                                    <div class="row justify-content-center">
+                                        <div class="col-md-4">
                                             <div class="mb-3">
                                                 <label for="month" class="form-label">
                                                     <i class="bi bi-calendar-month me-1"></i>Tháng <span class="text-danger">*</span>
                                                 </label>
-                                                <select class="form-select" id="month" name="month" required>
-                                                    <option value="">-- Tháng --</option>
+                                                <select class="form-select" id="month" name="month" required onchange="updatePeriodInfo()">
+                                                    <option value="">-- Chọn tháng --</option>
                                                     <c:forEach begin="1" end="12" var="i">
                                                         <option value="${i}" ${i == currentMonth ? 'selected' : ''}>
                                                             Tháng ${i}
@@ -253,13 +230,13 @@
                                             </div>
                                         </div>
                                         
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <div class="mb-3">
                                                 <label for="year" class="form-label">
                                                     <i class="bi bi-calendar-year me-1"></i>Năm <span class="text-danger">*</span>
                                                 </label>
-                                                <select class="form-select" id="year" name="year" required>
-                                                    <option value="">-- Năm --</option>
+                                                <select class="form-select" id="year" name="year" required onchange="updatePeriodInfo()">
+                                                    <option value="">-- Chọn năm --</option>
                                                     <c:forEach begin="2020" end="2030" var="i">
                                                         <option value="${i}" ${i == currentYear ? 'selected' : ''}>
                                                             ${i}
@@ -270,24 +247,14 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Room Info Display -->
-                                    <div id="roomInfo" class="alert alert-info" style="display: none;">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <strong><i class="bi bi-door-open me-1"></i>Phòng:</strong> <span id="displayRoomName">-</span>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <strong><i class="bi bi-cash me-1"></i>Giá phòng:</strong> <span id="displayRoomPrice">-</span>
-                                            </div>
+                                    <!-- Period Info Display -->
+                                    <div id="periodInfo" class="alert alert-info" style="display: none;">
+                                        <div class="text-center">
+                                            <strong><i class="bi bi-calendar-event me-1"></i>Kỳ thanh toán:</strong> 
+                                            <span id="displayPeriod" class="fs-5 text-primary">-</span>
                                         </div>
-                                        <div class="row mt-2">
-                                            <div class="col-md-6">
-                                                <strong><i class="bi bi-info-circle me-1"></i>Trạng thái:</strong> <span id="displayRoomStatus">-</span>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <strong><i class="bi bi-calendar-event me-1"></i>Kỳ:</strong> 
-                                                <span id="displayPeriod">-</span>
-                                            </div>
+                                        <div class="text-center mt-2">
+                                            <small class="text-muted">Hệ thống sẽ tạo hóa đơn cho tất cả phòng đang có người thuê trong kỳ này</small>
                                         </div>
                                     </div>
                                     
@@ -311,67 +278,31 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function updateRoomInfo() {
-            const roomSelect = document.getElementById('roomId');
+        function updatePeriodInfo() {
             const monthSelect = document.getElementById('month');
             const yearSelect = document.getElementById('year');
-            const roomInfo = document.getElementById('roomInfo');
-            
-            if (roomSelect.value) {
-                const selectedOption = roomSelect.options[roomSelect.selectedIndex];
-                document.getElementById('displayRoomName').textContent = selectedOption.getAttribute('data-name');
-                document.getElementById('displayRoomPrice').textContent = selectedOption.getAttribute('data-price') + ' VNĐ';
-                
-                const status = selectedOption.getAttribute('data-status');
-                let statusText = status;
-                if (status === 'OCCUPIED') statusText = 'Đang thuê';
-                else if (status === 'AVAILABLE') statusText = 'Trống';
-                else if (status === 'MAINTENANCE') statusText = 'Bảo trì';
-                document.getElementById('displayRoomStatus').textContent = statusText;
-                
-                updatePeriodDisplay();
-                roomInfo.style.display = 'block';
-            } else {
-                roomInfo.style.display = 'none';
-            }
-        }
-        
-        function updatePeriodDisplay() {
-            const monthSelect = document.getElementById('month');
-            const yearSelect = document.getElementById('year');
+            const periodInfo = document.getElementById('periodInfo');
             const periodDisplay = document.getElementById('displayPeriod');
             
             if (monthSelect.value && yearSelect.value) {
                 const monthText = monthSelect.options[monthSelect.selectedIndex].text;
                 periodDisplay.textContent = monthText + ' ' + yearSelect.value;
+                periodInfo.style.display = 'block';
             } else {
+                periodInfo.style.display = 'none';
                 periodDisplay.textContent = '-';
             }
         }
         
-        // Update period display when month or year changes
-        document.getElementById('month').addEventListener('change', function() {
-            if (document.getElementById('roomId').value) {
-                updatePeriodDisplay();
-            }
-        });
-        
-        document.getElementById('year').addEventListener('change', function() {
-            if (document.getElementById('roomId').value) {
-                updatePeriodDisplay();
-            }
-        });
-        
         // Form validation
         document.getElementById('generateBillForm').addEventListener('submit', function(e) {
             const submitBtn = document.getElementById('submitBtn');
-            const roomId = document.getElementById('roomId').value;
             const month = document.getElementById('month').value;
             const year = document.getElementById('year').value;
             
-            if (!roomId || !month || !year) {
+            if (!month || !year) {
                 e.preventDefault();
-                alert('Vui lòng điền đầy đủ thông tin!');
+                alert('Vui lòng chọn tháng và năm!');
                 return;
             }
             

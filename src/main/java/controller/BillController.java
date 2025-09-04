@@ -70,6 +70,10 @@ public class BillController {
     @Autowired
     private GmailDAO gmailDAO;
     
+    /** DAO quản lý người dùng */
+    @Autowired
+    private UserDAO userDAO;
+    
     // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
     
     /**
@@ -98,9 +102,8 @@ public class BillController {
     // ==================== CÁC PHƯƠNG THỨC HIỂN THỊ TRANG ====================
     
     /**
-     * Hiển thị trang quản lý hóa đơn
-     * Liệt kê tất cả hóa đơn với thông tin chi tiết và thống kê
-     * Hiển thị số lượng người thuê trong mỗi phòng
+     * Hiển thị trang quản lý hóa đơn theo phòng
+     * Liệt kê tất cả phòng với thông tin nợ và khách thuê
      * 
      * @param session HTTP Session để kiểm tra quyền
      * @param model Model để truyền dữ liệu đến view
@@ -114,28 +117,109 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Invoice> invoices = invoiceDAO.getAllInvoices();
         
-        // For each invoice, get the room information and tenants count
-        for (Invoice invoice : invoices) {
-            // Get tenant information to find room
-            Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
-            if (tenant != null) {
-                // Get all tenants in the same room
-                List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(tenant.getRoomId());
-                // Set additional info for display
-                invoice.setTenantsCount(tenantsInRoom.size());
+        // Lấy tất cả phòng
+        List<Room> allRooms = roomDAO.getAllRooms();
+        List<RoomBillInfo> rooms = new ArrayList<>();
+        
+        int roomsWithDebt = 0;
+        int totalUnpaidInvoices = 0;
+        
+        // Xử lý từng phòng để tạo thông tin hóa đơn
+        for (Room room : allRooms) {
+            RoomBillInfo roomInfo = new RoomBillInfo();
+            roomInfo.setRoomId(room.getRoomId());
+            roomInfo.setRoomName(room.getRoomName());
+            
+            // Lấy danh sách khách thuê hiện tại
+            List<Tenant> activeTenants = tenantDAO.getActiveTenantsByRoomId(room.getRoomId());
+            roomInfo.setTenants(activeTenants);
+            roomInfo.setTenantCount(activeTenants.size());
+            roomInfo.setHasActiveTenants(!activeTenants.isEmpty());
+            
+            if (activeTenants.isEmpty()) {
+                // Phòng trống - bỏ qua, không thêm vào danh sách
+            } else {
+                // Phòng có người thuê - kiểm tra hóa đơn chưa thanh toán
+                List<Invoice> unpaidInvoices = invoiceDAO.getUnpaidInvoicesByRoomId(room.getRoomId());
+                
+                if (!unpaidInvoices.isEmpty()) {
+                    // Có hóa đơn chưa thanh toán
+                    roomInfo.setHasUnpaidBills(true);
+                    roomInfo.setUnpaidCount(unpaidInvoices.size());
+                    
+                    // Tính tổng nợ
+                    BigDecimal totalDebt = unpaidInvoices.stream()
+                        .map(Invoice::getTotalAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    roomInfo.setTotalDebt(totalDebt);
+                    
+                    // Tạo chuỗi kỳ nợ
+                    String unpaidPeriods = unpaidInvoices.stream()
+                        .map(invoice -> String.format("%02d/%d", invoice.getMonth(), invoice.getYear()))
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("");
+                    roomInfo.setUnpaidPeriods(unpaidPeriods);
+                    
+                    roomsWithDebt++;
+                    totalUnpaidInvoices += unpaidInvoices.size();
+                    
+                    // Chỉ thêm phòng có nợ vào danh sách
+                    rooms.add(roomInfo);
+                }
             }
         }
         
         model.addAttribute("user", user);
-        model.addAttribute("invoices", invoices);
+        model.addAttribute("rooms", rooms);
         model.addAttribute("pageTitle", "Quản lý Hóa đơn");
-        model.addAttribute("totalInvoices", invoiceDAO.getTotalInvoiceCount());
-        model.addAttribute("unpaidInvoices", invoiceDAO.getUnpaidInvoiceCount());
-        model.addAttribute("totalRevenue", invoiceDAO.getTotalRevenue());
+        model.addAttribute("roomsWithDebt", roomsWithDebt);
+        model.addAttribute("totalUnpaidInvoices", totalUnpaidInvoices);
         
         return "admin/bills";
+    }
+    
+    /**
+     * Hiển thị hóa đơn của một phòng cụ thể (AJAX)
+     */
+    @GetMapping("/bills/room/{roomId}")
+    public String showRoomBills(@PathVariable int roomId,
+                              HttpSession session,
+                              Model model) {
+        
+        String accessCheck = checkAdminAccess(session);
+        if (accessCheck != null) {
+            model.addAttribute("error", "Access denied");
+            return "admin/room-bills-table";
+        }
+        
+        // Lấy thông tin phòng
+        Room room = roomDAO.getRoomById(roomId);
+        if (room == null) {
+            model.addAttribute("error", "Không tìm thấy phòng");
+            return "admin/room-bills-table";
+        }
+        
+        // Lấy chỉ hóa đơn chưa thanh toán của phòng
+        List<Invoice> roomInvoices = invoiceDAO.getUnpaidInvoicesByRoomId(roomId);
+        
+        // Lấy danh sách khách thuê hiện tại
+        List<Tenant> activeTenants = tenantDAO.getActiveTenantsByRoomId(roomId);
+        
+        // Thêm thông tin khách thuê cho mỗi hóa đơn
+        for (Invoice invoice : roomInvoices) {
+            Tenant tenant = tenantDAO.getTenantById(invoice.getTenantId());
+            if (tenant != null) {
+                invoice.setTenantName(tenant.getFullName());
+                invoice.setRoomName(room.getRoomName());
+            }
+        }
+        
+        model.addAttribute("room", room);
+        model.addAttribute("invoices", roomInvoices);
+        model.addAttribute("activeTenants", activeTenants);
+        
+        return "admin/room-bills-table";
     }
     
     /**
@@ -357,7 +441,7 @@ public class BillController {
         model.addAttribute("rooms", rooms);
         model.addAttribute("currentMonth", currentMonth);
         model.addAttribute("currentYear", currentYear);
-        model.addAttribute("pageTitle", "Tạo Hóa đơn - Chọn phòng");
+        model.addAttribute("pageTitle", "Tạo Hóa đơn - Chọn kỳ");
         
         return "admin/generate-bill";
     }
@@ -409,11 +493,50 @@ public class BillController {
         int daysStayed = calculateDaysStayed(tenantsInRoom, month, year);
         Date earliestStartDate = getEarliestStartDate(tenantsInRoom, month, year);
         
-        // Get all available services (simplified to avoid potential database issues)
-        List<Service> services = serviceDAO.getAllServices();
+        // Get services that have been configured for this room (from service usage setup)
+        List<Service> services = serviceDAO.getServicesByRoomId(roomId);
+        
+        // If no services have been configured for this room, show empty list
+        // This means no services were set up when adding tenants to this room
         
         // Get existing service usages for this room and period
         List<ServiceUsage> existingUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(roomId, month, year);
+        
+        // Lấy chỉ số trước đó cho các dịch vụ có công tơ
+        Map<Integer, MeterReading> previousReadings = new HashMap<>();
+        
+        // Sử dụng danh sách tenantsInRoom đã có sẵn ở trên
+        if (!tenantsInRoom.isEmpty()) {
+            int representativeTenantId = tenantsInRoom.stream()
+                .mapToInt(Tenant::getTenantId)
+                .min()
+                .orElse(0);
+            
+            for (Service service : services) {
+                if ("kWh".equals(service.getUnit()) || "m³".equals(service.getUnit())) {
+                    // Tìm chỉ số của kỳ trước đó
+                    MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(
+                        representativeTenantId, service.getServiceId(), month, year);
+                    
+                    if (previousReading != null) {
+                        previousReadings.put(service.getServiceId(), previousReading);
+                        System.out.println("🔍 [FORM DEBUG] Tìm thấy chỉ số trước đó cho service " + 
+                            service.getServiceId() + ": " + previousReading.getReading() + 
+                            " (Kỳ: " + previousReading.getMonth() + "/" + previousReading.getYear() + ")");
+                    } else {
+                        // Nếu không tìm thấy chỉ số trước đó, tìm chỉ số ban đầu
+                        MeterReading initialReading = meterReadingDAO.getInitialMeterReadingForRoom(roomId, service.getServiceId());
+                        if (initialReading != null) {
+                            previousReadings.put(service.getServiceId(), initialReading);
+                            System.out.println("🔍 [FORM DEBUG] Sử dụng chỉ số ban đầu cho service " + 
+                                service.getServiceId() + ": " + initialReading.getReading());
+                        } else {
+                            System.out.println("⚠️ [FORM WARNING] Không tìm thấy chỉ số nào cho service " + service.getServiceId());
+                        }
+                    }
+                }
+            }
+        }
         
         // Get additional costs for this room and period
         List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByRoomAndPeriod(roomId, month, year);
@@ -434,6 +557,7 @@ public class BillController {
         model.addAttribute("tenantsInRoom", tenantsInRoom);
         model.addAttribute("services", services);
         model.addAttribute("existingUsages", existingUsages);
+        model.addAttribute("initialReadings", previousReadings); // Đổi tên nhưng vẫn dùng tên cũ trong JSP để tương thích
         model.addAttribute("additionalCosts", additionalCosts);
         model.addAttribute("additionalTotal", additionalTotal);
         model.addAttribute("roomId", roomId);
@@ -442,6 +566,123 @@ public class BillController {
         model.addAttribute("pageTitle", "Tạo Hóa đơn - Nhập sử dụng dịch vụ");
         
         return "admin/generate-bill-services";
+    }
+    
+    /**
+     * Hiển thị biểu mẫu nhập liệu sử dụng dịch vụ cho tất cả phòng (Bước 2: Nhập số lượng dịch vụ hàng loạt)
+     */
+    @PostMapping("/bills/generate/bulk-services")
+    public String showBulkServiceUsageForm(@RequestParam int month,
+                                         @RequestParam int year,
+                                         HttpSession session,
+                                         Model model,
+                                         RedirectAttributes redirectAttributes) {
+        
+        String accessCheck = checkAdminAccess(session);
+        if (accessCheck != null) {
+            return accessCheck;
+        }
+        
+        // Validate input
+        if (month < 1 || month > 12 || year < 2000 || year > 2100) {
+            redirectAttributes.addFlashAttribute("error", "Tháng và năm không hợp lệ");
+            return "redirect:/admin/bills/generate";
+        }
+        
+        // Lấy tất cả phòng đang có người thuê
+        List<Room> allRooms = roomDAO.getAllRooms();
+        List<RoomBillInfo> occupiedRooms = new ArrayList<>();
+        
+        for (Room room : allRooms) {
+            // Lấy danh sách khách thuê hiện tại
+            List<Tenant> activeTenants = tenantDAO.getActiveTenantsByRoomId(room.getRoomId());
+            
+            if (!activeTenants.isEmpty()) {
+                // Kiểm tra xem hóa đơn đã tồn tại cho phòng và kỳ này chưa
+                if (invoiceDAO.invoiceExistsForRoomAndPeriod(room.getRoomId(), month, year)) {
+                    continue; // Bỏ qua phòng đã có hóa đơn
+                }
+                
+                RoomBillInfo roomInfo = new RoomBillInfo();
+                roomInfo.setRoomId(room.getRoomId());
+                roomInfo.setRoomName(room.getRoomName());
+                
+                // Tính giá phòng theo tỷ lệ dựa trên số ngày lưu trú thực tế
+                BigDecimal fullRoomPrice = room.getPrice();
+                BigDecimal proratedRoomPrice = calculateProratedRoomPrice(fullRoomPrice, activeTenants, month, year);
+                roomInfo.setRoomPrice(proratedRoomPrice);
+                
+                // Thêm thông tin giá gốc để hiển thị ở header
+                roomInfo.setFullRoomPrice(fullRoomPrice);
+                
+                roomInfo.setTenants(activeTenants);
+                roomInfo.setTenantCount(activeTenants.size());
+                
+                // Lấy dịch vụ đã được thiết lập cho phòng này
+                List<Service> roomServices = serviceDAO.getServicesByRoomId(room.getRoomId());
+                roomInfo.setServices(roomServices);
+                
+                // Lấy chi phí phát sinh cho phòng và kỳ này
+                List<AdditionalCost> additionalCosts = additionalCostDAO.getAdditionalCostsByRoomAndPeriod(
+                    room.getRoomId(), month, year);
+                BigDecimal additionalTotal = additionalCosts.stream()
+                    .map(AdditionalCost::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+                roomInfo.setAdditionalCosts(additionalCosts);
+                roomInfo.setAdditionalTotal(additionalTotal);
+                
+                // Lấy sử dụng dịch vụ hiện tại (nếu có)
+                List<ServiceUsage> existingUsages = serviceUsageDAO.getServiceUsageByRoomAndPeriod(
+                    room.getRoomId(), month, year);
+                roomInfo.setExistingUsages(existingUsages);
+                
+                // Lấy chỉ số trước đó cho các dịch vụ có công tơ
+                Map<Integer, MeterReading> previousReadings = new HashMap<>();
+                if (!activeTenants.isEmpty()) {
+                    int representativeTenantId = activeTenants.stream()
+                        .mapToInt(Tenant::getTenantId)
+                        .min()
+                        .orElse(0);
+                    
+                    for (Service service : roomServices) {
+                        if ("kWh".equals(service.getUnit()) || "m³".equals(service.getUnit())) {
+                            MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(
+                                representativeTenantId, service.getServiceId(), month, year);
+                            
+                            if (previousReading != null) {
+                                previousReadings.put(service.getServiceId(), previousReading);
+                            } else {
+                                // Nếu không tìm thấy chỉ số trước đó, tìm chỉ số ban đầu
+                                MeterReading initialReading = meterReadingDAO.getInitialMeterReadingForRoom(
+                                    room.getRoomId(), service.getServiceId());
+                                if (initialReading != null) {
+                                    previousReadings.put(service.getServiceId(), initialReading);
+                                }
+                            }
+                        }
+                    }
+                }
+                roomInfo.setPreviousReadings(previousReadings);
+                
+                occupiedRooms.add(roomInfo);
+            }
+        }
+        
+        if (occupiedRooms.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Không có phòng nào đang thuê hoặc tất cả phòng đã có hóa đơn cho kỳ này");
+            return "redirect:/admin/bills/generate";
+        }
+        
+        User user = (User) session.getAttribute("user");
+        
+        model.addAttribute("user", user);
+        model.addAttribute("occupiedRooms", occupiedRooms);
+        model.addAttribute("month", month);
+        model.addAttribute("year", year);
+        model.addAttribute("pageTitle", "Tạo Hóa đơn - Nhập sử dụng dịch vụ");
+        
+        return "admin/generate-bill-bulk-services";
     }
     
     /**
@@ -524,63 +765,54 @@ public class BillController {
                                 try {
                                     BigDecimal currentReading = new BigDecimal(currentReadingStr.trim());
                                     
-                                    // Nhận số đọc đồng hồ trước đó (sử dụng đại diện người thuê nhà)
-                                    MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
+                                    // Tìm chỉ số trước đó
                                     BigDecimal previousReadingValue = BigDecimal.ZERO;
+                                    MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(representativeTenantId, serviceId, month, year);
                                     
                                     if (previousReading != null) {
                                         previousReadingValue = previousReading.getReading();
                                     } else {
-                                    	// Nếu không tìm thấy số liệu đọc trước đó, hãy kiểm tra số liệu đọc ban đầu trong cùng khoảng thời gian
-                                    	// Điều này áp dụng cho những người thuê nhà mới có số liệu đọc ban đầu trong tháng đầu tiên
+                                        // Bước 2: Nếu không tìm thấy, có thể đây là kỳ đầu tiên
+                                        // Kiểm tra xem có chỉ số ban đầu nào trong cùng kỳ không (trường hợp cập nhật)
                                         MeterReading initialReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(
                                             representativeTenantId, serviceId, month, year);
+                                        
                                         if (initialReading != null) {
-                                        	// Sử dụng số đọc ban đầu làm điểm khởi đầu
+                                            // Đây là trường hợp cập nhật chỉ số trong cùng kỳ
                                             previousReadingValue = initialReading.getReading();
+                                        } else {
+                                            // Đây là kỳ đầu tiên hoàn toàn, sử dụng 0 làm điểm bắt đầu
+                                            previousReadingValue = BigDecimal.ZERO;
                                         }
                                     }
                                     
                                     // Tính toán mức tiêu thụ
                                     BigDecimal consumption = currentReading.subtract(previousReadingValue);
                                     if (consumption.compareTo(BigDecimal.ZERO) < 0) {
-                                        consumption = BigDecimal.ZERO; // Ngăn chặn tiêu thụ tiêu cực
+                                        consumption = BigDecimal.ZERO; // Ngăn chặn tiêu thụ âm
                                     }
                                     
                                     // Lưu số đọc đồng hồ hiện tại (sử dụng người thuê nhà đại diện)
                                     Date currentDate = Date.valueOf(java.time.LocalDate.now());
                                     MeterReading newReading = new MeterReading(representativeTenantId, serviceId, currentReading, currentDate, month, year);
                                     
-                                    // Kiểm tra xem số đọc đồng hồ đã tồn tại trong khoảng thời gian này chưa
+                                    // Lưu chỉ số công tơ
                                     if (meterReadingDAO.meterReadingExists(representativeTenantId, serviceId, month, year)) {
-                                        // Cập nhật bản đọc hiện có
-                                        MeterReading existingReading = meterReadingDAO.getMeterReadingByTenantServiceAndPeriod(representativeTenantId, serviceId, month, year);
-                                        if (existingReading != null) {
-                                            existingReading.setReading(currentReading);
-                                            existingReading.setReadingDate(currentDate);
-                                            meterReadingDAO.updateMeterReading(existingReading);
-                                        }
+                                        // Cập nhật chỉ số hiện có cho kỳ này
+                                        meterReadingDAO.updateMeterReadingByPeriod(
+                                            representativeTenantId, serviceId, month, year, currentReading, currentDate);
                                     } else {
-                                        // Thêm số đọc đồng hồ mới
+                                        // Thêm chỉ số mới cho kỳ này
                                         meterReadingDAO.addMeterReading(newReading);
                                     }
                                     
-                                    // Cập nhật hoặc tạo hồ sơ sử dụng dịch vụ với mức tiêu thụ đã tính toán (sử dụng đối tượng thuê đại diện)
+                                    // Cập nhật service usage với mức tiêu thụ đã tính
                                     if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
-                                        // Cập nhật số lượng sử dụng hiện tại
-                                        ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
-                                            .stream()
-                                            .filter(usage -> usage.getServiceId() == serviceId)
-                                            .findFirst()
-                                            .orElse(null);
-                                        
-                                        if (existingUsage != null) {
-                                            existingUsage.setQuantity(consumption);
-                                            serviceUsageDAO.updateServiceUsage(existingUsage);
-                                        }
+                                        serviceUsageDAO.updateServiceUsageQuantity(
+                                            representativeTenantId, serviceId, month, year, consumption);
                                     } else {
-                                        // Tạo bản ghi sử dụng mới
-                                        ServiceUsage newUsage = new ServiceUsage(representativeTenantId, serviceId, month, year, consumption);
+                                        ServiceUsage newUsage = new ServiceUsage(
+                                            representativeTenantId, serviceId, month, year, consumption);
                                         serviceUsageDAO.addServiceUsage(newUsage);
                                     }
                                     
@@ -615,19 +847,11 @@ public class BillController {
                                 
                                 // Cập nhật hoặc tạo hồ sơ sử dụng dịch vụ với số lượng (sử dụng người thuê đại diện)
                                 if (serviceUsageDAO.serviceUsageExists(representativeTenantId, serviceId, month, year)) {
-                                    // Update existing usage
-                                    ServiceUsage existingUsage = serviceUsageDAO.getServiceUsageByTenantAndPeriod(representativeTenantId, month, year)
-                                        .stream()
-                                        .filter(usage -> usage.getServiceId() == serviceId)
-                                        .findFirst()
-                                        .orElse(null);
-                                    
-                                    if (existingUsage != null) {
-                                        existingUsage.setQuantity(quantity);
-                                        serviceUsageDAO.updateServiceUsage(existingUsage);
-                                    }
+                                    // Cập nhật số lượng sử dụng hiện tại bằng method mới
+                                    serviceUsageDAO.updateServiceUsageQuantity(
+                                        representativeTenantId, serviceId, month, year, quantity);
                                 } else {
-                                    // Create new usage record
+                                    // Tạo bản ghi sử dụng mới
                                     ServiceUsage newUsage = new ServiceUsage(representativeTenantId, serviceId, month, year, quantity);
                                     serviceUsageDAO.addServiceUsage(newUsage);
                                 }
@@ -738,9 +962,9 @@ public class BillController {
                     priceInfo = " (Tiền phòng đã được tính theo tỷ lệ ngày ở thực tế)";
                 }
                 
-                // Xây dựng tin nhắn thành công với thông tin SMS
+                // Xây dựng tin nhắn thành công với thông tin chi tiết
                 StringBuilder successMessage = new StringBuilder();
-                successMessage.append("Tạo hóa đơn thành công cho phòng ").append(room.getRoomName())
+                successMessage.append("✅ Tạo hóa đơn thành công cho phòng ").append(room.getRoomName())
                              .append(" (").append(tenantNames).append(")! Tổng tiền: ")
                              .append(String.format("%,.0f", totalAmount.doubleValue())).append(" VNĐ")
                              .append(priceInfo);
@@ -774,6 +998,299 @@ public class BillController {
                 redirectAttributes.addFlashAttribute("success", successMessage.toString());
             } else {
                 redirectAttributes.addFlashAttribute("error", "Tạo hóa đơn thất bại. Vui lòng thử lại.");
+            }
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "redirect:/admin/bills/generate";
+        }
+        
+        return "redirect:/admin/bills";
+    }
+    
+    /**
+     * Xử lý việc sử dụng dịch vụ và tạo hóa đơn hàng loạt (Bước 3: Tạo hóa đơn cho tất cả phòng)
+     */
+    @PostMapping("/bills/generate/bulk-final")
+    public String generateBulkBillsWithServices(@RequestParam int month,
+                                              @RequestParam int year,
+                                              @RequestParam List<Integer> roomIds,
+                                              @RequestParam(required = false) Map<String, String> allParams,
+                                              HttpSession session,
+                                              RedirectAttributes redirectAttributes) {
+        
+        String accessCheck = checkAdminAccess(session);
+        if (accessCheck != null) {
+            return accessCheck;
+        }
+        
+        try {
+            // Validate input
+            if (month < 1 || month > 12 || year < 2000 || year > 2100) {
+                redirectAttributes.addFlashAttribute("error", "Tháng và năm không hợp lệ");
+                return "redirect:/admin/bills/generate";
+            }
+            
+            if (roomIds == null || roomIds.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Không có phòng nào được chọn");
+                return "redirect:/admin/bills/generate";
+            }
+            
+            int successCount = 0;
+            int skipCount = 0;
+            int errorCount = 0;
+            StringBuilder errorMessages = new StringBuilder();
+            
+            // Xử lý từng phòng
+            for (Integer roomId : roomIds) {
+                try {
+                    // Kiểm tra xem hóa đơn đã tồn tại cho phòng và thời gian này chưa
+                    if (invoiceDAO.invoiceExistsForRoomAndPeriod(roomId, month, year)) {
+                        skipCount++;
+                        continue;
+                    }
+                    
+                    // Lấy thông tin phòng
+                    Room room = roomDAO.getRoomById(roomId);
+                    if (room == null) {
+                        errorCount++;
+                        errorMessages.append("Không tìm thấy phòng ID: ").append(roomId).append("; ");
+                        continue;
+                    }
+                    
+                    // Lấy người thuê trong phòng này
+                    List<Tenant> tenantsInRoom = tenantDAO.getTenantsByRoomId(roomId);
+                    if (tenantsInRoom.isEmpty()) {
+                        errorCount++;
+                        errorMessages.append("Không có người thuê nào trong phòng ").append(room.getRoomName()).append("; ");
+                        continue;
+                    }
+                    
+                    // Sử dụng người thuê đại diện (ID nhỏ nhất)
+                    int representativeTenantId = tenantsInRoom.stream()
+                        .mapToInt(Tenant::getTenantId)
+                        .min()
+                        .orElse(0);
+                    
+                    if (representativeTenantId == 0) {
+                        errorCount++;
+                        errorMessages.append("Không tìm thấy người thuê đại diện cho phòng ").append(room.getRoomName()).append("; ");
+                        continue;
+                    }
+                    
+                    // Xử lý chỉ số công tơ từ form (nếu có)
+                    if (allParams != null) {
+                        // Lấy dịch vụ của phòng này
+                        List<Service> roomServices = serviceDAO.getServicesByRoomId(roomId);
+                        
+                        for (Service service : roomServices) {
+                            if ("kWh".equals(service.getUnit()) || "m³".equals(service.getUnit())) {
+                                // Tìm chỉ số mới từ form parameters
+                                String paramName = "currentReading_" + roomId + "_" + service.getServiceId();
+                                String currentReadingStr = allParams.get(paramName);
+                                
+                                if (currentReadingStr != null && !currentReadingStr.trim().isEmpty()) {
+                                    try {
+                                        BigDecimal currentReading = new BigDecimal(currentReadingStr.trim());
+                                        
+                                        // Tìm chỉ số trước đó
+                                        BigDecimal previousReadingValue = BigDecimal.ZERO;
+                                        MeterReading previousReading = meterReadingDAO.getPreviousMeterReading(
+                                            representativeTenantId, service.getServiceId(), month, year);
+                                        
+                                        if (previousReading != null) {
+                                            previousReadingValue = previousReading.getReading();
+                                        } else {
+                                            // Tìm chỉ số ban đầu nếu không có chỉ số trước đó
+                                            MeterReading initialReading = meterReadingDAO.getInitialMeterReadingForRoom(
+                                                roomId, service.getServiceId());
+                                            if (initialReading != null) {
+                                                previousReadingValue = initialReading.getReading();
+                                            }
+                                        }
+                                        
+                                        // Tính toán mức tiêu thụ
+                                        BigDecimal consumption = currentReading.subtract(previousReadingValue);
+                                        if (consumption.compareTo(BigDecimal.ZERO) < 0) {
+                                            consumption = BigDecimal.ZERO; // Ngăn chặn tiêu thụ âm
+                                        }
+                                        
+                                        // Lưu chỉ số công tơ mới
+                                        Date currentDate = Date.valueOf(java.time.LocalDate.now());
+                                        MeterReading newReading = new MeterReading(
+                                            representativeTenantId, service.getServiceId(), currentReading, currentDate, month, year);
+                                        
+                                        if (meterReadingDAO.meterReadingExists(representativeTenantId, service.getServiceId(), month, year)) {
+                                            // Cập nhật chỉ số hiện có
+                                            meterReadingDAO.updateMeterReadingByPeriod(
+                                                representativeTenantId, service.getServiceId(), month, year, currentReading, currentDate);
+                                        } else {
+                                            // Thêm chỉ số mới
+                                            meterReadingDAO.addMeterReading(newReading);
+                                        }
+                                        
+                                        // Cập nhật service usage với mức tiêu thụ
+                                        if (serviceUsageDAO.serviceUsageExists(representativeTenantId, service.getServiceId(), month, year)) {
+                                            serviceUsageDAO.updateServiceUsageQuantity(
+                                                representativeTenantId, service.getServiceId(), month, year, consumption);
+                                        } else {
+                                            ServiceUsage newUsage = new ServiceUsage(
+                                                representativeTenantId, service.getServiceId(), month, year, consumption);
+                                            serviceUsageDAO.addServiceUsage(newUsage);
+                                        }
+                                        
+                                    } catch (NumberFormatException e) {
+                                        errorCount++;
+                                        errorMessages.append("Chỉ số công tơ không hợp lệ cho phòng ").append(room.getRoomName())
+                                                    .append(": ").append(currentReadingStr).append("; ");
+                                        continue; // Bỏ qua phòng này
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Xử lý các dịch vụ khác (quantities)
+                        for (Service service : roomServices) {
+                            if (!"kWh".equals(service.getUnit()) && !"m³".equals(service.getUnit())) {
+                                String paramName = "quantity_" + roomId + "_" + service.getServiceId();
+                                String quantityStr = allParams.get(paramName);
+                                
+                                if (quantityStr != null && !quantityStr.trim().isEmpty()) {
+                                    try {
+                                        BigDecimal quantity = new BigDecimal(quantityStr.trim());
+                                        
+                                        // Cập nhật service usage
+                                        if (serviceUsageDAO.serviceUsageExists(representativeTenantId, service.getServiceId(), month, year)) {
+                                            serviceUsageDAO.updateServiceUsageQuantity(
+                                                representativeTenantId, service.getServiceId(), month, year, quantity);
+                                        } else {
+                                            ServiceUsage newUsage = new ServiceUsage(
+                                                representativeTenantId, service.getServiceId(), month, year, quantity);
+                                            serviceUsageDAO.addServiceUsage(newUsage);
+                                        }
+                                        
+                                    } catch (NumberFormatException e) {
+                                        // Bỏ qua lỗi quantity, không quan trọng bằng meter reading
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Tính toán tổng số sau khi cập nhật mức sử dụng dịch vụ
+                    BigDecimal fullRoomPrice = room.getPrice();
+                    
+                    // Tính giá phòng theo tỷ lệ dựa trên số ngày lưu trú thực tế
+                    BigDecimal roomPrice = calculateProratedRoomPrice(fullRoomPrice, tenantsInRoom, month, year);
+                    
+                    BigDecimal serviceTotal = serviceUsageDAO.calculateServiceTotalByRoom(roomId, month, year);
+                    BigDecimal additionalTotal = additionalCostDAO.calculateAdditionalTotalByRoom(roomId, month, year);
+                    
+                    // Đảm bảo không có giá trị null trong phép tính
+                    roomPrice = roomPrice != null ? roomPrice : BigDecimal.ZERO;
+                    serviceTotal = serviceTotal != null ? serviceTotal : BigDecimal.ZERO;
+                    additionalTotal = additionalTotal != null ? additionalTotal : BigDecimal.ZERO;
+                    
+                    BigDecimal totalAmount = roomPrice.add(serviceTotal).add(additionalTotal);
+                    
+                    // Tạo hóa đơn bằng cách sử dụng người thuê đại diện
+                    Invoice invoice = new Invoice(representativeTenantId, month, year, roomPrice, serviceTotal, additionalTotal, totalAmount);
+                    invoice.setStatus("UNPAID");
+                    
+                    boolean success = invoiceDAO.createInvoice(invoice);
+                    
+                    if (success) {
+                        successCount++;
+                        
+                        // Tạo mã QR MoMo sau khi tạo hóa đơn thành công
+                        try {
+                            String orderInfo = "Thanh toán hóa đơn phòng " + room.getRoomName() + " - " + 
+                                             String.format("%02d/%d", month, year);
+                            
+                            MoMoResponse moMoResponse = moMoDAO.createQRCode(invoice.getInvoiceId(), totalAmount, orderInfo);
+                            
+                            if (moMoResponse.isSuccess() && moMoResponse.hasQrCode()) {
+                                invoiceDAO.updateMoMoPaymentInfo(
+                                    invoice.getInvoiceId(),
+                                    moMoResponse.getQrCodeUrl(),
+                                    moMoResponse.getOrderId(),
+                                    moMoResponse.getRequestId(),
+                                    "PENDING"
+                                );
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error creating MoMo QR Code for room " + room.getRoomName() + ": " + e.getMessage());
+                        }
+                        
+                        // Gửi thông báo qua Email
+                        try {
+                            String period = String.format("%02d/%d", month, year);
+                            String formattedAmount = String.format("%,.0f", totalAmount.doubleValue());
+                            
+                            // Nhận URL mã QR từ hóa đơn đã tạo
+                            String qrCodeUrl = null;
+                            try {
+                                Invoice createdInvoice = invoiceDAO.getInvoiceById(invoice.getInvoiceId());
+                                if (createdInvoice != null && createdInvoice.getMomoQrCodeUrl() != null) {
+                                    qrCodeUrl = createdInvoice.getMomoQrCodeUrl();
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Error getting QR code URL for room " + room.getRoomName() + ": " + e.getMessage());
+                            }
+                            
+                            // Gửi email cho tất cả tenant trong phòng
+                            for (Tenant tenant : tenantsInRoom) {
+                                if (tenant.getEmail() != null && !tenant.getEmail().trim().isEmpty()) {
+                                    gmailDAO.sendInvoiceNotificationWithQR(
+                                        tenant.getEmail(),
+                                        tenant.getFullName(),
+                                        room.getRoomName(),
+                                        period,
+                                        formattedAmount,
+                                        qrCodeUrl
+                                    );
+                                }
+                            }
+                            
+                        } catch (Exception e) {
+                            System.err.println("Error sending Email notifications for room " + room.getRoomName() + ": " + e.getMessage());
+                        }
+                        
+                    } else {
+                        errorCount++;
+                        errorMessages.append("Tạo hóa đơn thất bại cho phòng ").append(room.getRoomName()).append("; ");
+                    }
+                    
+                } catch (Exception e) {
+                    errorCount++;
+                    errorMessages.append("Lỗi xử lý phòng ID ").append(roomId).append(": ").append(e.getMessage()).append("; ");
+                }
+            }
+            
+            // Xây dựng thông báo kết quả
+            StringBuilder resultMessage = new StringBuilder();
+            
+            if (successCount > 0) {
+                resultMessage.append("Tạo thành công ").append(successCount).append(" hóa đơn");
+            }
+            
+            if (skipCount > 0) {
+                if (resultMessage.length() > 0) resultMessage.append(". ");
+                resultMessage.append("Bỏ qua ").append(skipCount).append(" phòng đã có hóa đơn");
+            }
+            
+            if (errorCount > 0) {
+                if (resultMessage.length() > 0) resultMessage.append(". ");
+                resultMessage.append("Có ").append(errorCount).append(" lỗi xảy ra");
+                if (errorMessages.length() > 0) {
+                    resultMessage.append(": ").append(errorMessages.toString());
+                }
+            }
+            
+            if (successCount > 0) {
+                redirectAttributes.addFlashAttribute("success", resultMessage.toString());
+            } else {
+                redirectAttributes.addFlashAttribute("error", resultMessage.toString());
             }
             
         } catch (Exception e) {
@@ -1078,8 +1595,54 @@ public class BillController {
     }
     
 
-    
 
+    
+    /**
+     * Tổng hợp các service usage theo service để hiển thị trong bill detail
+     * Gộp các usage của cùng một service từ nhiều tenant trong phòng
+     */
+    private List<ServiceUsage> aggregateServiceUsagesByService(List<ServiceUsage> usages) {
+        if (usages == null || usages.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        Map<Integer, ServiceUsage> aggregatedMap = new HashMap<>();
+        
+        for (ServiceUsage usage : usages) {
+            int serviceId = usage.getServiceId();
+            
+            if (aggregatedMap.containsKey(serviceId)) {
+                // Gộp với usage hiện có
+                ServiceUsage existing = aggregatedMap.get(serviceId);
+                BigDecimal newQuantity = existing.getQuantity().add(usage.getQuantity());
+                existing.setQuantity(newQuantity);
+                
+                // Tính lại total cost
+                BigDecimal totalCost = newQuantity.multiply(existing.getPricePerUnit());
+                existing.setTotalCost(totalCost);
+            } else {
+                // Tạo bản sao để tránh thay đổi object gốc
+                ServiceUsage aggregated = new ServiceUsage();
+                aggregated.setUsageId(usage.getUsageId());
+                aggregated.setTenantId(usage.getTenantId());
+                aggregated.setServiceId(usage.getServiceId());
+                aggregated.setServiceName(usage.getServiceName());
+                aggregated.setServiceUnit(usage.getServiceUnit());
+                aggregated.setPricePerUnit(usage.getPricePerUnit());
+                aggregated.setQuantity(usage.getQuantity());
+                aggregated.setMonth(usage.getMonth());
+                aggregated.setYear(usage.getYear());
+                
+                // Tính total cost
+                BigDecimal totalCost = usage.getQuantity().multiply(usage.getPricePerUnit());
+                aggregated.setTotalCost(totalCost);
+                
+                aggregatedMap.put(serviceId, aggregated);
+            }
+        }
+        
+        return new ArrayList<>(aggregatedMap.values());
+    }
     
     /**
      * Validate service usage data
@@ -1163,15 +1726,16 @@ public class BillController {
             return fullRoomPrice;
         }
         
-        // Tính toán số tiền được chia theo tỷ lệ
-        BigDecimal dailyRate = fullRoomPrice.divide(new BigDecimal(daysInMonth), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal proratedAmount = dailyRate.multiply(new BigDecimal(daysToCharge));
+        // Tính toán số tiền theo tỷ lệ
+        BigDecimal proratedAmount = fullRoomPrice
+            .multiply(BigDecimal.valueOf(daysToCharge))
+            .divide(BigDecimal.valueOf(daysInMonth), 2, BigDecimal.ROUND_HALF_UP);
         
         return proratedAmount;
     }
     
     /**
-     * Lấy số ngày trong một tháng và năm cụ thể
+     * Lấy số ngày trong tháng
      */
     private int getDaysInMonth(int month, int year) {
         java.time.YearMonth yearMonth = java.time.YearMonth.of(year, month);
@@ -1179,7 +1743,7 @@ public class BillController {
     }
     
     /**
-     * Tính số ngày lưu trú trong tháng thanh toán
+     * Tính số ngày lưu trú thực tế trong tháng
      */
     private int calculateDaysStayed(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -1188,16 +1752,16 @@ public class BillController {
         
         int daysInMonth = getDaysInMonth(month, year);
         
-        // Kiểm tra xem có người thuê nhà nào bắt đầu vào tháng này không
-        boolean anyTenantStartedThisMonth = false;
+        // Tìm ngày bắt đầu sớm nhất trong tháng này
         Date earliestStartDate = null;
+        boolean hasStartInMonth = false;
         
         for (Tenant tenant : tenantsInRoom) {
             Date startDate = tenant.getStartDate();
             if (startDate != null) {
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    anyTenantStartedThisMonth = true;
+                    hasStartInMonth = true;
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
@@ -1205,27 +1769,23 @@ public class BillController {
             }
         }
         
-        // Nếu không có người thuê nhà nào bắt đầu vào tháng này, họ sẽ ở lại cả tháng
-        if (!anyTenantStartedThisMonth || earliestStartDate == null) {
+        if (!hasStartInMonth || earliestStartDate == null) {
             return daysInMonth;
         }
         
+        // Tính số ngày từ ngày bắt đầu đến cuối tháng
         java.time.LocalDate startLocalDate = earliestStartDate.toLocalDate();
         java.time.LocalDate endOfMonth = java.time.LocalDate.of(year, month, daysInMonth);
         
-        // Tính số ngày từ ngày bắt đầu đến ngày kết thúc tháng
         int daysStayed = (int) java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endOfMonth) + 1;
-        
-        // Đảm bảo chúng ta không tính nhiều ngày hơn trong tháng
         daysStayed = Math.min(daysStayed, daysInMonth);
-        daysStayed = Math.max(daysStayed, 1); // Ít nhất 1 ngày
+        daysStayed = Math.max(daysStayed, 1);
         
         return daysStayed;
     }
     
     /**
-     * Lấy ngày bắt đầu sớm nhất trong số những người thuê nhà cho tháng thanh toán
-     * Chỉ trả về ngày nếu người thuê nhà thực sự bắt đầu trong tháng này
+     * Lấy ngày bắt đầu sớm nhất của người thuê trong tháng
      */
     private Date getEarliestStartDate(List<Tenant> tenantsInRoom, int month, int year) {
         if (tenantsInRoom == null || tenantsInRoom.isEmpty()) {
@@ -1239,13 +1799,10 @@ public class BillController {
             if (startDate != null) {
                 java.time.LocalDate startLocalDate = startDate.toLocalDate();
                 if (startLocalDate.getYear() == year && startLocalDate.getMonthValue() == month) {
-                    // Người thuê nhà bắt đầu vào tháng thanh toán này
                     if (earliestStartDate == null || startDate.before(earliestStartDate)) {
                         earliestStartDate = startDate;
                     }
                 }
-                // Nếu người thuê bắt đầu trước tháng này, chúng tôi không đặt earlierStartDate
-                // vì họ phải trả tiền cho cả tháng (không cần chia nhỏ theo tỷ lệ)
             }
         }
         
@@ -1253,68 +1810,19 @@ public class BillController {
     }
     
     /**
-     * Tổng hợp việc sử dụng dịch vụ theo từng dịch vụ để tránh trùng lặp
-     * Kết hợp nhiều cách sử dụng của cùng một dịch vụ thành một bản ghi
-     */
-    private List<ServiceUsage> aggregateServiceUsagesByService(List<ServiceUsage> usages) {
-        if (usages == null || usages.isEmpty()) {
-            return new ArrayList<>();
-        }
-        
-        // Nhóm theo ID dịch vụ và tổng số lượng
-        Map<Integer, ServiceUsage> serviceMap = new HashMap<>();
-        
-        for (ServiceUsage usage : usages) {
-            int serviceId = usage.getServiceId();
-            
-            if (serviceMap.containsKey(serviceId)) {
-                // Dịch vụ đã tồn tại, thêm vào số lượng và tính toán lại tổng chi phí
-                ServiceUsage existing = serviceMap.get(serviceId);
-                BigDecimal newQuantity = existing.getQuantity().add(usage.getQuantity());
-                existing.setQuantity(newQuantity);
-                existing.calculateTotalCost();
-            } else {
-                // Dịch vụ mới, tạo bản sao và thêm vào bản đồ
-                ServiceUsage aggregated = new ServiceUsage();
-                aggregated.setUsageId(usage.getUsageId()); // Giữ lại ID sử dụng đầu tiên để tham khảo
-                aggregated.setTenantId(usage.getTenantId()); // Giữ lại ID người thuê đầu tiên để tham khảo
-                aggregated.setServiceId(usage.getServiceId());
-                aggregated.setMonth(usage.getMonth());
-                aggregated.setYear(usage.getYear());
-                aggregated.setQuantity(usage.getQuantity());
-                aggregated.setServiceName(usage.getServiceName());
-                aggregated.setServiceUnit(usage.getServiceUnit());
-                aggregated.setPricePerUnit(usage.getPricePerUnit());
-                aggregated.setTenantName("Tất cả người thuê"); // Chỉ ra nó được tổng hợp
-                aggregated.setRoomName(usage.getRoomName());
-                aggregated.calculateTotalCost();
-                
-                serviceMap.put(serviceId, aggregated);
-            }
-        }
-        
-        // Chuyển đổi giá trị bản đồ thành danh sách và sắp xếp theo tên dịch vụ
-        List<ServiceUsage> result = new ArrayList<>(serviceMap.values());
-        result.sort((a, b) -> a.getServiceName().compareToIgnoreCase(b.getServiceName()));
-        
-        return result;
-    }
-    
-    /**
-     * Tính toán giá phòng đầy đủ sẽ là bao nhiêu (tính ngược lại từ giá theo tỷ lệ)
+     * Tính toán giá phòng đầy đủ từ hóa đơn (để hiển thị trong bill detail)
      */
     private BigDecimal calculateFullRoomPrice(Invoice invoice, List<Tenant> tenantsInRoom, int daysInMonth, int daysStayed) {
         if (daysStayed >= daysInMonth) {
-            // Cả tháng, vì vậy giá phòng hiện tại là giá đầy đủ
+            // Không có tỷ lệ - giá hóa đơn là giá đầy đủ
             return invoice.getRoomPrice();
         }
         
-        // Tháng tính theo tỷ lệ, tính giá đầy đủ từ giá tính theo tỷ lệ
-        // proratedPrice = fullPrice * (ngày lưu trú / ngày trong tháng)
-        // fullPrice = proratedPrice * (ngày trong tháng / ngày lưu trú)
+        // Tính ngược giá đầy đủ từ giá theo tỷ lệ
         BigDecimal proratedPrice = invoice.getRoomPrice();
-        BigDecimal fullPrice = proratedPrice.multiply(new BigDecimal(daysInMonth))
-                                           .divide(new BigDecimal(daysStayed), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal fullPrice = proratedPrice
+            .multiply(BigDecimal.valueOf(daysInMonth))
+            .divide(BigDecimal.valueOf(daysStayed), 2, BigDecimal.ROUND_HALF_UP);
         
         return fullPrice;
     }

@@ -79,6 +79,152 @@
             background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             color: white;
         }
+        
+        /* Room Card Styles for Bills */
+        .bill-room-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .bill-room-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .bill-room-card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .bill-room-card-header.has-debt {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+        }
+        
+        .bill-room-card-header.no-debt {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .bill-room-card-header.no-tenants {
+            background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+        }
+        
+        .bill-room-name {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .bill-debt-status {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .bill-room-card-body {
+            padding: 20px;
+        }
+        
+        .bill-tenants-list {
+            margin-bottom: 15px;
+        }
+        
+        .bill-tenant-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-left: 4px solid #667eea;
+            font-size: 0.9em;
+        }
+        
+        .bill-debt-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .bill-debt-info.no-debt {
+            background: #d1edff;
+            border-color: #bee5eb;
+        }
+        
+        .bill-debt-info.no-tenants {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .debt-amount {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .debt-amount.no-debt {
+            color: #28a745;
+        }
+        
+        .debt-periods {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .bill-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .bill-actions .btn {
+            flex: 1;
+            min-width: 120px;
+            font-weight: 600;
+        }
+        
+        .bill-actions .btn.w-100 {
+            min-width: 100%;
+        }
+        
+        .empty-bills {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-bills i {
+            font-size: 3em;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        /* Bills Modal */
+        .bills-modal .modal-dialog {
+            max-width: 90%;
+        }
+        
+        .bills-table {
+            font-size: 0.9em;
+        }
+        
+        .bills-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            border-top: none;
+        }
+        
+        .modal-header-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -133,10 +279,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -178,36 +320,25 @@
                 
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
-                    <div class="col-md-4">
-                        <div class="card stat-card p-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">Tổng hóa đơn</h6>
-                                    <h3 class="mb-0">${totalInvoices}</h3>
-                                </div>
-                                <i class="bi bi-receipt fs-1 opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="card p-3" style="background: linear-gradient(135deg, #dc3545, #fd7e14); color: white;">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="mb-1">Chưa thanh toán</h6>
-                                    <h3 class="mb-0">${unpaidInvoices}</h3>
+                                    <h6 class="mb-1">Phòng đang nợ</h6>
+                                    <h3 class="mb-0">${roomsWithDebt}</h3>
                                 </div>
                                 <i class="bi bi-exclamation-triangle fs-1 opacity-75"></i>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card p-3" style="background: linear-gradient(135deg, #28a745, #20c997); color: white;">
+                    <div class="col-md-6">
+                        <div class="card p-3" style="background: linear-gradient(135deg, #fd7e14, #ffc107); color: white;">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="mb-1">Tổng doanh thu</h6>
-                                    <h3 class="mb-0"><fmt:formatNumber value="${totalRevenue}" type="number" maxFractionDigits="0"/> VNĐ</h3>
+                                    <h6 class="mb-1">Số hóa đơn đang nợ</h6>
+                                    <h3 class="mb-0">${totalUnpaidInvoices}</h3>
                                 </div>
-                                <i class="bi bi-cash-stack fs-1 opacity-75"></i>
+                                <i class="bi bi-receipt fs-1 opacity-75"></i>
                             </div>
                         </div>
                     </div>
@@ -228,118 +359,214 @@
                     </div>
                 </c:if>
                 
-                <!-- Bills Table -->
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center py-3">
-                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Danh sách Hóa đơn</h5>
-                        <a href="${pageContext.request.contextPath}/admin/bills/generate" class="btn btn-custom">
-                            <i class="bi bi-plus-lg me-2"></i>Tạo hóa đơn
-                        </a>
-                    </div>
-                    <div class="card-body p-0">
-                        <c:choose>
-                            <c:when test="${not empty invoices}">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th>ID</th>
-                                                <th>Phòng</th>
-                                                <th>Người thuê</th>
-                                                <th>Kỳ thanh toán</th>
-                                                <th>Tiền phòng</th>
-                                                <th>Tiền dịch vụ</th>
-                                                <th>Chi phí PS</th>
-                                                <th>Tổng tiền</th>
-                                                <th>Trạng thái</th>
-                                                <th>Ngày tạo</th>
-                                                <th class="text-center">Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <c:forEach var="invoice" items="${invoices}">
-                                                <tr>
-                                                    <td><strong>#${invoice.invoiceId}</strong></td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <i class="bi bi-door-open fs-5 text-primary me-2"></i>
-                                                            <div>
-                                                                <div class="fw-bold">${invoice.roomName}</div>
-                                                                <small class="text-muted">Hóa đơn theo phòng</small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center">
-                                                            <i class="bi bi-people fs-6 text-secondary me-1"></i>
-                                                            <div>
-                                                                <div class="small">${invoice.tenantName}</div>
-                                                                <small class="text-muted">
-                                                                    <c:choose>
-                                                                        <c:when test="${invoice.tenantsCount > 1}">
-                                                                            +${invoice.tenantsCount - 1} người khác
-                                                                        </c:when>
-                                                                        <c:otherwise>
-                                                                            (Duy nhất)
-                                                                        </c:otherwise>
-                                                                    </c:choose>
-                                                                </small>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td><strong>${invoice.formattedPeriod}</strong></td>
-                                                    <td><fmt:formatNumber value="${invoice.roomPrice}" type="number" maxFractionDigits="0"/> VNĐ</td>
-                                                    <td><fmt:formatNumber value="${invoice.serviceTotal}" type="number" maxFractionDigits="0"/> VNĐ</td>
-                                                    <td><fmt:formatNumber value="${invoice.additionalTotal}" type="number" maxFractionDigits="0"/> VNĐ</td>
-                                                    <td><strong><fmt:formatNumber value="${invoice.totalAmount}" type="number" maxFractionDigits="0"/> VNĐ</strong></td>
-                                                    <td>
+                <!-- Room Cards for Bills -->
+                <!-- Room Cards for Bills -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="text-muted mb-0">
+                        <i class="bi bi-grid-3x3-gap me-2"></i>
+                        Quản lý Hóa đơn theo Phòng
+                    </h5>
+                    <a href="${pageContext.request.contextPath}/admin/bills/generate" class="btn btn-custom">
+                        <i class="bi bi-plus-lg me-2"></i>Tạo hóa đơn
+                    </a>
+                </div>
+                
+                <c:choose>
+                    <c:when test="${not empty rooms}">
+                        <div class="row">
+                            <c:forEach var="room" items="${rooms}" varStatus="status">
+                                <div class="col-lg-4 col-md-6 mb-4">
+                                    <div class="bill-room-card" onclick="showRoomBills('${room.roomId}', '${room.roomName}')">
+                                        <!-- Room Header -->
+                                        <div class="bill-room-card-header 
+                                            <c:choose>
+                                                <c:when test="${room.hasUnpaidBills}">
+                                                    has-debt
+                                                </c:when>
+                                                <c:when test="${room.hasActiveTenants}">
+                                                    no-debt
+                                                </c:when>
+                                                <c:otherwise>
+                                                    no-tenants
+                                                </c:otherwise>
+                                            </c:choose>">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h5 class="bill-room-name">
+                                                        <i class="bi bi-door-open me-2"></i>
+                                                        ${room.roomName}
+                                                    </h5>
+                                                    <p class="bill-debt-status">
                                                         <c:choose>
-                                                            <c:when test="${invoice.status == 'PAID'}">
-                                                                <span class="badge badge-paid">Đã thanh toán</span>
+                                                            <c:when test="${room.hasUnpaidBills}">
+                                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                                                Có hóa đơn chưa thanh toán
+                                                            </c:when>
+                                                            <c:when test="${room.hasActiveTenants}">
+                                                                <i class="bi bi-check-circle me-1"></i>
+                                                                Hóa đơn đã thanh toán
                                                             </c:when>
                                                             <c:otherwise>
-                                                                <span class="badge badge-unpaid">Chưa thanh toán</span>
+                                                                <i class="bi bi-house me-1"></i>
+                                                                Phòng trống
                                                             </c:otherwise>
                                                         </c:choose>
-                                                    </td>
-                                                    <td>
-                                                        <fmt:formatDate value="${invoice.createdAt}" pattern="dd/MM/yyyy"/>
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            <fmt:formatDate value="${invoice.createdAt}" pattern="HH:mm"/>
-                                                        </small>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <div class="btn-group" role="group">
-                                                            <a href="${pageContext.request.contextPath}/admin/bills/view/${invoice.invoiceId}" 
-                                                               class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
-                                                                <i class="bi bi-eye"></i>
-                                                            </a>
-                                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                                    onclick="confirmDelete(${invoice.invoiceId})" title="Xóa">
-                                                                <i class="bi bi-trash"></i>
-                                                            </button>
+                                                    </p>
+                                                </div>
+                                                <div class="text-end">
+                                                    <c:choose>
+                                                        <c:when test="${room.hasUnpaidBills}">
+                                                            <span class="badge bg-light text-dark">
+                                                                ${room.unpaidCount} hóa đơn
+                                                            </span>
+                                                        </c:when>
+                                                        <c:when test="${room.hasActiveTenants}">
+                                                            <span class="badge bg-light text-dark">
+                                                                ${room.tenantCount} người
+                                                            </span>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <span class="badge bg-light text-dark">
+                                                                Trống
+                                                            </span>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Room Body -->
+                                        <div class="bill-room-card-body">
+                                            <!-- Tenants List -->
+                                            <c:choose>
+                                                <c:when test="${not empty room.tenants}">
+                                                    <div class="bill-tenants-list">
+                                                        <h6 class="text-muted mb-2">
+                                                            <i class="bi bi-people me-1"></i>
+                                                            Khách thuê hiện tại:
+                                                        </h6>
+                                                        <c:forEach var="tenant" items="${room.tenants}">
+                                                            <div class="bill-tenant-item">
+                                                                <strong>${tenant.fullName}</strong>
+                                                                <c:if test="${not empty tenant.phone}">
+                                                                    <br><small class="text-muted">
+                                                                        <i class="bi bi-telephone me-1"></i>
+                                                                        ${tenant.phone}
+                                                                    </small>
+                                                                </c:if>
+                                                            </div>
+                                                        </c:forEach>
+                                                    </div>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <div class="empty-bills">
+                                                        <i class="bi bi-house"></i>
+                                                        <p class="mb-0">Phòng trống</p>
+                                                        <small>Không có khách thuê</small>
+                                                    </div>
+                                                </c:otherwise>
+                                            </c:choose>
+                                            
+                                            <!-- Debt Information -->
+                                            <c:if test="${room.hasActiveTenants}">
+                                                <div class="bill-debt-info 
+                                                    <c:choose>
+                                                        <c:when test="${room.hasUnpaidBills}">
+                                                            
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            no-debt
+                                                        </c:otherwise>
+                                                    </c:choose>">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <strong>
+                                                                <c:choose>
+                                                                    <c:when test="${room.hasUnpaidBills}">
+                                                                        <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                                                                        Tổng nợ:
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        <i class="bi bi-check-circle text-success me-1"></i>
+                                                                        Trạng thái:
+                                                                    </c:otherwise>
+                                                                </c:choose>
+                                                            </strong>
                                                         </div>
-                                                    </td>
-                                                </tr>
-                                            </c:forEach>
-                                        </tbody>
-                                    </table>
+                                                        <div class="debt-amount 
+                                                            <c:if test="${!room.hasUnpaidBills}">no-debt</c:if>">
+                                                            <c:choose>
+                                                                <c:when test="${room.hasUnpaidBills}">
+                                                                    <fmt:formatNumber value="${room.totalDebt}" 
+                                                                                    type="currency" 
+                                                                                    currencySymbol="₫" 
+                                                                                    groupingUsed="true"/>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    Đã thanh toán
+                                                                </c:otherwise>
+                                                            </c:choose>
+                                                        </div>
+                                                    </div>
+                                                    <c:if test="${room.hasUnpaidBills}">
+                                                        <div class="debt-periods">
+                                                            <i class="bi bi-calendar me-1"></i>
+                                                            Kỳ nợ: ${room.unpaidPeriods}
+                                                        </div>
+                                                    </c:if>
+                                                </div>
+                                            </c:if>
+                                            
+                                            <!-- Room Actions -->
+                                            <div class="bill-actions">
+                                                <button type="button" 
+                                                        class="btn btn-primary btn-sm w-100" 
+                                                        onclick="event.stopPropagation(); showRoomBills('${room.roomId}', '${room.roomName}')">
+                                                    <i class="bi bi-receipt me-1"></i>
+                                                    Xem hóa đơn chưa thanh toán
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </c:when>
-                            <c:otherwise>
-                                <div class="text-center py-5">
-                                    <i class="bi bi-receipt fs-1 text-muted mb-3"></i>
-                                    <h5 class="text-muted">Chưa có hóa đơn nào</h5>
-                                    <p class="text-muted">Nhấn "Tạo hóa đơn" để thêm hóa đơn mới</p>
-                                    <a href="${pageContext.request.contextPath}/admin/bills/generate" class="btn btn-custom">
-                                        <i class="bi bi-plus-lg me-2"></i>Tạo hóa đơn đầu tiên
-                                    </a>
-                                </div>
-                            </c:otherwise>
-                        </c:choose>
+                            </c:forEach>
+                        </div>
+                    </c:when>
+                    <c:otherwise>
+                        <div class="empty-bills">
+                            <i class="bi bi-receipt"></i>
+                            <h5 class="text-muted mt-3">Chưa có hóa đơn nào trong hệ thống</h5>
+                            <p class="text-muted">Tạo hóa đơn ngay</p>
+                            <a href="${pageContext.request.contextPath}/admin/bills/generate" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Tạo hóa đơn
+                            </a>
+                        </div>
+                    </c:otherwise>
+                </c:choose>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Room Bills Modal -->
+    <div class="modal fade bills-modal" id="roomBillsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title">
+                        <i class="bi bi-receipt me-2"></i>
+                        Hóa đơn phòng <span id="modalRoomName"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="billsTableContainer">
+                        <!-- Bills table will be loaded here -->
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -372,6 +599,101 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let currentRoomId = null;
+        let currentRoomName = null;
+        
+        function showRoomBills(roomId, roomName) {
+            currentRoomId = roomId;
+            currentRoomName = roomName;
+            
+            // Update modal title
+            document.getElementById('modalRoomName').textContent = roomName;
+            
+            // Load bills for this room
+            fetch('${pageContext.request.contextPath}/admin/bills/room/' + roomId)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('billsTableContainer').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading bills:', error);
+                    document.getElementById('billsTableContainer').innerHTML = 
+                        '<div class="text-center p-4"><div class="text-danger">Lỗi tải dữ liệu hóa đơn</div></div>';
+                });
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('roomBillsModal'));
+            modal.show();
+        }
+        
+        function showBillDetail(invoiceId) {
+            // Update modal title to show we're viewing detail
+            document.getElementById('modalRoomName').textContent = currentRoomName + ' - Chi tiết hóa đơn #' + invoiceId;
+            
+            // Load bill detail
+            fetch('${pageContext.request.contextPath}/admin/bills/view/' + invoiceId)
+                .then(response => response.text())
+                .then(html => {
+                    // Extract only the main content part, excluding sidebar
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // Find the main content column (col-md-9 col-lg-10 main-content)
+                    const mainContentColumn = doc.querySelector('.col-md-9.col-lg-10.main-content') || 
+                                            doc.querySelector('.col-md-9.main-content') || 
+                                            doc.querySelector('.col-lg-10.main-content') || 
+                                            doc.querySelector('.main-content');
+                    
+                    if (mainContentColumn) {
+                        // Create back button
+                        const backButton = document.createElement('div');
+                        backButton.className = 'mb-3';
+                        backButton.innerHTML = '<button type="button" class="btn btn-outline-secondary" onclick="showBillsList()"><i class="bi bi-arrow-left me-1"></i>Quay lại danh sách</button>';
+                        
+                        // Clone the main content and add back button
+                        const contentClone = mainContentColumn.cloneNode(true);
+                        
+                        // Remove any existing header/navigation that we don't need in modal
+                        const header = contentClone.querySelector('.d-flex.justify-content-between.align-items-center');
+                        if (header) {
+                            header.remove();
+                        }
+                        
+                        // Insert back button at the beginning
+                        contentClone.insertBefore(backButton, contentClone.firstChild);
+                        
+                        // Set the content
+                        document.getElementById('billsTableContainer').innerHTML = contentClone.innerHTML;
+                    } else {
+                        // Fallback: try to get just the invoice detail content
+                        const invoiceDetail = doc.querySelector('.row');
+                        if (invoiceDetail) {
+                            const backButton = document.createElement('div');
+                            backButton.className = 'mb-3';
+                            backButton.innerHTML = '<button type="button" class="btn btn-outline-secondary" onclick="showBillsList()"><i class="bi bi-arrow-left me-1"></i>Quay lại danh sách</button>';
+                            
+                            const contentClone = invoiceDetail.cloneNode(true);
+                            contentClone.insertBefore(backButton, contentClone.firstChild);
+                            
+                            document.getElementById('billsTableContainer').innerHTML = contentClone.innerHTML;
+                        } else {
+                            document.getElementById('billsTableContainer').innerHTML = 
+                                '<div class="text-center p-4"><div class="text-danger">Không thể tải chi tiết hóa đơn</div></div>';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading bill detail:', error);
+                    document.getElementById('billsTableContainer').innerHTML = 
+                        '<div class="text-center p-4"><div class="text-danger">Lỗi tải chi tiết hóa đơn</div></div>';
+                });
+        }
+        
+        function showBillsList() {
+            // Go back to bills list
+            showRoomBills(currentRoomId, currentRoomName);
+        }
+        
         function confirmDelete(invoiceId) {
             const form = document.getElementById('deleteForm');
             form.action = '${pageContext.request.contextPath}/admin/bills/delete/' + invoiceId;

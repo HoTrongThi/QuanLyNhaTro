@@ -137,6 +137,26 @@ public class Service {
     public ServiceType getServiceType() { return serviceType; }
     public void setServiceType(ServiceType serviceType) { this.serviceType = serviceType; }
     
+    /**
+     * Set service type from string (for database compatibility)
+     */
+    public void setServiceType(String serviceTypeStr) {
+        if (serviceTypeStr != null) {
+            try {
+                this.serviceType = ServiceType.valueOf(serviceTypeStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                this.serviceType = ServiceType.MONTHLY; // Default fallback
+            }
+        }
+    }
+    
+    /**
+     * Get service type as string (for database compatibility)
+     */
+    public String getServiceTypeString() {
+        return serviceType != null ? serviceType.name() : ServiceType.MONTHLY.name();
+    }
+    
     public String getCalculationConfig() { return calculationConfig; }
     public void setCalculationConfig(String calculationConfig) { this.calculationConfig = calculationConfig; }
     

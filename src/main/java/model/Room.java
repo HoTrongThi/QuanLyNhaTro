@@ -34,6 +34,14 @@ public class Room {
     /** Tiện nghi phòng trọ (JSON format) */
     private String amenities;
     
+    // ==================== THUỘC TÍNH THANH TOÁN ====================
+    
+    /** Trạng thái thanh toán của phòng (PAID/UNPAID) */
+    private String paymentStatus;
+    
+    /** Danh sách kỳ nợ của phòng (nếu có) */
+    private java.util.List<String> unpaidPeriods;
+    
     // ==================== CÁC CONSTRUCTOR ====================
     
     /**
@@ -149,6 +157,22 @@ public class Room {
         this.amenities = amenities;
     }
     
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+    
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+    
+    public java.util.List<String> getUnpaidPeriods() {
+        return unpaidPeriods;
+    }
+    
+    public void setUnpaidPeriods(java.util.List<String> unpaidPeriods) {
+        this.unpaidPeriods = unpaidPeriods;
+    }
+    
     // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
     
     /**
@@ -168,16 +192,126 @@ public class Room {
     }
     
     /**
+     * Kiểm tra phòng đang sửa chữa
+     * @return true nếu phòng đang sửa chữa
+     */
+    public boolean isMaintenance() {
+        return "MAINTENANCE".equals(this.status);
+    }
+    
+    /**
+     * Kiểm tra phòng đã đặt cọc
+     * @return true nếu phòng đã đặt cọc
+     */
+    public boolean isReserved() {
+        return "RESERVED".equals(this.status);
+    }
+    
+    /**
+     * Kiểm tra phòng ngưng sử dụng
+     * @return true nếu phòng ngưng sử dụng
+     */
+    public boolean isSuspended() {
+        return "SUSPENDED".equals(this.status);
+    }
+    
+    /**
+     * Kiểm tra phòng đang dọn dẹp
+     * @return true nếu phòng đang dọn dẹp
+     */
+    public boolean isCleaning() {
+        return "CLEANING".equals(this.status);
+    }
+    
+    /**
+     * Kiểm tra phòng hết hạn hợp đồng
+     * @return true nếu phòng hết hạn hợp đồng
+     */
+    public boolean isContractExpired() {
+        return "CONTRACT_EXPIRED".equals(this.status);
+    }
+    
+    /**
+     * Kiểm tra phòng có thể cho thuê không (AVAILABLE hoặc RESERVED)
+     * @return true nếu phòng có thể cho thuê
+     */
+    public boolean isRentable() {
+        return "AVAILABLE".equals(this.status) || "RESERVED".equals(this.status);
+    }
+    
+    /**
      * Lấy tên hiển thị trạng thái phòng bằng tiếng Việt
      * @return tên trạng thái tiếng Việt
      */
     public String getStatusDisplayName() {
-        if ("AVAILABLE".equals(this.status)) {
-            return "Có sẵn";
-        } else if ("OCCUPIED".equals(this.status)) {
-            return "Đã thuê";
+        switch (this.status) {
+            case "AVAILABLE":
+                return "Phòng trống";
+            case "OCCUPIED":
+                return "Đang thuê";
+            case "MAINTENANCE":
+                return "Đang sửa chữa";
+            case "RESERVED":
+                return "Đã đặt cọc";
+            case "SUSPENDED":
+                return "Ngưng sử dụng";
+            case "CLEANING":
+                return "Đang dọn dẹp";
+            case "CONTRACT_EXPIRED":
+                return "Hết hạn hợp đồng";
+            default:
+                return this.status;
         }
-        return this.status;
+    }
+    
+    /**
+     * Lấy CSS class cho badge trạng thái
+     * @return CSS class phù hợp với trạng thái
+     */
+    public String getStatusBadgeClass() {
+        switch (this.status) {
+            case "AVAILABLE":
+                return "bg-success"; // Xanh lá - có sẵn
+            case "OCCUPIED":
+                return "bg-primary"; // Xanh dương - đang thuê
+            case "MAINTENANCE":
+                return "bg-warning"; // Vàng - đang sửa chữa
+            case "RESERVED":
+                return "bg-info"; // Xanh nhạt - đã đặt cọc
+            case "SUSPENDED":
+                return "bg-secondary"; // Xám - ngưng sử dụng
+            case "CLEANING":
+                return "bg-light text-dark"; // Trắng - đang dọn dẹp
+            case "CONTRACT_EXPIRED":
+                return "bg-danger"; // Đỏ - hết hạn hợp đồng
+            default:
+                return "bg-secondary";
+        }
+    }
+    
+    /**
+     * Lấy icon cho trạng thái phòng
+     * @return Bootstrap icon class
+     */
+    public String getStatusIcon() {
+        switch (this.status) {
+            case "AVAILABLE":
+                return "bi-door-open"; // Cửa mở
+            case "OCCUPIED":
+                return "bi-person-fill"; // Người
+            case "MAINTENANCE":
+                return "bi-tools"; // Công cụ
+            case "RESERVED":
+                return "bi-bookmark-fill"; // Đánh dấu
+            case "SUSPENDED":
+                return "bi-pause-circle"; // Tạm dừng
+            case "CLEANING":
+                return "bi-brush"; // Chổi
+            case "CONTRACT_EXPIRED":
+                return "bi-calendar-x"; // Lịch X
+            default:
+                return "bi-question-circle";
+        }
     }
     
     /**
@@ -189,6 +323,59 @@ public class Room {
             return String.format("%,.0f VNĐ", price);
         }
         return "0 VNĐ";
+    }
+    
+    // ==================== CÁC PHƯƠNG THỨC THANH TOÁN ====================
+    
+    /**
+     * Kiểm tra phòng có đang nợ tiền không
+     * 
+     * @return true nếu phòng có kỳ nợ
+     */
+    public boolean hasUnpaidBills() {
+        return paymentStatus != null && paymentStatus.startsWith("UNPAID");
+    }
+    
+    /**
+     * Lấy trạng thái thanh toán hiển thị
+     * 
+     * @return trạng thái thanh toán dễ đọc
+     */
+    public String getPaymentStatusDisplay() {
+        if (paymentStatus == null || "PAID".equals(paymentStatus)) {
+            return "Đã thanh toán";
+        } else if (paymentStatus.startsWith("UNPAID:")) {
+            return "Đang nợ";
+        } else {
+            return "Chưa rõ";
+        }
+    }
+    
+    /**
+     * Lấy CSS class cho badge thanh toán
+     * 
+     * @return CSS class phù hợp với trạng thái thanh toán
+     */
+    public String getPaymentBadgeClass() {
+        if (paymentStatus == null || "PAID".equals(paymentStatus)) {
+            return "bg-success"; // Xanh lá - đã thanh toán
+        } else if (paymentStatus.startsWith("UNPAID:")) {
+            return "bg-danger"; // Đỏ - đang nợ
+        } else {
+            return "bg-secondary"; // Xám - chưa rõ
+        }
+    }
+    
+    /**
+     * Lấy danh sách kỳ nợ dạng chuỗi
+     * 
+     * @return chuỗi các kỳ nợ, cách nhau bởi dấu phẩy
+     */
+    public String getUnpaidPeriodsString() {
+        if (unpaidPeriods == null || unpaidPeriods.isEmpty()) {
+            return "";
+        }
+        return String.join(", ", unpaidPeriods);
     }
     
     @Override

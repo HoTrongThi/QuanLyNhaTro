@@ -77,6 +77,32 @@ public class ServiceUsageDAO {
     }
     
     /**
+     * Update service usage quantity by tenant, service, month, year
+     * This is more reliable than using usage_id
+     */
+    public boolean updateServiceUsageQuantity(int tenantId, int serviceId, int month, int year, BigDecimal quantity) {
+        String sql = "UPDATE service_usage SET quantity = ? WHERE tenant_id = ? AND service_id = ? AND month = ? AND year = ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setBigDecimal(1, quantity);
+            pstmt.setInt(2, tenantId);
+            pstmt.setInt(3, serviceId);
+            pstmt.setInt(4, month);
+            pstmt.setInt(5, year);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating service usage quantity: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
      * Get service usage by ID
      */
     public ServiceUsage getServiceUsageById(int usageId) {
@@ -638,6 +664,54 @@ public class ServiceUsageDAO {
             
         } catch (SQLException e) {
             System.err.println("Error getting service usage by period: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return usageList;
+    }
+    
+    /**
+     * Get service usage by service and period
+     */
+    public List<ServiceUsage> getServiceUsageByServiceAndPeriod(int serviceId, int month, int year) {
+        List<ServiceUsage> usageList = new ArrayList<>();
+        String sql = "SELECT su.usage_id, su.tenant_id, su.service_id, su.month, su.year, su.quantity, " +
+                    "s.service_name, s.unit, s.price_per_unit, u.full_name, r.room_name " +
+                    "FROM service_usage su " +
+                    "JOIN services s ON su.service_id = s.service_id " +
+                    "JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE su.service_id = ? AND su.month = ? AND su.year = ? " +
+                    "ORDER BY r.room_name, u.full_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, serviceId);
+            pstmt.setInt(2, month);
+            pstmt.setInt(3, year);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                ServiceUsage usage = new ServiceUsage();
+                usage.setUsageId(rs.getInt("usage_id"));
+                usage.setTenantId(rs.getInt("tenant_id"));
+                usage.setServiceId(rs.getInt("service_id"));
+                usage.setMonth(rs.getInt("month"));
+                usage.setYear(rs.getInt("year"));
+                usage.setQuantity(rs.getBigDecimal("quantity"));
+                usage.setServiceName(rs.getString("service_name"));
+                usage.setServiceUnit(rs.getString("unit"));
+                usage.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+                usage.setTenantName(rs.getString("full_name"));
+                usage.setRoomName(rs.getString("room_name"));
+                usage.calculateTotalCost();
+                usageList.add(usage);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting service usage by service and period: " + e.getMessage());
             e.printStackTrace();
         }
         

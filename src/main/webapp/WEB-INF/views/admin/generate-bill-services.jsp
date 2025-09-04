@@ -144,10 +144,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -277,40 +273,97 @@
 
                                                 
                                                 <h6 class="card-title">
-                                                    <i class="bi bi-lightning-charge me-2"></i>
+                                                    <c:choose>
+                                                        <c:when test="${service.pricePerUnit == 0}">
+                                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'kWh'}">
+                                                            <i class="bi bi-lightning-charge text-warning me-2"></i>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'm³'}">
+                                                            <i class="bi bi-droplet-fill text-primary me-2"></i>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'người'}">
+                                                            <i class="bi bi-people-fill text-info me-2"></i>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'phòng'}">
+                                                            <i class="bi bi-house-fill text-secondary me-2"></i>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'tháng'}">
+                                                            <i class="bi bi-calendar-month text-primary me-2"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="bi bi-gear-fill text-dark me-2"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                     ${service.serviceName}
                                                 </h6>
                                                 
                                                 <div class="mb-3">
-                                                    <small class="text-muted">
-                                                        Đơn giá: <strong><fmt:formatNumber value="${service.pricePerUnit}" pattern="#,##0" /> VNĐ/${service.unit}</strong>
-                                                    </small>
+                                                    <c:choose>
+                                                        <c:when test="${service.pricePerUnit == 0}">
+                                                            <small class="text-success">
+                                                                <i class="bi bi-check-circle me-1"></i>
+                                                                <strong>Miễn phí</strong>
+                                                            </small>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <small class="text-muted">
+                                                                Đơn giá: <strong><fmt:formatNumber value="${service.pricePerUnit}" pattern="#,##0" /> VNĐ/${service.unit}</strong>
+                                                            </small>
+                                                        </c:otherwise>
+                                                    </c:choose>
                                                 </div>
                                                 
                                                 <div class="mb-3">
-                                                    <c:set var="serviceLower" value="${service.serviceName.toLowerCase()}" />
                                                     <c:choose>
-                                                        <c:when test="${serviceLower.contains('điện') || serviceLower.contains('nước') || serviceLower.contains('electric') || serviceLower.contains('water')}">
+                                                        <c:when test="${service.pricePerUnit == 0}">
+                                                            <!-- Free service - no input needed -->
+                                                            <div class="text-success text-center py-3">
+                                                                <i class="bi bi-check-circle-fill fs-2"></i>
+                                                                <h6 class="mt-2">Dịch vụ miễn phí</h6>
+                                                                <small class="text-muted">Không cần nhập dữ liệu</small>
+                                                            </div>
+                                                        </c:when>
+                                                        <c:when test="${service.unit == 'kWh' || service.unit == 'm³'}">
                                                             <!-- Meter reading input for electricity and water -->
                                                             <label class="form-label small">Chỉ số công tơ hiện tại (${service.unit})</label>
                                                             
-                                                            <!-- Display previous reading if available -->
+                                                            <!-- Display initial reading if available -->
                                                             <div class="mb-2">
                                                                 <small class="text-muted">
-                                                                    <i class="bi bi-clock-history me-1"></i>
-                                                                    Chỉ số kỳ trước: <span id="prev-reading-${service.serviceId}">Đang tải...</span>
+                                                                    <i class="bi bi-speedometer me-1"></i>
+                                                                    Chỉ số kỳ trước: 
+                                                                    <c:choose>
+                                                                        <c:when test="${initialReadings[service.serviceId] != null}">
+                                                                            <span class="text-primary fw-bold">${initialReadings[service.serviceId].reading}</span> ${service.unit}
+                                                                            <c:choose>
+                                                                                <c:when test="${initialReadings[service.serviceId].month != null && initialReadings[service.serviceId].year != null && initialReadings[service.serviceId].month > 0}">
+                                                                                    <small class="text-muted">(Kỳ ${initialReadings[service.serviceId].month}/${initialReadings[service.serviceId].year})</small>
+                                                                                </c:when>
+                                                                                <c:otherwise>
+                                                                                    <small class="text-muted">(Chỉ số ban đầu)</small>
+                                                                                </c:otherwise>
+                                                                            </c:choose>
+                                                                        </c:when>
+                                                                        <c:otherwise>
+                                                                            <span class="text-warning">0</span> ${service.unit}
+                                                                            <small class="text-muted">(Kỳ đầu tiên)</small>
+                                                                        </c:otherwise>
+                                                                    </c:choose>
                                                                 </small>
                                                             </div>
                                                             
                                                             <input type="number" 
                                                                    class="form-control meter-reading-input" 
                                                                    name="currentReadings" 
-                                                                   min="0" 
+                                                                   min="${initialReadings[service.serviceId] != null ? initialReadings[service.serviceId].reading : 0}" 
                                                                    step="0.01" 
                                                                    placeholder="Nhập chỉ số hiện tại"
                                                                    data-price="${service.pricePerUnit}"
                                                                    data-service="${service.serviceName}"
                                                                    data-service-id="${service.serviceId}"
+                                                                   data-previous-reading="${initialReadings[service.serviceId] != null ? initialReadings[service.serviceId].reading : 0}"
                                                                    data-has-meter="true"
                                                                    onchange="calculateConsumption(this)"
                                                                    required>
@@ -321,11 +374,23 @@
                                                                     <i class="bi bi-calculator me-1"></i>
                                                                     Mức tiêu thụ: <span id="consumption-${service.serviceId}">0</span> ${service.unit}
                                                                 </small>
+                                                                <br>
+                                                                <small class="text-muted">
+                                                                    <i class="bi bi-info-circle me-1"></i>
+                                                                    Công thức: Chỉ số hiện tại - Chỉ số trước đó
+                                                                </small>
                                                             </div>
                                                         </c:when>
                                                         <c:otherwise>
                                                             <!-- Quantity input for other services -->
-                                                            <label class="form-label small">Số lượng sử dụng (${service.unit})</label>
+                                                            <label class="form-label small">
+                                                                <c:choose>
+                                                                    <c:when test="${service.unit == 'người'}">Số người sử dụng (${service.unit})</c:when>
+                                                                    <c:when test="${service.unit == 'phòng'}">Số phòng sử dụng (${service.unit})</c:when>
+                                                                    <c:when test="${service.unit == 'tháng'}">Số tháng sử dụng (${service.unit})</c:when>
+                                                                    <c:otherwise>Số lượng sử dụng (${service.unit})</c:otherwise>
+                                                                </c:choose>
+                                                            </label>
                                                             
                                                             <c:set var="existingQuantity" value="0" />
                                                             <c:forEach var="usage" items="${existingUsages}">
@@ -348,21 +413,39 @@
                                                                    onchange="calculateServiceCost(this)">
                                                             
                                                             <div class="form-text small">
-                                                                Nhập số lượng sử dụng ${service.serviceName.toLowerCase()} trong tháng
+                                                                <c:choose>
+                                                                    <c:when test="${service.unit == 'người'}">
+                                                                        Nhập số người sử dụng ${service.serviceName.toLowerCase()} (thường là ${fn:length(tenantsInRoom)} người)
+                                                                    </c:when>
+                                                                    <c:when test="${service.unit == 'phòng'}">
+                                                                        Nhập số phòng sử dụng ${service.serviceName.toLowerCase()} (thường là 1 phòng)
+                                                                    </c:when>
+                                                                    <c:when test="${service.unit == 'tháng'}">
+                                                                        Nhập số tháng sử dụng ${service.serviceName.toLowerCase()} (thường là 1 tháng)
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        Nhập số lượng sử dụng ${service.serviceName.toLowerCase()}
+                                                                    </c:otherwise>
+                                                                </c:choose>
                                                             </div>
                                                         </c:otherwise>
                                                     </c:choose>
                                                     
-                                                    <!-- Hidden input for service IDs -->
-                                                    <input type="hidden" name="serviceIds" value="${service.serviceId}">
+                                                    <!-- Hidden input for service IDs (only for non-free services) -->
+                                                    <c:if test="${service.pricePerUnit != 0}">
+                                                        <input type="hidden" name="serviceIds" value="${service.serviceId}">
+                                                    </c:if>
                                                 </div>
                                                 
-                                                <div class="text-end">
-                                                    <small class="text-muted">Thành tiền:</small>
-                                                    <div class="service-cost h6 text-primary" id="cost-${service.serviceId}">
-                                                        0 VNĐ
+                                                <!-- Only show cost calculation for non-free services -->
+                                                <c:if test="${service.pricePerUnit != 0}">
+                                                    <div class="text-end">
+                                                        <small class="text-muted">Thành tiền:</small>
+                                                        <div class="service-cost h6 text-primary" id="cost-${service.serviceId}">
+                                                            0 VNĐ
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                </c:if>
                                             </div>
                                         </div>
                                     </div>
@@ -481,18 +564,14 @@
         const year = ${year};
         const contextPath = '${pageContext.request.contextPath}';
         
-        // Debug context path
-        console.log('DEBUG: Context path from JSP:', contextPath);
-        console.log('DEBUG: Should be: /QuanLyPhongTro');
+
         
-        // Store previous readings for each service
-        const previousReadings = {};
-        // Tính toán mức tiêu thụ điện/nước
+        // Tính toán mức tiêu thụ cho dịch vụ có công tơ
         function calculateConsumption(input) {
             const currentReading = parseFloat(input.value) || 0;
             const serviceId = input.dataset.serviceId;
             const pricePerUnit = parseFloat(input.dataset.price) || 0;
-            const previousReading = previousReadings[serviceId] || 0;
+            const previousReading = parseFloat(input.dataset.previousReading) || 0;
             
             // Tính mức tiêu thụ (hiện tại - trước đó)
             const consumption = Math.max(0, currentReading - previousReading);
@@ -539,7 +618,7 @@
                 const currentReading = parseFloat(input.value) || 0;
                 const serviceId = input.dataset.serviceId;
                 const pricePerUnit = parseFloat(input.dataset.price) || 0;
-                const previousReading = previousReadings[serviceId] || 0;
+                const previousReading = parseFloat(input.dataset.previousReading) || 0;
                 const consumption = Math.max(0, currentReading - previousReading);
                 totalServiceCost += consumption * pricePerUnit;
             });
@@ -562,90 +641,8 @@
                 new Intl.NumberFormat('vi-VN').format(grandTotal) + ' VNĐ';
         }
         
-        // Load dữ liệu chỉ số trước đó (AJAX)
-        async function loadPreviousReadings() {
-            const serviceInputs = document.querySelectorAll('input[name="currentReadings"]');
-            
-            for (const input of serviceInputs) {
-                const serviceId = input.dataset.serviceId;
-                const prevReadingElement = document.getElementById('prev-reading-' + serviceId);
-                
-                try {
-                    // AJAX call để lấy chỉ số trước đó
-                    const response = await fetch(contextPath + '/admin/api/meter-readings/previous?roomId=' + roomId + '&serviceId=' + serviceId + '&month=' + month + '&year=' + year);
-                    
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    
-                    const responseText = await response.text();
-                    
-                    // Parse response và cập nhật hiển thị
-                    try {
-                        const data = JSON.parse(responseText);
-                        
-                        if (data.error) {
-                            console.error('Server error:', data.error);
-                            previousReadings[serviceId] = 0;
-                            if (prevReadingElement) {
-                                prevReadingElement.textContent = '0.00 (Lỗi)';
-                            }
-                        } else {
-                            const previousReading = parseFloat(data.previousReading) || 0;
-                            previousReadings[serviceId] = previousReading;
-                            
-                            if (prevReadingElement) {
-                                if (data.period) {
-                                    prevReadingElement.textContent = previousReading.toFixed(2) + ' (' + data.period + ')';
-                                } else {
-                                    prevReadingElement.textContent = previousReading.toFixed(2);
-                                }
-                            }
-                            
-                            console.log('Loaded previous reading for service ' + serviceId + ': ' + previousReading);
-                        }
-                    } catch (jsonError) {
-                        // Response is not JSON, try to parse JSP response
-                        console.log('Response is not JSON, parsing JSP response for service', serviceId);
-                        
-                        // Try to extract reading from JSP response
-                        if (responseText.includes('previousReading')) {
-                            // Look for reading value in JSP response
-                            const readingMatch = responseText.match(/reading["']?\s*:\s*([\d.]+)/);
-                            if (readingMatch) {
-                                const previousReading = parseFloat(readingMatch[1]) || 0;
-                                previousReadings[serviceId] = previousReading;
-                                
-                                if (prevReadingElement) {
-                                    prevReadingElement.textContent = previousReading.toFixed(2);
-                                }
-                                
-                                console.log('Parsed previous reading from JSP for service ' + serviceId + ': ' + previousReading);
-                            } else {
-                                // No reading found
-                                previousReadings[serviceId] = 0;
-                                if (prevReadingElement) {
-                                    prevReadingElement.textContent = '0.00 (Chưa có dữ liệu)';
-                                }
-                            }
-                        } else {
-                            // No previous reading data
-                            previousReadings[serviceId] = 0;
-                            if (prevReadingElement) {
-                                prevReadingElement.textContent = '0.00 (Chưa có dữ liệu)';
-                            }
-                        }
-                    }
-                    
-                } catch (error) {
-                    console.error('Error loading previous reading for service', serviceId, error);
-                    previousReadings[serviceId] = 0;
-                    if (prevReadingElement) {
-                        prevReadingElement.textContent = '0.00 (Không có dữ liệu)';
-                    }
-                }
-            }
-            
+        // Khởi tạo các giá trị ban đầu
+        function initializeServiceCosts() {
             // Initialize costs for quantity-based services
             const quantityInputs = document.querySelectorAll('input[name="quantities"]');
             quantityInputs.forEach(input => {
@@ -657,7 +654,7 @@
         
         // Initialize calculations on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadPreviousReadings();
+            initializeServiceCosts();
             updateTotalServiceCost();
         });
     </script>

@@ -318,8 +318,8 @@ public class ServiceController {
             return "Tên dịch vụ không được vượt quá 100 ký tự";
         }
         
-        if (service.getPricePerUnit() == null || service.getPricePerUnit().compareTo(BigDecimal.ZERO) <= 0) {
-            return "Giá dịch vụ phải lớn hơn 0";
+        if (service.getPricePerUnit() == null || service.getPricePerUnit().compareTo(BigDecimal.ZERO) < 0) {
+            return "Giá dịch vụ không được âm";
         }
         
         if (service.getUnit() != null && service.getUnit().trim().length() > 50) {

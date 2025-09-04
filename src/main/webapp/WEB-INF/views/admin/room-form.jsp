@@ -171,10 +171,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -295,11 +291,31 @@
                                     <select class="form-select" id="status" name="status" required>
                                         <option value="AVAILABLE" 
                                                 <c:if test="${room.status == 'AVAILABLE'}">selected</c:if>>
-                                            Có sẵn
+                                            <i class="bi bi-door-open"></i> Phòng trống
                                         </option>
                                         <option value="OCCUPIED" 
                                                 <c:if test="${room.status == 'OCCUPIED'}">selected</c:if>>
-                                            Đã thuê
+                                            <i class="bi bi-person-fill"></i> Đang thuê
+                                        </option>
+                                        <option value="MAINTENANCE" 
+                                                <c:if test="${room.status == 'MAINTENANCE'}">selected</c:if>>
+                                            <i class="bi bi-tools"></i> Đang sửa chữa
+                                        </option>
+                                        <option value="RESERVED" 
+                                                <c:if test="${room.status == 'RESERVED'}">selected</c:if>>
+                                            <i class="bi bi-bookmark-fill"></i> Đã đặt cọc
+                                        </option>
+                                        <option value="SUSPENDED" 
+                                                <c:if test="${room.status == 'SUSPENDED'}">selected</c:if>>
+                                            <i class="bi bi-pause-circle"></i> Ngưng sử dụng
+                                        </option>
+                                        <option value="CLEANING" 
+                                                <c:if test="${room.status == 'CLEANING'}">selected</c:if>>
+                                            <i class="bi bi-brush"></i> Đang dọn dẹp
+                                        </option>
+                                        <option value="CONTRACT_EXPIRED" 
+                                                <c:if test="${room.status == 'CONTRACT_EXPIRED'}">selected</c:if>>
+                                            <i class="bi bi-calendar-x"></i> Hết hạn hợp đồng
                                         </option>
                                     </select>
                                 </div>

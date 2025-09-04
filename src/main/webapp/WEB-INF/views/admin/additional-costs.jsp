@@ -102,6 +102,104 @@
             font-weight: 600;
             font-size: 1.1em;
         }
+        
+        .room-info {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .room-info:hover .room-avatar {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .room-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .room-avatar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .room-details {
+            flex-grow: 1;
+        }
+        
+        .room-name {
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 4px;
+            font-size: 1.1em;
+            letter-spacing: 0.5px;
+        }
+        
+        .room-label {
+            font-size: 0.75em;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        .tenant-name {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 2px;
+        }
+        
+        .tenant-label {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        /* Payment Status Badges */
+        .payment-status-badge {
+            font-size: 0.85em;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-paid {
+            background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.25);
+        }
+        
+        .status-pending {
+            background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(253, 126, 20, 0.25);
+        }
+        
+        .status-unpaid {
+            background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.25);
+        }
+        
+        .payment-status-badge i {
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -155,10 +253,6 @@
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
-                        </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
@@ -241,28 +335,69 @@
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <div class="card border-info">
+                            <div class="card border-success">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="text-muted mb-1">Tổng tiền (tháng này)</h6>
-                                            <h5 class="mb-0 text-info">
-                                                <c:set var="thisMonthTotal" value="0" />
+                                            <h6 class="text-muted mb-1">Đã thanh toán</h6>
+                                            <h3 class="mb-0 text-success">
+                                                <c:set var="paidCount" value="0" />
                                                 <c:forEach var="cost" items="${additionalCosts}">
-                                                    <fmt:formatDate var="costMonth" value="${cost.date}" pattern="MM/yyyy" />
-                                                    <fmt:formatDate var="currentMonth" value="<%=new java.util.Date()%>" pattern="MM/yyyy" />
-                                                    <c:if test="${costMonth == currentMonth}">
-                                                        <c:set var="thisMonthTotal" value="${thisMonthTotal + cost.amount}" />
+                                                    <c:if test="${cost.paymentStatus == 'PAID'}">
+                                                        <c:set var="paidCount" value="${paidCount + 1}" />
                                                     </c:if>
                                                 </c:forEach>
-                                                <fmt:formatNumber value="${thisMonthTotal}" 
-                                                                type="currency" 
-                                                                currencySymbol="₫" 
-                                                                groupingUsed="true"/>
-                                            </h5>
+                                                ${paidCount}
+                                            </h3>
                                         </div>
-                                        <div class="text-info">
-                                            <i class="bi bi-cash-coin fs-1"></i>
+                                        <div class="text-success">
+                                            <i class="bi bi-check-circle fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-1">Đang chờ thanh toán</h6>
+                                            <h3 class="mb-0 text-warning">
+                                                <c:set var="pendingCount" value="0" />
+                                                <c:forEach var="cost" items="${additionalCosts}">
+                                                    <c:if test="${cost.paymentStatus == 'PENDING'}">
+                                                        <c:set var="pendingCount" value="${pendingCount + 1}" />
+                                                    </c:if>
+                                                </c:forEach>
+                                                ${pendingCount}
+                                            </h3>
+                                        </div>
+                                        <div class="text-warning">
+                                            <i class="bi bi-clock fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="text-muted mb-1">Chưa thanh toán</h6>
+                                            <h3 class="mb-0 text-secondary">
+                                                <c:set var="unpaidCount" value="0" />
+                                                <c:forEach var="cost" items="${additionalCosts}">
+                                                    <c:if test="${cost.paymentStatus == 'UNPAID'}">
+                                                        <c:set var="unpaidCount" value="${unpaidCount + 1}" />
+                                                    </c:if>
+                                                </c:forEach>
+                                                ${unpaidCount}
+                                            </h3>
+                                        </div>
+                                        <div class="text-secondary">
+                                            <i class="bi bi-x-circle fs-1"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -279,7 +414,7 @@
                                         <input type="text" 
                                                class="form-control" 
                                                name="search" 
-                                               placeholder="Tìm kiếm theo tên khách thuê hoặc mô tả..." 
+                                               placeholder="Tìm kiếm theo phòng hoặc mô tả..." 
                                                value="${searchTerm}">
                                         <button class="btn btn-outline-secondary" type="submit">
                                             <i class="bi bi-search"></i>
@@ -340,9 +475,9 @@
                                         <table class="table table-hover mb-0">
                                             <thead>
                                                 <tr>
-                                                    <th width="60">#</th>
+                                                    <th width="150">Phòng</th>
                                                     <th>Khách thuê</th>
-                                                    <th>Phòng</th>
+                                                    <th width="140">Trạng thái</th>
                                                     <th width="250">Mô tả</th>
                                                     <th width="120">Số tiền</th>
                                                     <th width="120">Ngày phát sinh</th>
@@ -353,20 +488,49 @@
                                                 <c:forEach var="cost" items="${additionalCosts}" varStatus="status">
                                                     <tr>
                                                         <td class="align-middle">
-                                                            <span class="badge bg-secondary">${cost.costId}</span>
-                                                        </td>
-                                                        <td class="align-middle">
-                                                            <div class="tenant-info">
-                                                                <strong>${cost.tenantName}</strong>
-                                                                <br>
-                                                                <small class="text-muted">
-                                                                    <i class="bi bi-person-badge me-1"></i>
-                                                                    ID: ${cost.tenantId}
-                                                                </small>
+                                                            <div class="room-info">
+                                                                <div class="room-avatar">
+                                                                    <i class="bi bi-house-door-fill"></i>
+                                                                </div>
+                                                                <div class="room-details">
+                                                                    <div class="room-name">${cost.roomName}</div>
+                                                                    <div class="room-label">
+                                                                        <i class="bi bi-geo-alt-fill me-1"></i>
+                                                                        Phòng trọ
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td class="align-middle">
-                                                            <strong class="text-primary">${cost.roomName}</strong>
+                                                            <div>
+                                                                <div class="tenant-name">${cost.tenantName}</div>
+                                                                <div class="tenant-label">
+                                                                    <i class="bi bi-person me-1"></i>
+                                                                    Khách thuê
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="align-middle">
+                                                            <c:choose>
+                                                                <c:when test="${cost.paymentStatus == 'PAID'}">
+                                                                    <span class="payment-status-badge status-paid">
+                                                                        <i class="bi bi-check-circle-fill"></i>
+                                                                        Đã thanh toán
+                                                                    </span>
+                                                                </c:when>
+                                                                <c:when test="${cost.paymentStatus == 'PENDING'}">
+                                                                    <span class="payment-status-badge status-pending">
+                                                                        <i class="bi bi-clock-fill"></i>
+                                                                        Đang chờ
+                                                                    </span>
+                                                                </c:when>
+                                                                <c:otherwise>
+                                                                    <span class="payment-status-badge status-unpaid">
+                                                                        <i class="bi bi-x-circle-fill"></i>
+                                                                        Chưa thanh toán
+                                                                    </span>
+                                                                </c:otherwise>
+                                                            </c:choose>
                                                         </td>
                                                         <td class="align-middle">
                                                             <div class="cost-description">

@@ -147,10 +147,6 @@
                             <i class="bi bi-credit-card me-2"></i>
                             Lịch sử Thanh toán
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/user/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <hr class="text-light">
                         <a class="nav-link text-warning" href="${pageContext.request.contextPath}/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>

@@ -69,6 +69,43 @@
             background: #f8f9fa;
             font-weight: 600;
         }
+        
+        /* Filter styles */
+        #statusFilter {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+        
+        #statusFilter:focus {
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+            background: white;
+        }
+        
+        .filter-info {
+            border-left: 4px solid #0dcaf0;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .table tbody tr {
+            transition: all 0.3s ease;
+        }
+        
+        .table tbody tr[style*="display: none"] {
+            opacity: 0;
+        }
     </style>
 </head>
 <body>
@@ -122,10 +159,6 @@
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
-                        </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
@@ -184,30 +217,93 @@
                     
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
-                        <div class="col-md-4 mb-3">
+                        <!-- Tổng phòng -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card stats-card">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-door-open fs-1 mb-2"></i>
+                                    <i class="bi bi-building fs-1 mb-2"></i>
                                     <h3>${totalRooms}</h3>
                                     <p class="mb-0">Tổng Phòng</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        
+                        <!-- Phòng trống -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-check-circle fs-1 mb-2"></i>
+                                    <i class="bi bi-door-open fs-1 mb-2"></i>
                                     <h3>${availableRooms}</h3>
-                                    <p class="mb-0">Có sẵn</p>
+                                    <p class="mb-0">Phòng trống</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        
+                        <!-- Đang thuê -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-person-fill fs-1 mb-2"></i>
+                                    <h3>${occupiedRooms}</h3>
+                                    <p class="mb-0">Đang thuê</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Đã đặt cọc -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-bookmark-fill fs-1 mb-2"></i>
+                                    <h3>${reservedRooms}</h3>
+                                    <p class="mb-0">Đã đặt cọc</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Thống kê trạng thái khác -->
+                    <div class="row mb-4">
+                        <!-- Đang sửa chữa -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card bg-warning text-white">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-person-check fs-1 mb-2"></i>
-                                    <h3>${occupiedRooms}</h3>
-                                    <p class="mb-0">Đã thuê</p>
+                                    <i class="bi bi-tools fs-1 mb-2"></i>
+                                    <h3>${maintenanceRooms}</h3>
+                                    <p class="mb-0">Đang sửa chữa</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Đang dọn dẹp -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-light text-dark">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-brush fs-1 mb-2"></i>
+                                    <h3>${cleaningRooms}</h3>
+                                    <p class="mb-0">Đang dọn dẹp</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ngưng sử dụng -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-pause-circle fs-1 mb-2"></i>
+                                    <h3>${suspendedRooms}</h3>
+                                    <p class="mb-0">Ngưng sử dụng</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hết hạn hợp đồng -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-calendar-x fs-1 mb-2"></i>
+                                    <h3>${contractExpiredRooms}</h3>
+                                    <p class="mb-0">Hết hạn HĐ</p>
                                 </div>
                             </div>
                         </div>
@@ -215,16 +311,43 @@
                     
                     <!-- Room List -->
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">
-                                <i class="bi bi-list me-2"></i>
-                                Danh sách Phòng trọ
-                            </h5>
-                            <a href="${pageContext.request.contextPath}/admin/rooms/add" 
-                               class="btn btn-light btn-sm">
-                                <i class="bi bi-plus-circle me-1"></i>
-                                Thêm Phòng mới
-                            </a>
+                        <div class="card-header">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-list me-2"></i>
+                                        Danh sách Phòng trọ
+                                    </h5>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-end align-items-center gap-2">
+                                        <!-- Bộ lọc trạng thái -->
+                                        <div class="d-flex align-items-center">
+                                            <label for="statusFilter" class="form-label me-2 mb-0 text-white">
+                                                <i class="bi bi-funnel me-1"></i>
+                                                Lọc:
+                                            </label>
+                                            <select class="form-select form-select-sm" id="statusFilter" style="min-width: 150px;">
+                                                <option value="">Tất cả trạng thái</option>
+                                                <option value="AVAILABLE">🚪 Phòng trống</option>
+                                                <option value="OCCUPIED">👤 Đang thuê</option>
+                                                <option value="MAINTENANCE">🔧 Đang sửa chữa</option>
+                                                <option value="RESERVED">🔖 Đã đặt cọc</option>
+                                                <option value="SUSPENDED">⏸️ Ngưng sử dụng</option>
+                                                <option value="CLEANING">🧹 Đang dọn dẹp</option>
+                                                <option value="CONTRACT_EXPIRED">📅❌ Hết hạn HĐ</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <!-- Nút thêm phòng -->
+                                        <a href="${pageContext.request.contextPath}/admin/rooms/add" 
+                                           class="btn btn-light btn-sm">
+                                            <i class="bi bi-plus-circle me-1"></i>
+                                            Thêm Phòng mới
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
                             <c:choose>
@@ -262,14 +385,10 @@
                                                             <fmt:formatNumber value="${room.price}" type="currency" currencySymbol="₫" groupingUsed="true"/>
                                                         </td>
                                                         <td>
-                                                            <c:choose>
-                                                                <c:when test="${room.status == 'AVAILABLE'}">
-                                                                    <span class="badge badge-available">Có sẵn</span>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <span class="badge badge-occupied">Đã thuê</span>
-                                                                </c:otherwise>
-                                                            </c:choose>
+                                                            <span class="badge ${room.statusBadgeClass}">
+                                                                <i class="bi ${room.statusIcon} me-1"></i>
+                                                                ${room.statusDisplayName}
+                                                            </span>
                                                         </td>
                                                         <td>
                                                             <c:choose>
@@ -302,19 +421,19 @@
                                                                 </a>
                                                                 <!-- Check if room can be deleted -->
                                                                 <c:choose>
-                                                                    <c:when test="${room.status == 'OCCUPIED'}">
+                                                                    <c:when test="${room.status == 'AVAILABLE'}">
                                                                         <button type="button" 
-                                                                                class="btn btn-outline-secondary btn-sm" 
-                                                                                title="Không thể xóa - Phòng đang có người thuê"
-                                                                                disabled>
+                                                                                class="btn btn-outline-danger btn-sm" 
+                                                                                title="Xóa"
+                                                                                onclick="confirmDelete(${room.roomId}, '${room.roomName}')">
                                                                             <i class="bi bi-trash"></i>
                                                                         </button>
                                                                     </c:when>
                                                                     <c:otherwise>
                                                                         <button type="button" 
-                                                                                class="btn btn-outline-danger btn-sm" 
-                                                                                title="Xóa"
-                                                                                onclick="confirmDelete(${room.roomId}, '${room.roomName}')">
+                                                                                class="btn btn-outline-secondary btn-sm" 
+                                                                                title="Không thể xóa - Phòng không ở trạng thái trống"
+                                                                                disabled>
                                                                             <i class="bi bi-trash"></i>
                                                                         </button>
                                                                     </c:otherwise>
@@ -392,7 +511,150 @@
                     return true;
                 });
             }
+            
+            // Status filter functionality
+            var statusFilter = document.getElementById('statusFilter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', function() {
+                    filterRoomsByStatus(this.value);
+                });
+                
+                // Check for filter parameter in URL
+                var urlParams = new URLSearchParams(window.location.search);
+                var filterParam = urlParams.get('filter');
+                if (filterParam) {
+                    statusFilter.value = filterParam;
+                    filterRoomsByStatus(filterParam);
+                    
+                    // Show notification that filter was applied from dashboard
+                    showDashboardFilterNotification(filterParam);
+                }
+            }
         });
+        
+        // Function to filter rooms by status
+        function filterRoomsByStatus(selectedStatus) {
+            var tableRows = document.querySelectorAll('tbody tr');
+            var visibleCount = 0;
+            
+            tableRows.forEach(function(row) {
+                var statusBadge = row.querySelector('.badge');
+                if (!statusBadge) return;
+                
+                // Get room status from badge classes
+                var roomStatus = '';
+                if (statusBadge.classList.contains('bg-success')) {
+                    roomStatus = 'AVAILABLE';
+                } else if (statusBadge.classList.contains('bg-primary')) {
+                    roomStatus = 'OCCUPIED';
+                } else if (statusBadge.classList.contains('bg-warning')) {
+                    roomStatus = 'MAINTENANCE';
+                } else if (statusBadge.classList.contains('bg-info')) {
+                    roomStatus = 'RESERVED';
+                } else if (statusBadge.classList.contains('bg-secondary')) {
+                    roomStatus = 'SUSPENDED';
+                } else if (statusBadge.classList.contains('bg-light')) {
+                    roomStatus = 'CLEANING';
+                } else if (statusBadge.classList.contains('bg-danger')) {
+                    roomStatus = 'CONTRACT_EXPIRED';
+                }
+                
+                // Show/hide row based on filter
+                if (selectedStatus === '' || roomStatus === selectedStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update filter result info
+            updateFilterInfo(selectedStatus, visibleCount, tableRows.length);
+        }
+        
+        // Function to update filter information
+        function updateFilterInfo(selectedStatus, visibleCount, totalCount) {
+            // Remove existing filter info
+            var existingInfo = document.querySelector('.filter-info');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            // Add new filter info if filtering is active
+            if (selectedStatus !== '') {
+                var tableContainer = document.querySelector('.table-responsive');
+                if (tableContainer) {
+                    var filterInfo = document.createElement('div');
+                    filterInfo.className = 'filter-info alert alert-info mt-2 mb-0';
+                    
+                    var statusNames = {
+                        'AVAILABLE': 'Phòng trống',
+                        'OCCUPIED': 'Đang thuê',
+                        'MAINTENANCE': 'Đang sửa chữa',
+                        'RESERVED': 'Đã đặt cọc',
+                        'SUSPENDED': 'Ngưng sử dụng',
+                        'CLEANING': 'Đang dọn dẹp',
+                        'CONTRACT_EXPIRED': 'Hết hạn hợp đồng'
+                    };
+                    
+                    filterInfo.innerHTML = '<i class="bi bi-info-circle me-2"></i>' +
+                        'Hiển thị <strong>' + visibleCount + '</strong> phòng có trạng thái "<strong>' + 
+                        statusNames[selectedStatus] + '</strong>" trên tổng số <strong>' + totalCount + '</strong> phòng. ' +
+                        '<a href="#" onclick="clearFilter()" class="alert-link">Xóa bộ lọc</a>';
+                    
+                    tableContainer.appendChild(filterInfo);
+                }
+            }
+        }
+        
+        // Function to clear filter
+        function clearFilter() {
+            var statusFilter = document.getElementById('statusFilter');
+            if (statusFilter) {
+                statusFilter.value = '';
+                filterRoomsByStatus('');
+            }
+        }
+        
+        // Function to show dashboard filter notification
+        function showDashboardFilterNotification(filterValue) {
+            var statusNames = {
+                'AVAILABLE': 'Phòng trống',
+                'OCCUPIED': 'Đang thuê',
+                'MAINTENANCE': 'Đang sửa chữa',
+                'RESERVED': 'Đã đặt cọc',
+                'SUSPENDED': 'Ngưng sử dụng',
+                'CLEANING': 'Đang dọn dẹp',
+                'CONTRACT_EXPIRED': 'Hết hạn hợp đồng'
+            };
+            
+            // Create notification element
+            var notification = document.createElement('div');
+            notification.className = 'alert alert-success alert-dismissible fade show dashboard-notification';
+            notification.innerHTML = '<i class="bi bi-speedometer2 me-2"></i>' +
+                '<strong>Từ Bảng điều khiển:</strong> Đã lọc hiển thị phòng có trạng thái "<strong>' + 
+                statusNames[filterValue] + '</strong>". ' +
+                '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+            
+            // Insert notification after success/error messages
+            var mainContent = document.querySelector('.p-4');
+            var firstCard = mainContent.querySelector('.row');
+            if (firstCard) {
+                mainContent.insertBefore(notification, firstCard);
+            }
+            
+            // Auto-hide after 5 seconds
+            setTimeout(function() {
+                if (notification && notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(function() {
+                        if (notification && notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 150);
+                }
+            }, 5000);
+        }
     </script>
 </body>
 </html>

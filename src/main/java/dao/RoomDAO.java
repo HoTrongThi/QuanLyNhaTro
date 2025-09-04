@@ -380,11 +380,120 @@ public class RoomDAO {
     }
     
     /**
+     * Get room count by status
+     * @param status Room status to count
+     * @return Number of rooms with the specified status
+     */
+    public int getRoomCountByStatus(String status) {
+        String sql = "SELECT COUNT(*) FROM rooms WHERE status = ?";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, status);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room count by status: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Get maintenance room count
+     * @return Number of rooms under maintenance
+     */
+    public int getMaintenanceRoomCount() {
+        return getRoomCountByStatus("MAINTENANCE");
+    }
+    
+    /**
+     * Get reserved room count
+     * @return Number of reserved rooms
+     */
+    public int getReservedRoomCount() {
+        return getRoomCountByStatus("RESERVED");
+    }
+    
+    /**
+     * Get suspended room count
+     * @return Number of suspended rooms
+     */
+    public int getSuspendedRoomCount() {
+        return getRoomCountByStatus("SUSPENDED");
+    }
+    
+    /**
+     * Get cleaning room count
+     * @return Number of rooms being cleaned
+     */
+    public int getCleaningRoomCount() {
+        return getRoomCountByStatus("CLEANING");
+    }
+    
+    /**
+     * Get contract expired room count
+     * @return Number of rooms with expired contracts
+     */
+    public int getContractExpiredRoomCount() {
+        return getRoomCountByStatus("CONTRACT_EXPIRED");
+    }
+    
+    /**
      * Check if room can be safely deleted
      * @param roomId Room ID to check
      * @return true if room can be deleted (no active tenants and no history), false otherwise
      */
     public boolean canDeleteRoom(int roomId) {
         return !isRoomOccupied(roomId) && !hasRoomHistory(roomId);
+    }
+    
+    /**
+     * Search rooms by name or tenant name
+     * @param searchTerm Search term to find rooms
+     * @return List of rooms matching the search criteria
+     */
+    public List<Room> searchRooms(String searchTerm) {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT DISTINCT r.* FROM rooms r " +
+                    "LEFT JOIN tenants t ON r.room_id = t.room_id AND t.end_date IS NULL " +
+                    "LEFT JOIN users u ON t.user_id = u.user_id " +
+                    "WHERE LOWER(r.room_name) LIKE LOWER(?) " +
+                    "   OR LOWER(u.full_name) LIKE LOWER(?) " +
+                    "ORDER BY r.room_name";
+        
+        String searchPattern = "%" + searchTerm.trim() + "%";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, searchPattern);
+            stmt.setString(2, searchPattern);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = new Room();
+                room.setRoomId(rs.getInt("room_id"));
+                room.setRoomName(rs.getString("room_name"));
+                room.setPrice(rs.getBigDecimal("price"));
+                room.setStatus(rs.getString("status"));
+                room.setDescription(rs.getString("description"));
+                room.setAmenities(rs.getString("amenities"));
+                
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching rooms: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
     }
 }

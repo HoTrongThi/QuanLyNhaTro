@@ -78,15 +78,23 @@ public class AdditionalCostDAO {
     }
     
     /**
-     * Get additional cost by ID
+     * Get additional cost by ID with payment status
      */
     public AdditionalCost getAdditionalCostById(int costId) {
         String sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
-                    "u.full_name, r.room_name " +
+                    "u.full_name, r.room_name, " +
+                    "CASE " +
+                    "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                    "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                    "    ELSE 'UNPAID' " +
+                    "END as payment_status " +
                     "FROM additional_costs ac " +
                     "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
                     "JOIN users u ON t.user_id = u.user_id " +
                     "JOIN rooms r ON t.room_id = r.room_id " +
+                    "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                    "    AND MONTH(ac.date) = i.month " +
+                    "    AND YEAR(ac.date) = i.year " +
                     "WHERE ac.cost_id = ?";
         
         try (Connection conn = DBConnection.getConnection();
@@ -104,6 +112,7 @@ public class AdditionalCostDAO {
                 cost.setDate(rs.getDate("date"));
                 cost.setTenantName(rs.getString("full_name"));
                 cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
                 return cost;
             }
             
@@ -200,16 +209,24 @@ public class AdditionalCostDAO {
     }
     
     /**
-     * Get all additional costs
+     * Get all additional costs with payment status
      */
     public List<AdditionalCost> getAllAdditionalCosts() {
         List<AdditionalCost> costList = new ArrayList<>();
         String sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
-                    "u.full_name, r.room_name " +
+                    "u.full_name, r.room_name, " +
+                    "CASE " +
+                    "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                    "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                    "    ELSE 'UNPAID' " +
+                    "END as payment_status " +
                     "FROM additional_costs ac " +
                     "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
                     "JOIN users u ON t.user_id = u.user_id " +
                     "JOIN rooms r ON t.room_id = r.room_id " +
+                    "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                    "    AND MONTH(ac.date) = i.month " +
+                    "    AND YEAR(ac.date) = i.year " +
                     "ORDER BY ac.date DESC";
         
         try (Connection conn = DBConnection.getConnection();
@@ -225,6 +242,7 @@ public class AdditionalCostDAO {
                 cost.setDate(rs.getDate("date"));
                 cost.setTenantName(rs.getString("full_name"));
                 cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
                 costList.add(cost);
             }
             
@@ -354,6 +372,59 @@ public class AdditionalCostDAO {
             
         } catch (SQLException e) {
             System.err.println("Error getting additional costs by tenant: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return costList;
+    }
+    
+    /**
+     * Search additional costs by room name, tenant name, or description with payment status
+     */
+    public List<AdditionalCost> searchAdditionalCosts(String searchTerm) {
+        List<AdditionalCost> costList = new ArrayList<>();
+        String sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                    "u.full_name, r.room_name, " +
+                    "CASE " +
+                    "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                    "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                    "    ELSE 'UNPAID' " +
+                    "END as payment_status " +
+                    "FROM additional_costs ac " +
+                    "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                    "    AND MONTH(ac.date) = i.month " +
+                    "    AND YEAR(ac.date) = i.year " +
+                    "WHERE r.room_name LIKE ? OR u.full_name LIKE ? OR ac.description LIKE ? " +
+                    "ORDER BY ac.date DESC";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchTerm + "%";
+            pstmt.setString(1, searchPattern); // room name
+            pstmt.setString(2, searchPattern); // tenant name
+            pstmt.setString(3, searchPattern); // description
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                AdditionalCost cost = new AdditionalCost();
+                cost.setCostId(rs.getInt("cost_id"));
+                cost.setTenantId(rs.getInt("tenant_id"));
+                cost.setDescription(rs.getString("description"));
+                cost.setAmount(rs.getBigDecimal("amount"));
+                cost.setDate(rs.getDate("date"));
+                cost.setTenantName(rs.getString("full_name"));
+                cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
+                costList.add(cost);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching additional costs: " + e.getMessage());
             e.printStackTrace();
         }
         

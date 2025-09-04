@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -54,6 +55,26 @@
             color: white;
             border-radius: 15px;
         }
+        
+        /* Clickable card styles */
+        .clickable-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .clickable-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .clickable-card:active {
+            transform: translateY(-2px);
+        }
+        
+        .clickable-card small {
+            opacity: 0.8;
+            font-size: 0.75rem;
+        }
     </style>
 </head>
 <body>
@@ -107,10 +128,6 @@
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
-                        </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
@@ -167,39 +184,113 @@
                     
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
+                        <!-- Tổng phòng -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card stats-card">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-door-open fs-1 mb-2"></i>
+                                    <i class="bi bi-building fs-1 mb-2"></i>
                                     <h3>${totalRooms}</h3>
                                     <p class="mb-0">Tổng Phòng trọ</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        
+                        <!-- Phòng có sẵn -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="${pageContext.request.contextPath}/admin/tenants?filter=AVAILABLE" class="text-decoration-none">
+                                <div class="card bg-success text-white clickable-card">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-door-open fs-1 mb-2"></i>
+                                        <h3>${availableRooms}</h3>
+                                        <p class="mb-0">Phòng Có sẵn</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- Phòng đã thuê -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="${pageContext.request.contextPath}/admin/tenants?filter=OCCUPIED" class="text-decoration-none">
+                                <div class="card bg-primary text-white clickable-card">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-person-fill fs-1 mb-2"></i>
+                                        <h3>${occupiedRooms}</h3>
+                                        <p class="mb-0">Phòng Đã thuê</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- Phòng còn nợ -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="${pageContext.request.contextPath}/admin/bills" class="text-decoration-none">
+                                <div class="card bg-danger text-white clickable-card">
+                                    <div class="card-body text-center">
+                                        <i class="bi bi-exclamation-triangle fs-1 mb-2"></i>
+                                        <h3>${roomsWithDebt}</h3>
+                                        <p class="mb-0">Phòng còn nợ</p>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Doanh thu và Hóa đơn -->
+                    <div class="row mb-4">
+                        <!-- Tổng doanh thu -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card bg-success text-white">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-check-circle fs-1 mb-2"></i>
-                                    <h3>${availableRooms}</h3>
-                                    <p class="mb-0">Phòng Có sẵn</p>
+                                    <i class="bi bi-currency-dollar fs-1 mb-2"></i>
+                                    <h3>
+                                        <c:choose>
+                                            <c:when test="${totalRevenue != null}">
+                                                <fmt:formatNumber value="${totalRevenue}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+                                            </c:when>
+                                            <c:otherwise>0</c:otherwise>
+                                        </c:choose>
+                                    </h3>
+                                    <p class="mb-0">Tổng Doanh thu (VNĐ)</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-person-check fs-1 mb-2"></i>
-                                    <h3>${occupiedRooms}</h3>
-                                    <p class="mb-0">Phòng Đã thuê</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
+                        
+                        <!-- Doanh thu tháng này -->
+                        <div class="col-lg-3 col-md-6 mb-3">
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center">
-                                    <i class="bi bi-receipt fs-1 mb-2"></i>
-                                    <h3>0</h3>
-                                    <p class="mb-0">Hóa đơn tháng này</p>
+                                    <i class="bi bi-calendar-month fs-1 mb-2"></i>
+                                    <h3>
+                                        <c:choose>
+                                            <c:when test="${currentMonthRevenue != null}">
+                                                <fmt:formatNumber value="${currentMonthRevenue}" type="number" maxFractionDigits="0" groupingUsed="true"/>
+                                            </c:when>
+                                            <c:otherwise>0</c:otherwise>
+                                        </c:choose>
+                                    </h3>
+                                    <p class="mb-0">Doanh thu tháng này</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hóa đơn chưa thanh toán -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-warning text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-receipt-cutoff fs-1 mb-2"></i>
+                                    <h3>${unpaidInvoices}</h3>
+                                    <p class="mb-0">Hóa đơn chưa TT</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Thống kê tổng hợp -->
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-secondary text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-graph-up fs-1 mb-2"></i>
+                                    <h3>${totalRooms - availableRooms}</h3>
+                                    <p class="mb-0">Phòng đang sử dụng</p>
                                 </div>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -126,7 +127,37 @@
             color: #6c757d;
         }
         
-        .tenant-avatar {
+        .room-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .room-icon {
+            background: rgba(255, 255, 255, 0.2);
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 3rem;
+        }
+        
+        .status-available {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+        
+        .badge-occupied {
+            background: #007bff;
+        }
+        
+        .room-avatar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             width: 100px;
@@ -137,7 +168,58 @@
             justify-content: center;
             font-weight: bold;
             font-size: 2.5rem;
-            margin: 0 auto 1rem;
+            margin: 0 auto 20px;
+        }
+        
+        .tenant-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .tenant-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .tenant-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .service-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            margin: 0.25rem;
+            display: inline-block;
+        }
+        
+        .badge-active {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-inactive {
+            background: #6c757d;
+            color: white;
         }
     </style>
 </head>
@@ -193,10 +275,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -250,140 +328,62 @@
                         </ol>
                     </nav>
                     
-                    <!-- Tenant Overview -->
+                    <!-- Room Profile Card -->
                     <div class="info-card">
-                        <div class="row align-items-center">
-                            <div class="col-md-3 text-center">
-                                <div class="tenant-avatar">
-                                    ${tenant.fullName.substring(0, 1).toUpperCase()}
-                                </div>
-                                <c:choose>
-                                    <c:when test="${tenant.active}">
-                                        <div class="status-badge status-active">
-                                            <i class="bi bi-check-circle-fill"></i>
-                                            Đang thuê
-                                        </div>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <div class="status-badge status-inactive">
-                                            <i class="bi bi-x-circle-fill"></i>
-                                            Đã kết thúc
-                                        </div>
-                                    </c:otherwise>
-                                </c:choose>
+                        <div class="text-center">
+                            <div class="room-avatar">
+                                <i class="bi bi-door-open"></i>
                             </div>
-                            <div class="col-md-9">
-                                <h3 class="mb-2">${tenant.fullName}</h3>
-                                <p class="text-muted mb-3">Khách thuê phòng <strong>${tenant.roomName}</strong></p>
-                                
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="info-label">Mã thuê trọ</div>
-                                        <div class="info-value">#${tenant.tenantId}</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="info-label">Ngày bắt đầu</div>
-                                        <div class="info-value">
-                                            <fmt:formatDate value="${tenant.startDate}" pattern="dd/MM/yyyy"/>
+                            <h3>${room.roomName}</h3>
+                            <c:choose>
+                                <c:when test="${room.status == 'AVAILABLE'}">
+                                    <span class="badge badge-available fs-6">Phòng trống</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge badge-occupied fs-6">Đang có người thuê</span>
+                                </c:otherwise>
+                            </c:choose>
+                            <br><br>
+                            <!-- Room Payment Status -->
+                            <c:choose>
+                                <c:when test="${room.paymentStatus != null and fn:startsWith(room.paymentStatus, 'UNPAID')}">
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                        Phòng đang nợ
+                                    </span>
+                                    <c:if test="${not empty room.unpaidPeriodsString}">
+                                        <div class="mt-2">
+                                            <small class="text-danger">
+                                                <i class="bi bi-credit-card me-1"></i>
+                                                <strong>Các kỳ nợ:</strong> ${room.unpaidPeriodsString}
+                                            </small>
                                         </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="info-label">Ngày kết thúc</div>
-                                        <div class="info-value">
-                                            <c:choose>
-                                                <c:when test="${tenant.endDate != null}">
-                                                    <fmt:formatDate value="${tenant.endDate}" pattern="dd/MM/yyyy"/>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <span class="text-success">Đang thuê</span>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                    </c:if>
+                                </c:when>
+                                <c:when test="${tenantCount > 0}">
+                                    <span class="badge bg-success fs-6">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Phòng đã thanh toán
+                                    </span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge bg-secondary fs-6">
+                                        <i class="bi bi-dash-circle me-1"></i>
+                                        Chưa có người thuê
+                                    </span>
+                                </c:otherwise>
+                            </c:choose>
                         </div>
                     </div>
                     
                     <div class="row">
-                        <!-- Personal Information -->
-                        <div class="col-lg-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="bi bi-person-card me-2"></i>
-                                        Thông tin khách thuê
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-person"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="info-label">Họ và tên</div>
-                                            <div class="info-value">${tenant.fullName}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-envelope"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="info-label">Email</div>
-                                            <div class="info-value">${tenant.email}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-telephone"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="info-label">Số điện thoại</div>
-                                            <div class="info-value">
-                                                <c:choose>
-                                                    <c:when test="${not empty tenant.phone}">
-                                                        ${tenant.phone}
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="text-muted">Chưa cập nhật</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-geo-alt"></i>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <div class="info-label">Địa chỉ</div>
-                                            <div class="info-value">
-                                                <c:choose>
-                                                    <c:when test="${not empty tenant.address}">
-                                                        ${tenant.address}
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="text-muted">Chưa cập nhật</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <!-- Room Information -->
-                        <div class="col-lg-6">
+                        <div class="col-lg-4">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="mb-0">
-                                        <i class="bi bi-door-open me-2"></i>
-                                        Thông tin phòng trọ
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        Thông tin phòng
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -393,7 +393,7 @@
                                         </div>
                                         <div class="flex-grow-1">
                                             <div class="info-label">Tên phòng</div>
-                                            <div class="info-value">${tenant.roomName}</div>
+                                            <div class="info-value">${room.roomName}</div>
                                         </div>
                                     </div>
                                     
@@ -404,7 +404,7 @@
                                         <div class="flex-grow-1">
                                             <div class="info-label">Giá phòng/tháng</div>
                                             <div class="info-value text-success fw-bold">
-                                                <fmt:formatNumber value="${tenant.roomPrice}" 
+                                                <fmt:formatNumber value="${room.price}" 
                                                                 type="currency" 
                                                                 currencySymbol="₫" 
                                                                 groupingUsed="true"/>
@@ -414,61 +414,180 @@
                                     
                                     <div class="info-item">
                                         <div class="info-icon">
-                                            <i class="bi bi-calendar-check"></i>
+                                            <i class="bi bi-people"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <div class="info-label">Ngày bắt đầu thuê</div>
-                                            <div class="info-value">
-                                                <fmt:formatDate value="${tenant.startDate}" pattern="dd/MM/yyyy"/>
-                                            </div>
+                                            <div class="info-label">Số người hiện tại</div>
+                                            <div class="info-value">${tenantCount}/4 người</div>
                                         </div>
                                     </div>
                                     
                                     <div class="info-item">
                                         <div class="info-icon">
-                                            <i class="bi bi-calendar-x"></i>
+                                            <i class="bi bi-check-circle"></i>
                                         </div>
                                         <div class="flex-grow-1">
-                                            <div class="info-label">Ngày kết thúc thuê</div>
+                                            <div class="info-label">Trạng thái</div>
                                             <div class="info-value">
                                                 <c:choose>
-                                                    <c:when test="${tenant.endDate != null}">
-                                                        <fmt:formatDate value="${tenant.endDate}" pattern="dd/MM/yyyy"/>
+                                                    <c:when test="${room.status == 'AVAILABLE'}">
+                                                        <span class="text-success">Có sẵn</span>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <span class="text-success">Chưa kết thúc</span>
+                                                        <span class="text-primary">Đang thuê</span>
                                                     </c:otherwise>
                                                 </c:choose>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <c:if test="${not empty room.description}">
+                                        <div class="info-item">
+                                            <div class="info-icon">
+                                                <i class="bi bi-card-text"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="info-label">Mô tả</div>
+                                                <div class="info-value">${room.description}</div>
+                                            </div>
+                                        </div>
+                                    </c:if>
+                                </div>
+                            </div>
+                            
+                            <!-- Services -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-tools me-2"></i>
+                                        Dịch vụ có sẵn
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <c:choose>
+                                        <c:when test="${not empty roomServices}">
+                                            <c:forEach var="service" items="${roomServices}">
+                                                <span class="service-badge">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    ${service}
+                                                </span>
+                                            </c:forEach>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <p class="text-muted mb-0">
+                                                <i class="bi bi-info-circle me-1"></i>
+                                                Chưa có dịch vụ nào được thiết lập
+                                            </p>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Tenants List -->
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-people me-2"></i>
+                                        Danh sách khách thuê (${tenantCount}/4)
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <c:choose>
+                                        <c:when test="${not empty roomTenants}">
+                                            <c:forEach var="tenant" items="${roomTenants}">
+                                                <div class="tenant-card">
+                                                    <div class="row align-items-center">
+                                                        <div class="col-auto">
+                                                            <div class="tenant-avatar">
+                                                                ${tenant.fullName.substring(0, 1).toUpperCase()}
+                                                            </div>
+                                                        </div>
+                                                        <div class="col">
+                                                            <h6 class="mb-1">${tenant.fullName}</h6>
+                                                            <p class="text-muted mb-1">
+                                                                <i class="bi bi-telephone me-1"></i>
+                                                                <c:choose>
+                                                                    <c:when test="${not empty tenant.phone}">
+                                                                        ${tenant.phone}
+                                                                    </c:when>
+                                                                    <c:otherwise>
+                                                                        Chưa cập nhật
+                                                                    </c:otherwise>
+                                                                </c:choose>
+                                                            </p>
+                                                            <p class="text-muted mb-1">
+                                                                <i class="bi bi-calendar me-1"></i>
+                                                                Từ: <fmt:formatDate value="${tenant.startDate}" pattern="dd/MM/yyyy"/>
+                                                            </p>
+                                                            <span class="badge ${tenant.statusBadgeClass}">
+                                                                ${tenant.detailedStatus}
+                                                            </span>
+                                                        </div>
+                                                        <div class="col-auto">
+                                                            <div class="btn-group-vertical" role="group">
+                                                                <c:if test="${tenant.active}">
+                                                                    <a href="${pageContext.request.contextPath}/admin/tenants/change-room/${tenant.tenantId}" 
+                                                                       class="btn btn-sm btn-warning mb-1">
+                                                                        <i class="bi bi-arrow-left-right me-1"></i>
+                                                                        Đổi phòng
+                                                                    </a>
+                                                                    
+                                                                    <button type="button" 
+                                                                            class="btn btn-sm btn-danger" 
+                                                                            onclick="confirmEndLease(${tenant.tenantId}, '${tenant.fullName}')">
+                                                                        <i class="bi bi-stop-circle me-1"></i>
+                                                                        Kết thúc
+                                                                    </button>
+                                                                </c:if>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </c:forEach>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <div class="text-center py-5">
+                                                <i class="bi bi-house text-muted" style="font-size: 4rem;"></i>
+                                                <h5 class="text-muted mt-3">Phòng trống</h5>
+                                                <p class="text-muted">Hiện tại chưa có ai thuê phòng này</p>
+                                                <a href="${pageContext.request.contextPath}/admin/tenants/add?roomId=${room.roomId}" 
+                                                   class="btn btn-primary">
+                                                    <i class="bi bi-plus-circle me-2"></i>
+                                                    Thêm khách thuê
+                                                </a>
+                                            </div>
+                                        </c:otherwise>
+                                    </c:choose>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Action Buttons -->
-                    <div class="info-card">
-                        <div class="d-flex gap-2 justify-content-center flex-wrap">
-                            <a href="${pageContext.request.contextPath}/admin/tenants" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left me-2"></i>
-                                Quay lại danh sách
-                            </a>
-                            
-                            <c:if test="${tenant.active}">
-                                <a href="${pageContext.request.contextPath}/admin/tenants/change-room/${tenant.tenantId}" 
-                                   class="btn btn-warning">
-                                    <i class="bi bi-arrow-left-right me-2"></i>
-                                    Đổi phòng
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                                <a href="${pageContext.request.contextPath}/admin/tenants" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>
+                                    Quay lại danh sách
                                 </a>
                                 
-                                <button type="button" 
-                                        class="btn btn-danger" 
-                                        onclick="confirmEndLease(${tenant.tenantId}, '${tenant.fullName}')">
-                                    <i class="bi bi-stop-circle me-2"></i>
-                                    Kết thúc hợp đồng
-                                </button>
-                            </c:if>
+                                <c:if test="${tenantCount < 4}">
+                                    <a href="${pageContext.request.contextPath}/admin/tenants/add?roomId=${room.roomId}" 
+                                       class="btn btn-success">
+                                        <i class="bi bi-plus-circle me-2"></i>
+                                        Thêm khách thuê
+                                    </a>
+                                </c:if>
+                                
+                                <a href="${pageContext.request.contextPath}/admin/rooms/edit/${room.roomId}" 
+                                   class="btn btn-warning">
+                                    <i class="bi bi-gear me-2"></i>
+                                    Cài đặt phòng
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>

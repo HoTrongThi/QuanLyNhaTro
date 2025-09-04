@@ -70,7 +70,7 @@ public class TenantDAO {
                     "FROM tenants t " +
                     "JOIN users u ON t.user_id = u.user_id " +
                     "JOIN rooms r ON t.room_id = r.room_id " +
-                    "WHERE t.end_date IS NULL " +
+                    "WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE) " +
                     "ORDER BY t.tenant_id DESC";
         
         try (Connection conn = DBConnection.getConnection();
@@ -130,7 +130,7 @@ public class TenantDAO {
                     "FROM tenants t " +
                     "JOIN users u ON t.user_id = u.user_id " +
                     "JOIN rooms r ON t.room_id = r.room_id " +
-                    "WHERE t.user_id = ? AND t.end_date IS NULL";
+                    "WHERE t.user_id = ? AND (t.end_date IS NULL OR t.end_date > CURRENT_DATE)";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -161,7 +161,7 @@ public class TenantDAO {
                     "FROM tenants t " +
                     "JOIN users u ON t.user_id = u.user_id " +
                     "JOIN rooms r ON t.room_id = r.room_id " +
-                    "WHERE t.room_id = ? AND t.end_date IS NULL " +
+                    "WHERE t.room_id = ? AND (t.end_date IS NULL OR t.end_date > CURRENT_DATE) " +
                     "ORDER BY u.full_name";
         
         try (Connection conn = DBConnection.getConnection();
@@ -181,6 +181,13 @@ public class TenantDAO {
         }
         
         return tenants;
+    }
+    
+    /**
+     * Get active tenants in a specific room (alias for getTenantsByRoomId)
+     */
+    public List<Tenant> getActiveTenantsByRoomId(int roomId) {
+        return getTenantsByRoomId(roomId);
     }
     
     /**
@@ -287,7 +294,7 @@ public class TenantDAO {
         String sql = "SELECT u.user_id, u.username, u.full_name, u.phone, u.email, u.address " +
                     "FROM users u " +
                     "WHERE u.role = 'USER' AND u.user_id NOT IN (" +
-                    "    SELECT DISTINCT t.user_id FROM tenants t WHERE t.end_date IS NULL" +
+                    "    SELECT DISTINCT t.user_id FROM tenants t WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE)" +
                     ") ORDER BY u.full_name";
         
         try (Connection conn = DBConnection.getConnection();
@@ -324,7 +331,7 @@ public class TenantDAO {
                     "LEFT JOIN (" +
                     "    SELECT room_id, COUNT(*) as count " +
                     "    FROM tenants " +
-                    "    WHERE end_date IS NULL " +
+                    "    WHERE (end_date IS NULL OR end_date > CURRENT_DATE) " +
                     "    GROUP BY room_id" +
                     ") tenant_count ON r.room_id = tenant_count.room_id " +
                     "WHERE COALESCE(tenant_count.count, 0) < 4 " +
@@ -404,7 +411,7 @@ public class TenantDAO {
     }
     
     public int getActiveTenantCount() {
-        String sql = "SELECT COUNT(*) FROM tenants WHERE end_date IS NULL";
+        String sql = "SELECT COUNT(*) FROM tenants WHERE (end_date IS NULL OR end_date > CURRENT_DATE)";
         return getCount(sql);
     }
     
@@ -417,7 +424,7 @@ public class TenantDAO {
      * Check if user is already renting this specific room
      */
     public boolean isUserAlreadyInRoom(int userId, int roomId) {
-        String sql = "SELECT COUNT(*) FROM tenants WHERE user_id = ? AND room_id = ? AND end_date IS NULL";
+        String sql = "SELECT COUNT(*) FROM tenants WHERE user_id = ? AND room_id = ? AND (end_date IS NULL OR end_date > CURRENT_DATE)";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -442,7 +449,7 @@ public class TenantDAO {
      * Get current tenant count for a room
      */
     public int getRoomTenantCount(int roomId) {
-        String sql = "SELECT COUNT(*) FROM tenants WHERE room_id = ? AND end_date IS NULL";
+        String sql = "SELECT COUNT(*) FROM tenants WHERE room_id = ? AND (end_date IS NULL OR end_date > CURRENT_DATE)";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -536,7 +543,7 @@ public class TenantDAO {
      */
     public String getTenantServicesDisplay(int tenantId) {
         StringBuilder servicesDisplay = new StringBuilder();
-        String sql = "SELECT DISTINCT s.service_name, s.price_per_unit, s.unit " +
+        String sql = "SELECT DISTINCT s.service_name " +
                     "FROM service_usage su " +
                     "JOIN services s ON su.service_id = s.service_id " +
                     "WHERE su.tenant_id = ? " +
@@ -553,13 +560,7 @@ public class TenantDAO {
                     servicesDisplay.append(", ");
                 }
                 String serviceName = rs.getString("service_name");
-                double pricePerUnit = rs.getDouble("price_per_unit");
-                String unit = rs.getString("unit");
-                
-                servicesDisplay.append(serviceName)
-                              .append(" (")
-                              .append(String.format("%,.0f₫/%s", pricePerUnit, unit))
-                              .append(")");
+                servicesDisplay.append(serviceName);
             }
             
         } catch (SQLException e) {
@@ -568,5 +569,190 @@ public class TenantDAO {
         }
         
         return servicesDisplay.length() > 0 ? servicesDisplay.toString() : "Không có dịch vụ";
+    }
+    
+    /**
+     * Get tenants whose lease ends today (for scheduled termination)
+     * @return List of tenants ending today
+     */
+    public List<Tenant> getTenantsEndingToday() {
+        List<Tenant> tenants = new ArrayList<>();
+        String sql = "SELECT t.tenant_id, t.user_id, t.room_id, t.start_date, t.end_date, " +
+                    "u.username, u.full_name, u.phone, u.email, u.address, " +
+                    "r.room_name, r.price as room_price " +
+                    "FROM tenants t " +
+                    "JOIN users u ON t.user_id = u.user_id " +
+                    "JOIN rooms r ON t.room_id = r.room_id " +
+                    "WHERE t.end_date = CURRENT_DATE " +
+                    "ORDER BY t.tenant_id";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Tenant tenant = mapResultSetToTenant(rs);
+                tenants.add(tenant);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting tenants ending today: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return tenants;
+    }
+    
+    /**
+     * Get payment status for a tenant
+     * Returns payment status and unpaid periods
+     */
+    public String getTenantPaymentStatus(int tenantId) {
+        String sql = "SELECT COUNT(*) as unpaid_count, " +
+                    "GROUP_CONCAT(CONCAT(LPAD(month, 2, '0'), '/', year) ORDER BY year, month SEPARATOR ', ') as unpaid_periods " +
+                    "FROM invoices " +
+                    "WHERE tenant_id = ? AND status = 'UNPAID'";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, tenantId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int unpaidCount = rs.getInt("unpaid_count");
+                String unpaidPeriods = rs.getString("unpaid_periods");
+                
+                System.out.println("[DEBUG] Tenant " + tenantId + " unpaid count: " + unpaidCount + ", periods: " + unpaidPeriods);
+                
+                if (unpaidCount == 0) {
+                    return "PAID";
+                } else {
+                    return "UNPAID:" + (unpaidPeriods != null ? unpaidPeriods : "");
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting tenant payment status: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * Get unpaid invoices for a tenant
+     * Returns list of unpaid periods with details
+     */
+    public List<String> getTenantUnpaidPeriods(int tenantId) {
+        List<String> unpaidPeriods = new ArrayList<>();
+        String sql = "SELECT month, year, total_amount " +
+                    "FROM invoices " +
+                    "WHERE tenant_id = ? AND status = 'UNPAID' " +
+                    "ORDER BY year, month";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, tenantId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                int month = rs.getInt("month");
+                int year = rs.getInt("year");
+                java.math.BigDecimal amount = rs.getBigDecimal("total_amount");
+                
+                String period = String.format("%02d/%d", month, year);
+                if (amount != null) {
+                    period += " (" + String.format("%,.0f₫", amount) + ")";
+                }
+                unpaidPeriods.add(period);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting tenant unpaid periods: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return unpaidPeriods;
+    }
+    
+    /**
+     * Get payment status for a room (based on all tenants in the room)
+     * Returns payment status and unpaid periods for the entire room
+     */
+    public String getRoomPaymentStatus(int roomId) {
+        String sql = "SELECT COUNT(DISTINCT i.invoice_id) as unpaid_count, " +
+                    "GROUP_CONCAT(DISTINCT CONCAT(LPAD(i.month, 2, '0'), '/', i.year) ORDER BY i.year, i.month SEPARATOR ', ') as unpaid_periods " +
+                    "FROM invoices i " +
+                    "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? AND i.status = 'UNPAID' " +
+                    "AND (t.end_date IS NULL OR t.end_date > CURRENT_DATE)";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                int unpaidCount = rs.getInt("unpaid_count");
+                String unpaidPeriods = rs.getString("unpaid_periods");
+                
+                System.out.println("[DEBUG] Room " + roomId + " unpaid count: " + unpaidCount + ", periods: " + unpaidPeriods);
+                
+                if (unpaidCount == 0) {
+                    return "PAID";
+                } else {
+                    return "UNPAID:" + (unpaidPeriods != null ? unpaidPeriods : "");
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room payment status: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return "UNKNOWN";
+    }
+    
+    /**
+     * Get unpaid periods for a room (all tenants combined)
+     * Returns list of unpaid periods with details for the entire room
+     */
+    public List<String> getRoomUnpaidPeriods(int roomId) {
+        List<String> unpaidPeriods = new ArrayList<>();
+        String sql = "SELECT DISTINCT i.month, i.year, SUM(i.total_amount) as total_amount " +
+                    "FROM invoices i " +
+                    "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                    "WHERE t.room_id = ? AND i.status = 'UNPAID' " +
+                    "AND (t.end_date IS NULL OR t.end_date > CURRENT_DATE) " +
+                    "GROUP BY i.month, i.year " +
+                    "ORDER BY i.year, i.month";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, roomId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                int month = rs.getInt("month");
+                int year = rs.getInt("year");
+                java.math.BigDecimal amount = rs.getBigDecimal("total_amount");
+                
+                String period = String.format("%02d/%d", month, year);
+                if (amount != null) {
+                    period += " (" + String.format("%,.0f₫", amount) + ")";
+                }
+                unpaidPeriods.add(period);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room unpaid periods: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return unpaidPeriods;
     }
 }

@@ -274,10 +274,6 @@
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
-                        </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
                             Báo cáo & Thống kê
@@ -793,7 +789,7 @@
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="monthlyPrice" 
-                                       name="pricePerUnit" placeholder="100000" required min="1">
+                                       name="pricePerUnit" placeholder="100000" required min="0">
                                 <span class="input-group-text">VNĐ/tháng</span>
                             </div>
                         </div>
@@ -862,7 +858,7 @@
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="fixedPrice" 
-                                       name="pricePerUnit" placeholder="3500" required min="1">
+                                       name="pricePerUnit" placeholder="3500" required min="0">
                                 <span class="input-group-text">VNĐ/đơn vị</span>
                             </div>
                         </div>
@@ -906,7 +902,7 @@
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="personPrice" 
-                                       name="pricePerUnit" placeholder="30000" required min="1">
+                                       name="pricePerUnit" placeholder="30000" required min="0">
                                 <span class="input-group-text">VNĐ/người/tháng</span>
                             </div>
                         </div>
@@ -939,7 +935,7 @@
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" id="roomPrice" 
-                                       name="pricePerUnit" placeholder="20000" required min="1">
+                                       name="pricePerUnit" placeholder="20000" required min="0">
                                 <span class="input-group-text">VNĐ/phòng/tháng</span>
                             </div>
                         </div>

@@ -152,6 +152,58 @@
             color: #28a745;
             font-weight: 500;
         }
+        
+        /* Cost Template Styles */
+        .cost-templates-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .cost-template-item {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .cost-template-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .cost-template-item.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .cost-template-item i {
+            font-size: 1.2em;
+            margin-bottom: 4px;
+        }
+        
+        .cost-template-item span {
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        /* Selected Cost Display */
+        #costDisplay .badge {
+            font-size: 1em;
+            padding: 8px 12px;
+        }
     </style>
 </head>
 <body>
@@ -205,10 +257,6 @@
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/bills">
                             <i class="bi bi-receipt me-2"></i>
                             Quản lý Hóa đơn
-                        </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/messages">
-                            <i class="bi bi-chat-dots me-2"></i>
-                            Tin nhắn
                         </a>
                         <a class="nav-link" href="${pageContext.request.contextPath}/admin/reports">
                             <i class="bi bi-graph-up me-2"></i>
@@ -365,6 +413,132 @@
                                     </c:choose>
                                 </div>
                                 
+                                <!-- Cost Templates Section -->
+                                <div class="cost-templates-section mb-4">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        Chọn chi phí phát sinh phổ biến:
+                                    </h6>
+                                    <p class="text-muted mb-3">Click chọn chi phí có sẵn hoặc nhập chi phí khác:</p>
+                                    
+                                    <div class="row">
+                                        <!-- Chi phí sửa chữa -->
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('repair_ac')">
+                                                <i class="bi bi-snow me-2"></i>
+                                                <span>Sửa điều hòa</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('repair_fan')">
+                                                <i class="bi bi-fan me-2"></i>
+                                                <span>Sửa quạt trần</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('repair_light')">
+                                                <i class="bi bi-lightbulb me-2"></i>
+                                                <span>Thay bóng đèn</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('repair_plumbing')">
+                                                <i class="bi bi-droplet me-2"></i>
+                                                <span>Sửa ống nước</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Chi phí phạt -->
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('fine_noise')">
+                                                <i class="bi bi-volume-up me-2"></i>
+                                                <span>Phạt ồn ào</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('fine_smoking')">
+                                                <i class="bi bi-x-circle me-2"></i>
+                                                <span>Phạt hút thuốc</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('fine_late')">
+                                                <i class="bi bi-clock me-2"></i>
+                                                <span>Phạt trả phòng muộn</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('fine_damage')">
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                <span>Phạt làm hỏng đồ</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Chi phí dịch vụ -->
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('cleaning')">
+                                                <i class="bi bi-brush me-2"></i>
+                                                <span>Vệ sinh phòng</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('key_replacement')">
+                                                <i class="bi bi-key me-2"></i>
+                                                <span>Làm chìa khóa</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('pest_control')">
+                                                <i class="bi bi-bug me-2"></i>
+                                                <span>Diệt côn trùng</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-3 col-sm-6 mb-2">
+                                            <div class="cost-template-item" onclick="selectCostTemplate('moving_fee')">
+                                                <i class="bi bi-truck me-2"></i>
+                                                <span>Phí chuyển đồ</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Chi phí tùy chọn -->
+                                    <div class="mt-3">
+                                        <label for="customCost" class="form-label">
+                                            <i class="bi bi-plus-circle me-1"></i>
+                                            Chi phí khác (tùy chọn)
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="customCost" 
+                                                   placeholder="Nhập mô tả chi phí khác..." 
+                                                   maxlength="255">
+                                            <button type="button" 
+                                                    class="btn btn-outline-primary" 
+                                                    onclick="addCustomCost()">
+                                                <i class="bi bi-plus"></i>
+                                                Chọn
+                                            </button>
+                                        </div>
+                                        <div class="form-text">Ví dụ: Sửa khóa cửa, Thay thảm, Phí gửi xe...</div>
+                                    </div>
+                                    
+                                    <!-- Hiển thị chi phí đã chọn -->
+                                    <div class="mt-3" id="selectedCost" style="display: none;">
+                                        <h6 class="text-primary">Chi phí đã chọn:</h6>
+                                        <div id="costDisplay" class="d-flex flex-wrap gap-2"></div>
+                                    </div>
+                                </div>
+                                
                                 <!-- Cost Information Section -->
                                 <div class="form-section">
                                     <h5 class="section-title">
@@ -373,21 +547,8 @@
                                     </h5>
                                     
                                     <div class="row">
-                                        <div class="col-md-12 mb-3">
-                                            <label for="description" class="form-label">
-                                                Mô tả chi phí <span class="required-field">*</span>
-                                            </label>
-                                            <textarea class="form-control" 
-                                                      id="description" 
-                                                      name="description" 
-                                                      rows="3" 
-                                                      placeholder="Ví dụ: Sửa chữa điều hòa, thay bóng đèn, phạt vi phạm nội quy..."
-                                                      maxlength="255" 
-                                                      required>${additionalCost.description}</textarea>
-                                            <div class="form-text">
-                                                Tối đa 255 ký tự. <span id="descriptionCount">0</span>/255
-                                            </div>
-                                        </div>
+                                        <!-- Hidden input for description -->
+                                        <input type="hidden" name="description" id="descriptionHidden" value="">
                                         
                                         <div class="col-md-6 mb-3">
                                             <label for="amount" class="form-label">
@@ -462,7 +623,7 @@
                                                         ${additionalCost.description}
                                                     </c:when>
                                                     <c:otherwise>
-                                                        Chưa nhập
+                                                        Chưa chọn
                                                     </c:otherwise>
                                                 </c:choose>
                                             </div>
@@ -539,6 +700,26 @@
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // ==================== BIẾN TOÀN CỤC ====================
+        
+        let selectedCostDescription = '';
+        
+        // Cost templates data
+        const costTemplates = {
+            'repair_ac': 'Sửa chữa điều hòa',
+            'repair_fan': 'Sửa chữa quạt trần',
+            'repair_light': 'Thay bóng đèn',
+            'repair_plumbing': 'Sửa chữa ống nước',
+            'fine_noise': 'Phạt gây ồn ào',
+            'fine_smoking': 'Phạt hút thuốc trong phòng',
+            'fine_late': 'Phạt trả phòng muộn',
+            'fine_damage': 'Phạt làm hỏng tài sản',
+            'cleaning': 'Dịch vụ vệ sinh phòng',
+            'key_replacement': 'Làm chìa khóa mới',
+            'pest_control': 'Dịch vụ diệt côn trùng',
+            'moving_fee': 'Phí chuyển đồ đạc'
+        };
+        
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Set today's date as default for new costs
@@ -547,20 +728,98 @@
                 document.getElementById('dateString').value = today;
             </c:if>
             
-            // Update character count
-            updateDescriptionCount();
+            // For edit mode, set the existing description
+            <c:if test="${action == 'edit' && not empty additionalCost.description}">
+                selectedCostDescription = '${additionalCost.description}';
+                document.getElementById('descriptionHidden').value = selectedCostDescription;
+                updateSelectedCostDisplay();
+                updatePreviewDescription();
+            </c:if>
             
             // Add event listeners
-            document.getElementById('description').addEventListener('input', function() {
-                updateDescriptionCount();
-                updatePreviewDescription();
-            });
-            
             document.getElementById('amount').addEventListener('input', updateAmountDisplay);
             document.getElementById('dateString').addEventListener('change', updatePreviewDate);
+            
+            // Handle Enter key in custom cost input
+            document.getElementById('customCost').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomCost();
+                }
+            });
         });
         
-        // Tenant selection functions
+        // ==================== COST TEMPLATE FUNCTIONS ====================
+        
+        function selectCostTemplate(templateKey) {
+            const template = costTemplates[templateKey];
+            if (!template) return;
+            
+            // Clear previous selections
+            document.querySelectorAll('.cost-template-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Mark as selected
+            event.target.closest('.cost-template-item').classList.add('selected');
+            
+            // Set cost description
+            selectedCostDescription = template;
+            
+            // Update display
+            updateSelectedCostDisplay();
+            updatePreviewDescription();
+        }
+        
+        function addCustomCost() {
+            const input = document.getElementById('customCost');
+            const value = input.value.trim();
+            
+            if (value) {
+                // Clear template selections
+                document.querySelectorAll('.cost-template-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                selectedCostDescription = value;
+                input.value = '';
+                updateSelectedCostDisplay();
+                updatePreviewDescription();
+            }
+        }
+        
+        function updateSelectedCostDisplay() {
+            const container = document.getElementById('selectedCost');
+            const display = document.getElementById('costDisplay');
+            
+            if (selectedCostDescription) {
+                container.style.display = 'block';
+                display.innerHTML = 
+                    '<span class="badge bg-primary" style="font-size: 1em; padding: 8px 12px;">' +
+                        '<i class="bi bi-check-circle me-1"></i>' +
+                        selectedCostDescription +
+                        '<button type="button" class="btn-close btn-close-white ms-2" ' +
+                                'onclick="clearSelectedCost()" ' +
+                                'style="font-size: 0.8em;"></button>' +
+                    '</span>';
+                
+                // Update hidden input
+                document.getElementById('descriptionHidden').value = selectedCostDescription;
+            } else {
+                container.style.display = 'none';
+            }
+        }
+        
+        function clearSelectedCost() {
+            selectedCostDescription = '';
+            document.querySelectorAll('.cost-template-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            updateSelectedCostDisplay();
+            updatePreviewDescription();
+        }
+        
+        // ==================== TENANT SELECTION FUNCTIONS ====================
         function selectTenant(tenantId, tenantName, roomName) {
             // Clear previous selections
             document.querySelectorAll('.tenant-card').forEach(card => {
@@ -589,24 +848,10 @@
             });
         }
         
-        // Preview update functions
-        function updateDescriptionCount() {
-            const description = document.getElementById('description').value;
-            const count = description.length;
-            document.getElementById('descriptionCount').textContent = count;
-            
-            const countElement = document.getElementById('descriptionCount');
-            if (count > 240) {
-                countElement.className = 'text-warning';
-            } else if (count > 255) {
-                countElement.className = 'text-danger';
-            } else {
-                countElement.className = '';
-            }
-        }
+        // ==================== PREVIEW UPDATE FUNCTIONS ====================
         
         function updatePreviewDescription() {
-            const description = document.getElementById('description').value || 'Chưa nhập';
+            const description = selectedCostDescription || 'Chưa chọn';
             document.getElementById('previewDescription').textContent = description;
         }
         
@@ -633,7 +878,8 @@
             }
         }
         
-        // Form validation
+        // ==================== FORM VALIDATION ====================
+        
         document.getElementById('additionalCostForm').addEventListener('submit', function(e) {
             <c:if test="${action == 'add'}">
                 const tenantId = document.getElementById('selectedTenantId').value;
@@ -644,6 +890,13 @@
                 }
             </c:if>
             
+            // Validate cost description
+            if (!selectedCostDescription.trim()) {
+                e.preventDefault();
+                alert('Vui lòng chọn hoặc nhập mô tả chi phí!');
+                return false;
+            }
+            
             const amount = parseFloat(document.getElementById('amount').value);
             if (amount < 1000 || amount > 99999999) {
                 e.preventDefault();
@@ -651,12 +904,8 @@
                 return false;
             }
             
-            const description = document.getElementById('description').value.trim();
-            if (description.length === 0 || description.length > 255) {
-                e.preventDefault();
-                alert('Mô tả chi phí không được để trống và không quá 255 ký tự!');
-                return false;
-            }
+            // Update hidden input before submit
+            document.getElementById('descriptionHidden').value = selectedCostDescription;
         });
     </script>
 </body>
