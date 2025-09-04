@@ -124,12 +124,12 @@ public class TenantController {
         User user = (User) session.getAttribute("user");
         List<Room> rooms;
         
-        // Handle search functionality
+        // Handle search functionality - only show AVAILABLE and OCCUPIED rooms
         if (search != null && !search.trim().isEmpty()) {
-            rooms = roomDAO.searchRooms(search.trim());
+            rooms = roomDAO.searchRoomsForTenantManagement(search.trim());
             model.addAttribute("searchTerm", search.trim());
         } else {
-            rooms = roomDAO.getAllRooms();
+            rooms = roomDAO.getRoomsForTenantManagement();
         }
         
         // Prepare room-based data

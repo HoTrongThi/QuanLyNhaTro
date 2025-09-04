@@ -321,7 +321,8 @@ public class TenantDAO {
     }
     
     /**
-     * Get available rooms (rooms with less than 4 tenants)
+     * Get available rooms (rooms with less than 4 tenants, excluding SUSPENDED and RESERVED)
+     * Excludes rooms that are suspended or already reserved
      */
     public List<Room> getAvailableRooms() {
         List<Room> rooms = new ArrayList<>();
@@ -334,7 +335,7 @@ public class TenantDAO {
                     "    WHERE (end_date IS NULL OR end_date > CURRENT_DATE) " +
                     "    GROUP BY room_id" +
                     ") tenant_count ON r.room_id = tenant_count.room_id " +
-                    "WHERE COALESCE(tenant_count.count, 0) < 4 " +
+                    "WHERE r.status NOT IN ('SUSPENDED', 'RESERVED') AND COALESCE(tenant_count.count, 0) < 4 " +
                     "ORDER BY r.room_name";
         
         try (Connection conn = DBConnection.getConnection();

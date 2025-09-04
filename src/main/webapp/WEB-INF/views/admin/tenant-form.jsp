@@ -358,9 +358,9 @@
                                 Chọn Phòng trọ <span class="required-field">*</span>
                             </h5>
                             
-                            <div class="alert alert-success mb-3">
-                                <i class="bi bi-people me-2"></i>
-                                <strong>Thông tin:</strong> Chỉ hiển thị các phòng còn chỗ trống (dưới 4 người). Số trong ngoặc cho biết số người hiện tại/tối đa.
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Thông tin:</strong> Hiển thị các phòng còn chỗ (dưới 4 người). Các phòng đã đặt cọc hoặc ngưng sử dụng sẽ không xuất hiện ở đây.
                             </div>
                             
                             <c:choose>

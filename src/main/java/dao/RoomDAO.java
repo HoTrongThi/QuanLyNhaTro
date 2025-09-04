@@ -455,6 +455,83 @@ public class RoomDAO {
     }
     
     /**
+     * Get rooms for tenant management (only AVAILABLE and OCCUPIED status)
+     * Used in tenant management page to show only relevant rooms
+     * @return List of rooms with AVAILABLE or OCCUPIED status
+     */
+    public List<Room> getRoomsForTenantManagement() {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT * FROM rooms WHERE status IN ('AVAILABLE', 'OCCUPIED') ORDER BY room_name";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Room room = new Room();
+                room.setRoomId(rs.getInt("room_id"));
+                room.setRoomName(rs.getString("room_name"));
+                room.setPrice(rs.getBigDecimal("price"));
+                room.setStatus(rs.getString("status"));
+                room.setDescription(rs.getString("description"));
+                room.setAmenities(rs.getString("amenities"));
+                
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting rooms for tenant management: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    /**
+     * Search rooms by name or tenant name (for tenant management - only AVAILABLE and OCCUPIED)
+     * @param searchTerm Search term to find rooms
+     * @return List of rooms matching the search criteria with AVAILABLE or OCCUPIED status
+     */
+    public List<Room> searchRoomsForTenantManagement(String searchTerm) {
+        List<Room> rooms = new ArrayList<>();
+        String sql = "SELECT DISTINCT r.* FROM rooms r " +
+                    "LEFT JOIN tenants t ON r.room_id = t.room_id AND t.end_date IS NULL " +
+                    "LEFT JOIN users u ON t.user_id = u.user_id " +
+                    "WHERE r.status IN ('AVAILABLE', 'OCCUPIED') " +
+                    "  AND (LOWER(r.room_name) LIKE LOWER(?) " +
+                    "       OR LOWER(u.full_name) LIKE LOWER(?)) " +
+                    "ORDER BY r.room_name";
+        
+        String searchPattern = "%" + searchTerm.trim() + "%";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, searchPattern);
+            stmt.setString(2, searchPattern);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = new Room();
+                room.setRoomId(rs.getInt("room_id"));
+                room.setRoomName(rs.getString("room_name"));
+                room.setPrice(rs.getBigDecimal("price"));
+                room.setStatus(rs.getString("status"));
+                room.setDescription(rs.getString("description"));
+                room.setAmenities(rs.getString("amenities"));
+                
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching rooms for tenant management: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    /**
      * Search rooms by name or tenant name
      * @param searchTerm Search term to find rooms
      * @return List of rooms matching the search criteria
