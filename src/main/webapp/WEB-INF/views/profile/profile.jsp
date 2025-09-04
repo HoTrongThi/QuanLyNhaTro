@@ -223,152 +223,82 @@
                         </div>
                     </div>
         
-                    <div class="row">
-                        <!-- Personal Information -->
-                        <div class="col-lg-6 mb-4">
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="bi bi-person-card me-2"></i>
-                                        Thông tin cá nhân
-                                    </h5>
+                    <!-- Personal Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="bi bi-person-card me-2"></i>
+                                Thông tin cá nhân
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="bi bi-person"></i>
                                 </div>
-                                <div class="card-body">
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-person"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Họ và tên</div>
-                                            <div class="info-value fw-bold">${user.fullName}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-envelope"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Email</div>
-                                            <div class="info-value">${user.email}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-telephone"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Số điện thoại</div>
-                                            <div class="info-value">
-                                                <c:choose>
-                                                    <c:when test="${not empty user.phone}">
-                                                        ${user.phone}
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="text-muted">Chưa cập nhật</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-geo-alt"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Địa chỉ</div>
-                                            <div class="info-value">
-                                                <c:choose>
-                                                    <c:when test="${not empty user.address}">
-                                                        ${user.address}
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <span class="text-muted">Chưa cập nhật</span>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="info-item">
-                                        <div class="info-icon">
-                                            <i class="bi bi-calendar-plus"></i>
-                                        </div>
-                                        <div class="info-content">
-                                            <div class="info-label">Ngày tham gia</div>
-                                            <div class="info-value">
-                                                <fmt:formatDate value="${user.createdAt}" pattern="dd/MM/yyyy"/>
-                                            </div>
-                                        </div>
+                                <div class="info-content">
+                                    <div class="info-label">Họ và tên</div>
+                                    <div class="info-value fw-bold">${user.fullName}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="bi bi-envelope"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label">Email</div>
+                                    <div class="info-value">${user.email}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="bi bi-telephone"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label">Số điện thoại</div>
+                                    <div class="info-value">
+                                        <c:choose>
+                                            <c:when test="${not empty user.phone}">
+                                                ${user.phone}
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="text-muted">Chưa cập nhật</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Rental Information -->
-                        <div class="col-lg-6 mb-4">
-                            <div class="card h-100">
-                                <div class="card-header">
-                                    <h5 class="mb-0">
-                                        <i class="bi bi-house me-2"></i>
-                                        Thông tin thuê trọ
-                                    </h5>
+                            
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="bi bi-geo-alt"></i>
                                 </div>
-                                <div class="card-body">
-                                    <c:choose>
-                                        <c:when test="${currentTenant != null}">
-                                            <div class="current-rental">
-                                                <div class="d-flex align-items-center mb-3">
-                                                    <div class="rental-icon me-3">
-                                                        <i class="bi bi-house-door"></i>
-                                                    </div>
-                                                    <div>
-                                                        <h6 class="mb-0">Đang thuê: ${currentTenant.roomName}</h6>
-                                                        <small class="text-success">Hợp đồng đang có hiệu lực</small>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row">
-                                                    <div class="col-6">
-                                                        <div class="info-label">Giá phòng/tháng</div>
-                                                        <div class="info-value text-success fw-bold">
-                                                            <fmt:formatNumber value="${currentTenant.roomPrice}" 
-                                                                            type="currency" 
-                                                                            currencySymbol="₫" 
-                                                                            groupingUsed="true"/>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-6">
-                                                        <div class="info-label">Ngày bắt đầu</div>
-                                                        <div class="info-value">
-                                                            <fmt:formatDate value="${currentTenant.startDate}" pattern="dd/MM/yyyy"/>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="text-center">
-                                                <p class="text-muted">Bạn đang thuê phòng tại hệ thống của chúng tôi.</p>
-                                                <a href="${pageContext.request.contextPath}/user/room" class="btn btn-outline-success me-2">
-                                                    <i class="bi bi-house-door me-2"></i>
-                                                    Xem thông tin phòng
-                                                </a>
-                                                <a href="${pageContext.request.contextPath}/user/bills" class="btn btn-outline-info">
-                                                    <i class="bi bi-receipt me-2"></i>
-                                                    Xem hóa đơn
-                                                </a>
-                                            </div>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <div class="text-center py-4">
-                                                <i class="bi bi-house-x text-muted" style="font-size: 3rem;"></i>
-                                                <h6 class="text-muted mt-3">Hiện tại bạn chưa thuê phòng nào</h6>
-                                                <p class="text-muted">Liên hệ với quản lý để được hỗ trợ thuê phòng phù hợp.</p>
-                                            </div>
-                                        </c:otherwise>
-                                    </c:choose>
+                                <div class="info-content">
+                                    <div class="info-label">Địa chỉ</div>
+                                    <div class="info-value">
+                                        <c:choose>
+                                            <c:when test="${not empty user.address}">
+                                                ${user.address}
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="text-muted">Chưa cập nhật</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="info-item">
+                                <div class="info-icon">
+                                    <i class="bi bi-calendar-plus"></i>
+                                </div>
+                                <div class="info-content">
+                                    <div class="info-label">Ngày tham gia</div>
+                                    <div class="info-value">
+                                        <fmt:formatDate value="${user.createdAt}" pattern="dd/MM/yyyy"/>
+                                    </div>
                                 </div>
                             </div>
                         </div>

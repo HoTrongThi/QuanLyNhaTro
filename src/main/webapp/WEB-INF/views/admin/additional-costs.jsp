@@ -309,54 +309,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-success">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="text-muted mb-1">Tháng này</h6>
-                                            <h3 class="mb-0 text-success">
-                                                <c:set var="thisMonthCount" value="0" />
-                                                <c:forEach var="cost" items="${additionalCosts}">
-                                                    <fmt:formatDate var="costMonth" value="${cost.date}" pattern="MM/yyyy" />
-                                                    <fmt:formatDate var="currentMonth" value="<%=new java.util.Date()%>" pattern="MM/yyyy" />
-                                                    <c:if test="${costMonth == currentMonth}">
-                                                        <c:set var="thisMonthCount" value="${thisMonthCount + 1}" />
-                                                    </c:if>
-                                                </c:forEach>
-                                                ${thisMonthCount}
-                                            </h3>
-                                        </div>
-                                        <div class="text-success">
-                                            <i class="bi bi-calendar-check fs-1"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <div class="card border-success">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="text-muted mb-1">Đã thanh toán</h6>
-                                            <h3 class="mb-0 text-success">
-                                                <c:set var="paidCount" value="0" />
-                                                <c:forEach var="cost" items="${additionalCosts}">
-                                                    <c:if test="${cost.paymentStatus == 'PAID'}">
-                                                        <c:set var="paidCount" value="${paidCount + 1}" />
-                                                    </c:if>
-                                                </c:forEach>
-                                                ${paidCount}
-                                            </h3>
-                                        </div>
-                                        <div class="text-success">
-                                            <i class="bi bi-check-circle fs-1"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
                         <div class="col-md-4 mb-3">
                             <div class="card border-warning">
                                 <div class="card-body">

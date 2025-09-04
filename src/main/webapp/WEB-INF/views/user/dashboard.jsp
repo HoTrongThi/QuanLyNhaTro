@@ -200,13 +200,17 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <div class="card bg-warning text-white">
-                                        <div class="card-body text-center">
-                                            <i class="bi bi-receipt fs-1 mb-2"></i>
-                                            <h3>0</h3>
-                                            <p class="mb-0">Hóa đơn chờ thanh toán</p>
+                                    <a href="${pageContext.request.contextPath}/user/bills" class="text-decoration-none">
+                                        <div class="card bg-warning text-white" style="cursor: pointer; transition: transform 0.2s;" 
+                                             onmouseover="this.style.transform='translateY(-2px)'" 
+                                             onmouseout="this.style.transform='translateY(0)'">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-receipt fs-1 mb-2"></i>
+                                                <h3>${unpaidBillsCount}</h3>
+                                                <p class="mb-0">Hóa đơn chưa thanh toán</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </a>
                                 </div>
                             </div>
                         </c:when>
@@ -232,56 +236,6 @@
                         </c:otherwise>
                     </c:choose>
                     
-                    <!-- User Info Card -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-person-badge me-2"></i>
-                                Thông tin tài khoản
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <strong>Tên đăng nhập:</strong> ${user.username}
-                                    </div>
-                                    <div class="mb-3">
-                                        <strong>Họ và tên:</strong> ${user.fullName}
-                                    </div>
-                                    <div class="mb-3">
-                                        <strong>Email:</strong> ${user.email}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <strong>Số điện thoại:</strong> 
-                                        <c:choose>
-                                            <c:when test="${not empty user.phone}">${user.phone}</c:when>
-                                            <c:otherwise><span class="text-muted">Chưa cập nhật</span></c:otherwise>
-                                        </c:choose>
-                                    </div>
-                                    <div class="mb-3">
-                                        <strong>Địa chỉ:</strong> 
-                                        <c:choose>
-                                            <c:when test="${not empty user.address}">${user.address}</c:when>
-                                            <c:otherwise><span class="text-muted">Chưa cập nhật</span></c:otherwise>
-                                        </c:choose>
-                                    </div>
-                                    <div class="mb-3">
-                                        <strong>Ngày tạo tài khoản:</strong> ${user.createdAt}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-end">
-                                <a href="${pageContext.request.contextPath}/user/profile" 
-                                   class="btn btn-outline-primary">
-                                    <i class="bi bi-pencil me-1"></i>
-                                    Chỉnh sửa thông tin
-                                </a>
-                            </div>
-                        </div>
-                    </div>
                     
                     <!-- Quick Actions -->
                     <div class="card">
@@ -301,10 +255,10 @@
                                     </a>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <a href="${pageContext.request.contextPath}/user/bills" 
-                                       class="btn btn-outline-warning btn-lg w-100">
-                                        <i class="bi bi-receipt fs-4 d-block mb-2"></i>
-                                        Xem hóa đơn
+                                    <a href="${pageContext.request.contextPath}/user/profile" 
+                                       class="btn btn-outline-primary btn-lg w-100">
+                                        <i class="bi bi-person fs-4 d-block mb-2"></i>
+                                        Xem thông tin cá nhân
                                     </a>
                                 </div>
                             </div>

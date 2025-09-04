@@ -99,8 +99,20 @@ public class UserController {
         // Get current tenant information if user is a tenant
         Tenant currentTenant = tenantDAO.getActiveTenantByUserId(user.getUserId());
         
+        // Get unpaid bills count for dashboard
+        int unpaidBillsCount = 0;
+        if (currentTenant != null) {
+            List<Invoice> allInvoices = getInvoicesForUser(user);
+            for (Invoice invoice : allInvoices) {
+                if (!"PAID".equals(invoice.getStatus())) {
+                    unpaidBillsCount++;
+                }
+            }
+        }
+        
         model.addAttribute("user", user);
         model.addAttribute("currentTenant", currentTenant);
+        model.addAttribute("unpaidBillsCount", unpaidBillsCount);
         model.addAttribute("pageTitle", "Bảng điều khiển Người dùng");
         
         return "user/dashboard";
