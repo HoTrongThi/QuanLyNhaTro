@@ -349,6 +349,14 @@ public class AdminManagement {
     }
     
     /**
+     * Lấy CSS class cho trạng thái (alias cho getStatusBadgeClass)
+     * @return CSS class phù hợp với trạng thái
+     */
+    public String getStatusCssClass() {
+        return getStatusBadgeClass();
+    }
+    
+    /**
      * Lấy icon cho trạng thái
      * @return Bootstrap icon class
      */

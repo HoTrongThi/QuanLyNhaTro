@@ -14,13 +14,15 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Controller quản lý Phòng trọ
+ * Controller quản lý Phòng trọ với Admin Data Isolation
  * Xử lý các thao tác CRUD cho phòng trọ dành cho quản trị viên
  * Bao gồm thêm, sửa, xóa, xem chi tiết và quản lý trạng thái phòng
  * Kiểm tra quyền truy cập và validation dữ liệu đầy đủ
+ * Mỗi Admin chỉ thấy và quản lý phòng của mình
+ * Super Admin thấy tất cả phòng
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -58,6 +60,22 @@ public class RoomController {
         return null; // Có quyền truy cập
     }
     
+    /**
+     * Lấy Admin ID từ session
+     * Super Admin trả về null (thấy tất cả)
+     * Admin thường trả về user_id của mình
+     * 
+     * @param session HTTP Session
+     * @return Admin ID hoặc null cho Super Admin
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
     // ==================== CÁC PHƯƠNG THỨC HIỂN THỊ TRANG ====================
     
     /**
@@ -78,22 +96,25 @@ public class RoomController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Room> rooms = roomDAO.getAllRooms();
+        Integer adminId = getAdminId(session);
+        
+        // Lấy danh sách phòng theo admin
+        List<Room> rooms = roomDAO.getRoomsByAdmin(adminId);
         
         // Truyền dữ liệu đến view
         model.addAttribute("user", user);
         model.addAttribute("rooms", rooms);
         model.addAttribute("pageTitle", "Quản lý Phòng trọ");
         
-        // Thống kê phòng theo trạng thái
-        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());
-        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCount());
-        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());
-        model.addAttribute("maintenanceRooms", roomDAO.getMaintenanceRoomCount());
-        model.addAttribute("reservedRooms", roomDAO.getReservedRoomCount());
-        model.addAttribute("suspendedRooms", roomDAO.getSuspendedRoomCount());
-        model.addAttribute("cleaningRooms", roomDAO.getCleaningRoomCount());
-        model.addAttribute("contractExpiredRooms", roomDAO.getContractExpiredRoomCount());
+        // Thống kê phòng theo trạng thái và admin
+        model.addAttribute("totalRooms", roomDAO.getTotalRoomCountByAdmin(adminId));
+        model.addAttribute("availableRooms", roomDAO.getAvailableRoomCountByAdmin(adminId));
+        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCountByAdmin(adminId));
+        model.addAttribute("maintenanceRooms", roomDAO.getMaintenanceRoomCountByAdmin(adminId));
+        model.addAttribute("reservedRooms", roomDAO.getRoomCountByStatusAndAdmin("RESERVED", adminId));
+        model.addAttribute("suspendedRooms", roomDAO.getRoomCountByStatusAndAdmin("SUSPENDED", adminId));
+        model.addAttribute("cleaningRooms", roomDAO.getRoomCountByStatusAndAdmin("CLEANING", adminId));
+        model.addAttribute("contractExpiredRooms", roomDAO.getRoomCountByStatusAndAdmin("CONTRACT_EXPIRED", adminId));
         
         return "admin/rooms";
     }
@@ -139,9 +160,12 @@ public class RoomController {
             return "redirect:/admin/rooms/add";
         }
         
-        // Check if room name already exists
-        if (roomDAO.roomNameExists(room.getRoomName().trim())) {
-            redirectAttributes.addFlashAttribute("error", "Tên phòng đã tồn tại");
+        User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
+        
+        // Check if room name already exists in admin scope
+        if (roomDAO.roomNameExistsInAdmin(room.getRoomName().trim(), adminId, 0)) {
+            redirectAttributes.addFlashAttribute("error", "Tên phòng đã tồn tại trong phạm vi quản lý của bạn");
             return "redirect:/admin/rooms/add";
         }
         
@@ -161,8 +185,14 @@ public class RoomController {
             room.setAmenities("[]");
         }
         
-        // Add room
-        boolean success = roomDAO.addRoom(room);
+        // Add room with admin ID
+        boolean success;
+        if (adminId != null) {
+            success = roomDAO.addRoomWithAdmin(room, adminId);
+        } else {
+            // Super Admin - use legacy method with default admin
+            success = roomDAO.addRoom(room);
+        }
         
         if (success) {
             redirectAttributes.addFlashAttribute("success", "Thêm phòng thành công!");
@@ -187,9 +217,10 @@ public class RoomController {
             return accessCheck;
         }
         
-        Room room = roomDAO.getRoomById(id);
+        Integer adminId = getAdminId(session);
+        Room room = roomDAO.getRoomByIdAndAdmin(id, adminId);
         if (room == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/rooms";
         }
         
@@ -218,10 +249,12 @@ public class RoomController {
             return accessCheck;
         }
         
-        // Verify room exists
-        Room existingRoom = roomDAO.getRoomById(id);
+        Integer adminId = getAdminId(session);
+        
+        // Verify room exists and admin has access
+        Room existingRoom = roomDAO.getRoomByIdAndAdmin(id, adminId);
         if (existingRoom == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/rooms";
         }
         
@@ -232,9 +265,9 @@ public class RoomController {
             return "redirect:/admin/rooms/edit/" + id;
         }
         
-        // Check if room name already exists (excluding current room)
-        if (roomDAO.roomNameExists(room.getRoomName().trim(), id)) {
-            redirectAttributes.addFlashAttribute("error", "Tên phòng đã tồn tại");
+        // Check if room name already exists in admin scope (excluding current room)
+        if (roomDAO.roomNameExistsInAdmin(room.getRoomName().trim(), adminId, id)) {
+            redirectAttributes.addFlashAttribute("error", "Tên phòng đã tồn tại trong phạm vi quản lý của bạn");
             return "redirect:/admin/rooms/edit/" + id;
         }
         
@@ -252,8 +285,8 @@ public class RoomController {
             room.setAmenities("[]");
         }
         
-        // Update room
-        boolean success = roomDAO.updateRoom(room);
+        // Update room with admin check
+        boolean success = roomDAO.updateRoomWithAdmin(room, adminId);
         
         if (success) {
             redirectAttributes.addFlashAttribute("success", "Cập nhật phòng thành công!");
@@ -277,9 +310,10 @@ public class RoomController {
             return accessCheck;
         }
         
-        Room room = roomDAO.getRoomById(id);
+        Integer adminId = getAdminId(session);
+        Room room = roomDAO.getRoomByIdAndAdmin(id, adminId);
         if (room == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/rooms";
         }
         
@@ -295,7 +329,7 @@ public class RoomController {
             return "redirect:/admin/rooms";
         }
         
-        boolean success = roomDAO.deleteRoom(id);
+        boolean success = roomDAO.deleteRoomWithAdmin(id, adminId);
         
         if (success) {
             redirectAttributes.addFlashAttribute("success", "Xóa phòng thành công!");
@@ -320,9 +354,10 @@ public class RoomController {
             return accessCheck;
         }
         
-        Room room = roomDAO.getRoomById(id);
+        Integer adminId = getAdminId(session);
+        Room room = roomDAO.getRoomByIdAndAdmin(id, adminId);
         if (room == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/rooms";
         }
         

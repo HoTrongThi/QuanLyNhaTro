@@ -27,13 +27,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller quản lý Người thuê
+ * Controller quản lý Người thuê với Admin Data Isolation
  * Xử lý phân công người thuê và quản lý hồ sơ người dùng
  * Bao gồm thêm người thuê, kết thúc hợp đồng, chuyển phòng và gán dịch vụ
  * Tự động khởi tạo chỉ số công tơ và sử dụng dịch vụ ban đầu
+ * Mỗi Admin chỉ thấy và quản lý tenant trong phòng của mình
+ * Super Admin thấy tất cả tenants
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -111,6 +113,19 @@ public class TenantController {
     }
     
     /**
+     * Lấy Admin ID từ session cho data isolation
+     * Super Admin trả về null (thấy tất cả)
+     * Admin thường trả về user_id của mình
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
+    /**
      * Show tenants management page (Room-based view)
      */
     @GetMapping("/tenants")
@@ -122,14 +137,15 @@ public class TenantController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         List<Room> rooms;
         
-        // Handle search functionality - only show AVAILABLE and OCCUPIED rooms
+        // Handle search functionality - only show AVAILABLE and OCCUPIED rooms for admin
         if (search != null && !search.trim().isEmpty()) {
-            rooms = roomDAO.searchRoomsForTenantManagement(search.trim());
+            rooms = roomDAO.searchRoomsForTenantManagementByAdmin(search.trim(), adminId);
             model.addAttribute("searchTerm", search.trim());
         } else {
-            rooms = roomDAO.getRoomsForTenantManagement();
+            rooms = roomDAO.getRoomsForTenantManagementByAdmin(adminId);
         }
         
         // Prepare room-based data
@@ -180,9 +196,9 @@ public class TenantController {
         model.addAttribute("roomTenantCounts", roomTenantCounts);
         model.addAttribute("roomServicesMap", roomServicesMap);
         model.addAttribute("pageTitle", "Quản lý Thuê trọ");
-        model.addAttribute("totalTenants", tenantDAO.getTotalTenantCount());
-        model.addAttribute("activeTenants", tenantDAO.getActiveTenantCount());
-        model.addAttribute("inactiveTenants", tenantDAO.getInactiveTenantCount());
+        model.addAttribute("totalTenants", tenantDAO.getTotalTenantCountByAdmin(adminId));
+        model.addAttribute("activeTenants", tenantDAO.getActiveTenantCountByAdmin(adminId));
+        model.addAttribute("inactiveTenants", tenantDAO.getInactiveTenantCountByAdmin(adminId));
         
         return "admin/tenants";
     }
@@ -199,14 +215,16 @@ public class TenantController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<User> availableUsers = tenantDAO.getAvailableUsers();
-        List<Room> availableRooms = tenantDAO.getAvailableRooms();
-        List<Service> availableServices = serviceDAO.getAllServices();
+        Integer adminId = getAdminId(session);
         
-        // If roomId is provided, set it as selected
+        List<User> availableUsers = tenantDAO.getAvailableUsersByAdmin(adminId);
+        List<Room> availableRooms = tenantDAO.getAvailableRoomsByAdmin(adminId);
+        List<Service> availableServices = serviceDAO.getServicesForTenantByAdmin(0, adminId); // 0 = dummy tenant ID for getting available services
+        
+        // If roomId is provided, set it as selected with admin check
         Room selectedRoom = null;
         if (roomId != null) {
-            selectedRoom = roomDAO.getRoomById(roomId);
+            selectedRoom = roomDAO.getRoomByIdAndAdmin(roomId, adminId);
         }
         
         model.addAttribute("user", user);
@@ -414,10 +432,12 @@ public class TenantController {
             return "redirect:/admin/tenants";
         }
         
-        // Get room information
-        Room room = roomDAO.getRoomById(tenant.getRoomId());
+        Integer adminId = getAdminId(session);
+        
+        // Get room information with admin check
+        Room room = roomDAO.getRoomByIdAndAdmin(tenant.getRoomId(), adminId);
         if (room == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/tenants";
         }
         
@@ -543,7 +563,8 @@ public class TenantController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Room> availableRooms = tenantDAO.getAvailableRooms();
+        Integer adminId = getAdminId(session);
+        List<Room> availableRooms = tenantDAO.getAvailableRoomsByAdmin(adminId);
         
         model.addAttribute("user", user);
         model.addAttribute("tenant", tenant);

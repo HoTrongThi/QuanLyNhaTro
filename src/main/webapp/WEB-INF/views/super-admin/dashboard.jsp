@@ -133,16 +133,11 @@
                             <i class="bi bi-person-gear me-2"></i>
                             Quản lý Admin
                         </a>
-
                         <a class="nav-link" href="${pageContext.request.contextPath}/super-admin/audit-logs">
                             <i class="bi bi-journal-text me-2"></i>
                             Nhật ký hoạt động
                         </a>
                         <hr class="text-light">
-                        <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
-                            <i class="bi bi-arrow-left-circle me-2"></i>
-                            Chế độ Admin
-                        </a>
                         <a class="nav-link text-warning" href="${pageContext.request.contextPath}/logout">
                             <i class="bi bi-box-arrow-right me-2"></i>
                             Đăng xuất
@@ -170,7 +165,6 @@
                                     <li><a class="dropdown-item" href="#">Thông tin cá nhân</a></li>
                                     <li><a class="dropdown-item" href="#">Cài đặt hệ thống</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/admin/dashboard">Chế độ Admin</a></li>
                                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">Đăng xuất</a></li>
                                 </ul>
                             </div>

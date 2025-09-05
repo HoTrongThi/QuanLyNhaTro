@@ -37,7 +37,19 @@ public class SuperAdminDAO {
      */
     public List<AdminManagement> getAllManagedAdmins(int superAdminId) {
         List<AdminManagement> adminList = new ArrayList<>();
-        String sql = "SELECT * FROM v_admin_management WHERE super_admin_id = ? ORDER BY assigned_date DESC";
+        
+        // Query đơn giản hơn để tránh lỗi
+        String sql = """
+            SELECT am.*, 
+                   sa.username as super_admin_username, sa.full_name as super_admin_name,
+                   a.username as admin_username, a.full_name as admin_name, 
+                   a.email as admin_email, a.phone as admin_phone, a.created_at as admin_created_at
+            FROM admin_management am
+            JOIN users sa ON am.super_admin_id = sa.user_id
+            JOIN users a ON am.admin_id = a.user_id
+            WHERE am.super_admin_id = ?
+            ORDER BY am.assigned_date DESC
+            """;
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -47,6 +59,10 @@ public class SuperAdminDAO {
             
             while (rs.next()) {
                 AdminManagement admin = mapResultSetToAdminManagement(rs);
+                
+                // Tính toán thống kê riêng biệt cho từng admin
+                calculateAdminStatistics(conn, admin);
+                
                 adminList.add(admin);
             }
             
@@ -56,6 +72,95 @@ public class SuperAdminDAO {
         }
         
         return adminList;
+    }
+    
+    /**
+     * Tính toán thống kê cho một admin cụ thể
+     */
+    private void calculateAdminStatistics(Connection conn, AdminManagement admin) {
+        try {
+            // 1. Đếm số phòng quản lý
+            int totalRooms = getAdminRoomCount(conn, admin.getAdminId());
+            admin.setTotalRoomsManaged(totalRooms);
+            
+            // 2. Đếm số người thuê
+            int totalUsers = getAdminUserCount(conn, admin.getAdminId());
+            admin.setTotalUsersManaged(totalUsers);
+            
+            // 3. Đếm hóa đơn nợ
+            int unpaidInvoices = getAdminUnpaidInvoices(conn, admin.getAdminId());
+            admin.setUnpaidInvoices(unpaidInvoices);
+            
+        } catch (SQLException e) {
+            System.err.println("Error calculating admin statistics for admin " + admin.getAdminId() + ": " + e.getMessage());
+            // Set default values if calculation fails
+            admin.setTotalRoomsManaged(0);
+            admin.setTotalUsersManaged(0);
+            admin.setUnpaidInvoices(0);
+        }
+    }
+    
+    /**
+     * Đếm số phòng của admin
+     */
+    private int getAdminRoomCount(Connection conn, int adminId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM rooms WHERE managed_by_admin_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, adminId);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (SQLException e) {
+            // Nếu cột managed_by_admin_id chưa tồn tại, trả về 0
+            System.err.println("Warning: Could not count rooms for admin " + adminId + ": " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Đếm số người thuê của admin
+     */
+    private int getAdminUserCount(Connection conn, int adminId) throws SQLException {
+        try {
+            String sql = """
+                SELECT COUNT(DISTINCT t.user_id) 
+                FROM rooms r 
+                JOIN tenants t ON r.room_id = t.room_id 
+                WHERE r.managed_by_admin_id = ? AND (t.end_date IS NULL OR t.end_date > CURRENT_DATE)
+                """;
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, adminId);
+                ResultSet rs = stmt.executeQuery();
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            // Nếu cột managed_by_admin_id chưa tồn tại, trả về 0
+            System.err.println("Warning: Could not count users for admin " + adminId + ": " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Đếm hóa đơn nợ của admin
+     */
+    private int getAdminUnpaidInvoices(Connection conn, int adminId) throws SQLException {
+        try {
+            String sql = """
+                SELECT COUNT(i.invoice_id) 
+                FROM rooms r 
+                JOIN tenants t ON r.room_id = t.room_id 
+                JOIN invoices i ON t.tenant_id = i.tenant_id 
+                WHERE r.managed_by_admin_id = ? AND i.status = 'UNPAID'
+                """;
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, adminId);
+                ResultSet rs = stmt.executeQuery();
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            // Nếu cột managed_by_admin_id chưa tồn tại, trả về 0
+            System.err.println("Warning: Could not count unpaid invoices for admin " + adminId + ": " + e.getMessage());
+            return 0;
+        }
     }
     
     /**
@@ -649,13 +754,8 @@ public class SuperAdminDAO {
         admin.setAdminPhone(rs.getString("admin_phone"));
         admin.setAdminCreatedAt(rs.getTimestamp("admin_created_at"));
         
-        // Statistics (if available)
-        try {
-            admin.setTotalRoomsManaged(rs.getInt("total_rooms_managed"));
-            admin.setTotalUsersManaged(rs.getInt("total_users_managed"));
-        } catch (SQLException e) {
-            // Columns might not exist in all queries
-        }
+        // Statistics sẽ được tính toán riêng trong calculateAdminStatistics()
+        // Không cần đọc từ ResultSet nữa
         
         return admin;
     }

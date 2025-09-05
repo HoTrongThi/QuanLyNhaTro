@@ -756,4 +756,280 @@ public class TenantDAO {
         
         return unpaidPeriods;
     }
+    
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy số lượng tenant đang hoạt động theo Admin
+     */
+    public int getActiveTenantCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM tenants WHERE (end_date IS NULL OR end_date > CURRENT_DATE)";
+        } else {
+            sql = "SELECT COUNT(*) FROM tenants t " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE) AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting active tenant count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy tổng số tenant theo Admin
+     */
+    public int getTotalTenantCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM tenants";
+        } else {
+            sql = "SELECT COUNT(*) FROM tenants t " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting total tenant count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy số lượng tenant không hoạt động theo Admin
+     */
+    public int getInactiveTenantCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM tenants WHERE end_date IS NOT NULL AND end_date <= CURRENT_DATE";
+        } else {
+            sql = "SELECT COUNT(*) FROM tenants t " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE t.end_date IS NOT NULL AND t.end_date <= CURRENT_DATE AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting inactive tenant count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy danh sách người dùng khả dụng theo Admin
+     * Chỉ hiển thị USER thuộc quyền quản lý của Admin
+     */
+    public List<User> getAvailableUsersByAdmin(Integer adminId) {
+        List<User> users = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả USER khả dụng
+            sql = "SELECT u.user_id, u.username, u.full_name, u.phone, u.email, u.address " +
+                  "FROM users u " +
+                  "WHERE u.role = 'USER' AND u.user_id NOT IN (" +
+                  "    SELECT DISTINCT t.user_id FROM tenants t WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE)" +
+                  ") ORDER BY u.full_name";
+        } else {
+            // Admin - chỉ thấy USER của mình chưa thuê phòng
+            sql = "SELECT u.user_id, u.username, u.full_name, u.phone, u.email, u.address " +
+                  "FROM users u " +
+                  "WHERE u.role = 'USER' AND u.managed_by_admin_id = ? AND u.user_id NOT IN (" +
+                  "    SELECT DISTINCT t.user_id FROM tenants t WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE)" +
+                  ") ORDER BY u.full_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                User user = new User();
+                user.setUserId(rs.getInt("user_id"));
+                user.setUsername(rs.getString("username"));
+                user.setFullName(rs.getString("full_name"));
+                user.setPhone(rs.getString("phone"));
+                user.setEmail(rs.getString("email"));
+                user.setAddress(rs.getString("address"));
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting available users by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Lấy danh sách phòng khả dụng theo Admin
+     */
+    public List<Room> getAvailableRoomsByAdmin(Integer adminId) {
+        List<Room> rooms = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT r.room_id, r.room_name, r.price, r.description, r.status, " +
+                  "COALESCE(tenant_count.count, 0) as current_tenants " +
+                  "FROM rooms r " +
+                  "LEFT JOIN (" +
+                  "    SELECT room_id, COUNT(*) as count " +
+                  "    FROM tenants " +
+                  "    WHERE (end_date IS NULL OR end_date > CURRENT_DATE) " +
+                  "    GROUP BY room_id" +
+                  ") tenant_count ON r.room_id = tenant_count.room_id " +
+                  "WHERE r.status NOT IN ('SUSPENDED', 'RESERVED') AND COALESCE(tenant_count.count, 0) < 4 " +
+                  "ORDER BY r.room_name";
+        } else {
+            sql = "SELECT r.room_id, r.room_name, r.price, r.description, r.status, " +
+                  "COALESCE(tenant_count.count, 0) as current_tenants " +
+                  "FROM rooms r " +
+                  "LEFT JOIN (" +
+                  "    SELECT room_id, COUNT(*) as count " +
+                  "    FROM tenants " +
+                  "    WHERE (end_date IS NULL OR end_date > CURRENT_DATE) " +
+                  "    GROUP BY room_id" +
+                  ") tenant_count ON r.room_id = tenant_count.room_id " +
+                  "WHERE r.status NOT IN ('SUSPENDED', 'RESERVED') AND COALESCE(tenant_count.count, 0) < 4 " +
+                  "AND r.managed_by_admin_id = ? " +
+                  "ORDER BY r.room_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = new Room();
+                room.setRoomId(rs.getInt("room_id"));
+                room.setRoomName(rs.getString("room_name"));
+                room.setPrice(rs.getBigDecimal("price"));
+                room.setDescription(rs.getString("description"));
+                room.setStatus(rs.getString("status"));
+                
+                // Add current tenant count to description for display
+                int currentTenants = rs.getInt("current_tenants");
+                String displayDescription = room.getDescription() != null ? room.getDescription() : "";
+                displayDescription += " (" + currentTenants + "/4 người)";
+                room.setDescription(displayDescription);
+                
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting available rooms by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    /**
+     * Lấy danh sách tenant đang hoạt động theo Admin
+     */
+    public List<Tenant> getActiveTenantsByAdmin(Integer adminId) {
+        List<Tenant> tenants = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT t.tenant_id, t.user_id, t.room_id, t.start_date, t.end_date, " +
+                  "u.username, u.full_name, u.phone, u.email, u.address, " +
+                  "r.room_name, r.price as room_price " +
+                  "FROM tenants t " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE) " +
+                  "ORDER BY t.tenant_id DESC";
+        } else {
+            sql = "SELECT t.tenant_id, t.user_id, t.room_id, t.start_date, t.end_date, " +
+                  "u.username, u.full_name, u.phone, u.email, u.address, " +
+                  "r.room_name, r.price as room_price " +
+                  "FROM tenants t " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE) AND r.managed_by_admin_id = ? " +
+                  "ORDER BY t.tenant_id DESC";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Tenant tenant = mapResultSetToTenant(rs);
+                tenants.add(tenant);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting active tenants by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return tenants;
+    }
 }

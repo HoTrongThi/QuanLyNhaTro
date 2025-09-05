@@ -10,14 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lớp Data Access Object cho Người dùng (Đã cập nhật với Super Admin)
+ * Lớp Data Access Object cho Người dùng với Admin Data Isolation
  * Xử lý tất cả các thao tác cơ sở dữ liệu cho thực thể User
- * Bao gồm đăng ký, đăng nhập, cập nhật thông tin và quản lý người dùng
- * Hỗ trợ 3 vai trò: SUPER_ADMIN, ADMIN, USER
- * Sử dụng BCrypt để mã hóa mật khẩu an toàn
+ * Bao gồm đăng ký, đăng nhập, quản lý thông tin người dùng
+ * Hỗ trợ mã hóa mật khẩu và kiểm tra tính hợp lệ dữ liệu
+ * Mỗi Admin chỉ thấy và quản lý USER của mình
+ * Super Admin thấy tất cả users
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 2.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Repository
@@ -766,5 +767,257 @@ public class UserDAO {
         }
         
         return users;
+    }
+    
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy danh sách USER theo Admin ID
+     * Super Admin (adminId = null) sẽ thấy tất cả users
+     * Admin thường chỉ thấy USER của mình
+     */
+    public List<User> getUsersByAdmin(Integer adminId) {
+        List<User> users = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả users
+            sql = "SELECT user_id, username, full_name, phone, email, address, role, created_at " +
+                  "FROM users WHERE role = 'USER' ORDER BY full_name";
+        } else {
+            // Admin - chỉ thấy USER của mình
+            sql = "SELECT user_id, username, full_name, phone, email, address, role, created_at " +
+                  "FROM users WHERE role = 'USER' AND managed_by_admin_id = ? ORDER BY full_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                User user = mapResultSetToUser(rs);
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi lấy danh sách USER theo admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Lấy thông tin USER theo ID với kiểm tra quyền Admin
+     */
+    public User getUserByIdAndAdmin(int userId, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - truy cập tất cả USER
+            sql = "SELECT * FROM users WHERE user_id = ? AND role = 'USER'";
+        } else {
+            // Admin - chỉ truy cập USER của mình
+            sql = "SELECT * FROM users WHERE user_id = ? AND role = 'USER' AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, userId);
+            if (adminId != null) {
+                stmt.setInt(2, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToUser(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting user by ID and admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Thêm USER mới với Admin ID
+     */
+    public boolean registerUserWithAdmin(User user, int adminId) {
+        String sql = "INSERT INTO users (username, password, full_name, email, phone, address, role, managed_by_admin_id, created_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, 'USER', ?, NOW())";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            // Mã hóa mật khẩu
+            String hashedPassword = passwordEncoder.encode(user.getPassword());
+            
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, hashedPassword);
+            stmt.setString(3, user.getFullName());
+            stmt.setString(4, user.getEmail());
+            stmt.setString(5, user.getPhone());
+            stmt.setString(6, user.getAddress());
+            stmt.setInt(7, adminId);
+            
+            int result = stmt.executeUpdate();
+            return result > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error registering user with admin: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Lấy số lượng USER theo Admin
+     */
+    public int getUserCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM users WHERE role = 'USER'";
+        } else {
+            sql = "SELECT COUNT(*) FROM users WHERE role = 'USER' AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting user count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Tìm kiếm USER theo Admin
+     */
+    public List<User> searchUsersByAdmin(String searchTerm, Integer adminId) {
+        List<User> users = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT user_id, username, full_name, phone, email, address, role, created_at " +
+                  "FROM users WHERE role = 'USER' " +
+                  "AND (LOWER(username) LIKE LOWER(?) " +
+                  "     OR LOWER(full_name) LIKE LOWER(?) " +
+                  "     OR LOWER(email) LIKE LOWER(?)) " +
+                  "ORDER BY full_name";
+        } else {
+            sql = "SELECT user_id, username, full_name, phone, email, address, role, created_at " +
+                  "FROM users WHERE role = 'USER' AND managed_by_admin_id = ? " +
+                  "AND (LOWER(username) LIKE LOWER(?) " +
+                  "     OR LOWER(full_name) LIKE LOWER(?) " +
+                  "     OR LOWER(email) LIKE LOWER(?)) " +
+                  "ORDER BY full_name";
+        }
+        
+        String searchPattern = "%" + searchTerm.trim() + "%";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId == null) {
+                stmt.setString(1, searchPattern);
+                stmt.setString(2, searchPattern);
+                stmt.setString(3, searchPattern);
+            } else {
+                stmt.setInt(1, adminId);
+                stmt.setString(2, searchPattern);
+                stmt.setString(3, searchPattern);
+                stmt.setString(4, searchPattern);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                User user = mapResultSetToUser(rs);
+                users.add(user);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching users by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return users;
+    }
+    
+    /**
+     * Lấy số lượng tenant đang hoạt động theo Admin
+     */
+    public int getActiveTenantsCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - đếm tất cả active tenants
+            sql = "SELECT COUNT(DISTINCT t.user_id) FROM tenants t " +
+                  "WHERE t.end_date IS NULL OR t.end_date > CURRENT_DATE";
+        } else {
+            // Admin - chỉ đếm active tenants trong phòng của mình
+            sql = "SELECT COUNT(DISTINCT t.user_id) FROM tenants t " +
+                  "INNER JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE (t.end_date IS NULL OR t.end_date > CURRENT_DATE) " +
+                  "AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting active tenants count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Helper method to map ResultSet to User object
+     */
+    private User mapResultSetToUser(ResultSet rs) throws SQLException {
+        User user = new User();
+        user.setUserId(rs.getInt("user_id"));
+        user.setUsername(rs.getString("username"));
+        user.setFullName(rs.getString("full_name"));
+        user.setPhone(rs.getString("phone"));
+        user.setEmail(rs.getString("email"));
+        user.setAddress(rs.getString("address"));
+        user.setRole(rs.getString("role"));
+        user.setCreatedAt(rs.getTimestamp("created_at"));
+        return user;
     }
 }

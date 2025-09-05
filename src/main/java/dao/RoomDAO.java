@@ -10,19 +10,135 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Lớp Data Access Object cho Phòng trọ
+ * Lớp Data Access Object cho Phòng trọ với Admin Data Isolation
  * Xử lý tất cả các thao tác cơ sở dữ liệu cho thực thể Room
  * Bao gồm CRUD operations, kiểm tra trạng thái và validation
  * Hỗ trợ quản lý trạng thái phòng và kiểm tra lịch sử thuê
+ * Mỗi Admin chỉ thấy và quản lý rooms của mình
+ * Super Admin thấy tất cả rooms
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Repository
 public class RoomDAO {
     
-    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN ====================
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy danh sách phòng theo Admin ID
+     * Super Admin (adminId = null) sẽ thấy tất cả phòng
+     * 
+     * @param adminId ID của Admin (null cho Super Admin)
+     * @return danh sách phòng thuộc quyền quản lý của Admin
+     */
+    public List<Room> getRoomsByAdmin(Integer adminId) {
+        List<Room> rooms = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả phòng
+            sql = "SELECT * FROM rooms ORDER BY room_name";
+        } else {
+            // Admin - chỉ thấy phòng của mình
+            sql = "SELECT * FROM rooms WHERE managed_by_admin_id = ? ORDER BY room_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = mapResultSetToRoom(rs);
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi lấy danh sách phòng theo admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    /**
+     * Lấy thông tin phòng theo ID với kiểm tra quyền Admin
+     * 
+     * @param roomId ID của phòng
+     * @param adminId ID của Admin (null cho Super Admin)
+     * @return đối tượng Room nếu có quyền truy cập, null nếu không
+     */
+    public Room getRoomByIdAndAdmin(int roomId, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - truy cập tất cả phòng
+            sql = "SELECT * FROM rooms WHERE room_id = ?";
+        } else {
+            // Admin - chỉ truy cập phòng của mình
+            sql = "SELECT * FROM rooms WHERE room_id = ? AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, roomId);
+            if (adminId != null) {
+                stmt.setInt(2, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToRoom(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room by ID and admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Thêm phòng mới với Admin ID
+     * 
+     * @param room đối tượng Room
+     * @param adminId ID của Admin tạo phòng
+     * @return true nếu thành công
+     */
+    public boolean addRoomWithAdmin(Room room, int adminId) {
+        String sql = "INSERT INTO rooms (room_name, price, status, description, amenities, managed_by_admin_id) " +
+                    "VALUES (?, ?, ?, ?, ?, ?)";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, room.getRoomName());
+            stmt.setBigDecimal(2, room.getPrice());
+            stmt.setString(3, room.getStatus());
+            stmt.setString(4, room.getDescription());
+            stmt.setString(5, room.getAmenities() != null ? room.getAmenities() : "[]");
+            stmt.setInt(6, adminId);
+            
+            int result = stmt.executeUpdate();
+            return result > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error adding room with admin: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    // ==================== CÁC PHƯƠNG THỨC CRUD CƠ BẢN (LEGACY) ====================
     
     /**
      * Lấy danh sách tất cả phòng
@@ -40,14 +156,7 @@ public class RoomDAO {
             
             // Duyệt qua tất cả kết quả và tạo đối tượng Room
             while (rs.next()) {
-                Room room = new Room();
-                room.setRoomId(rs.getInt("room_id"));           // ID phòng
-                room.setRoomName(rs.getString("room_name"));     // Tên phòng
-                room.setPrice(rs.getBigDecimal("price"));        // Giá phòng
-                room.setStatus(rs.getString("status"));          // Trạng thái
-                room.setDescription(rs.getString("description")); // Mô tả
-                room.setAmenities(rs.getString("amenities"));    // Tiện nghi
-                
+                Room room = mapResultSetToRoom(rs);
                 rooms.add(room);
             }
             
@@ -75,15 +184,7 @@ public class RoomDAO {
             ResultSet rs = stmt.executeQuery();
             
             if (rs.next()) {
-                Room room = new Room();
-                room.setRoomId(rs.getInt("room_id"));
-                room.setRoomName(rs.getString("room_name"));
-                room.setPrice(rs.getBigDecimal("price"));
-                room.setStatus(rs.getString("status"));
-                room.setDescription(rs.getString("description"));
-                room.setAmenities(rs.getString("amenities"));
-                
-                return room;
+                return mapResultSetToRoom(rs);
             }
             
         } catch (SQLException e) {
@@ -568,6 +669,332 @@ public class RoomDAO {
             
         } catch (SQLException e) {
             System.err.println("Error searching rooms: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    // ==================== HELPER METHODS ====================
+    
+    /**
+     * Map ResultSet to Room object
+     */
+    private Room mapResultSetToRoom(ResultSet rs) throws SQLException {
+        Room room = new Room();
+        room.setRoomId(rs.getInt("room_id"));
+        room.setRoomName(rs.getString("room_name"));
+        room.setPrice(rs.getBigDecimal("price"));
+        room.setStatus(rs.getString("status"));
+        room.setDescription(rs.getString("description"));
+        room.setAmenities(rs.getString("amenities"));
+        return room;
+    }
+    
+    // ==================== ADMIN ISOLATION STATISTICS ====================
+    
+    /**
+     * Lấy tổng số phòng theo Admin
+     */
+    public int getTotalRoomCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM rooms";
+        } else {
+            sql = "SELECT COUNT(*) FROM rooms WHERE managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting total room count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy số phòng theo trạng thái và Admin
+     */
+    public int getRoomCountByStatusAndAdmin(String status, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM rooms WHERE status = ?";
+        } else {
+            sql = "SELECT COUNT(*) FROM rooms WHERE status = ? AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, status);
+            if (adminId != null) {
+                stmt.setInt(2, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting room count by status and admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy phòng available theo Admin
+     */
+    public List<Room> getAvailableRoomsByAdmin(Integer adminId) {
+        List<Room> rooms = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT * FROM rooms WHERE status = 'AVAILABLE' ORDER BY room_name";
+        } else {
+            sql = "SELECT * FROM rooms WHERE status = 'AVAILABLE' AND managed_by_admin_id = ? ORDER BY room_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = mapResultSetToRoom(rs);
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting available rooms by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    // ==================== CONVENIENCE METHODS ====================
+    
+    public int getAvailableRoomCountByAdmin(Integer adminId) {
+        return getRoomCountByStatusAndAdmin("AVAILABLE", adminId);
+    }
+    
+    public int getOccupiedRoomCountByAdmin(Integer adminId) {
+        return getRoomCountByStatusAndAdmin("OCCUPIED", adminId);
+    }
+    
+    public int getMaintenanceRoomCountByAdmin(Integer adminId) {
+        return getRoomCountByStatusAndAdmin("MAINTENANCE", adminId);
+    }
+    
+    /**
+     * Cập nhật phòng với kiểm tra quyền Admin
+     */
+    public boolean updateRoomWithAdmin(Room room, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - cập nhật tất cả phòng
+            sql = "UPDATE rooms SET room_name = ?, price = ?, status = ?, description = ?, amenities = ? " +
+                  "WHERE room_id = ?";
+        } else {
+            // Admin - chỉ cập nhật phòng của mình
+            sql = "UPDATE rooms SET room_name = ?, price = ?, status = ?, description = ?, amenities = ? " +
+                  "WHERE room_id = ? AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, room.getRoomName());
+            stmt.setBigDecimal(2, room.getPrice());
+            stmt.setString(3, room.getStatus());
+            stmt.setString(4, room.getDescription());
+            stmt.setString(5, room.getAmenities() != null ? room.getAmenities() : "[]");
+            stmt.setInt(6, room.getRoomId());
+            
+            if (adminId != null) {
+                stmt.setInt(7, adminId);
+            }
+            
+            int result = stmt.executeUpdate();
+            return result > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating room with admin: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Xóa phòng với kiểm tra quyền Admin
+     */
+    public boolean deleteRoomWithAdmin(int roomId, Integer adminId) {
+        // Kiểm tra quyền truy cập trước
+        Room room = getRoomByIdAndAdmin(roomId, adminId);
+        if (room == null) {
+            System.err.println("No permission to delete this room or room not found");
+            return false;
+        }
+        
+        String sql;
+        
+        if (adminId == null) {
+            sql = "DELETE FROM rooms WHERE room_id = ?";
+        } else {
+            sql = "DELETE FROM rooms WHERE room_id = ? AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, roomId);
+            if (adminId != null) {
+                stmt.setInt(2, adminId);
+            }
+            
+            int result = stmt.executeUpdate();
+            return result > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error deleting room with admin: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Kiểm tra tên phòng đã tồn tại trong phạm vi Admin
+     */
+    public boolean roomNameExistsInAdmin(String roomName, Integer adminId, int excludeRoomId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM rooms WHERE room_name = ? AND room_id != ?";
+        } else {
+            sql = "SELECT COUNT(*) FROM rooms WHERE room_name = ? AND room_id != ? AND managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, roomName);
+            stmt.setInt(2, excludeRoomId);
+            if (adminId != null) {
+                stmt.setInt(3, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking room name in admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Lấy phòng cho quản lý tenant theo Admin
+     * Chỉ hiển thị phòng AVAILABLE và OCCUPIED
+     */
+    public List<Room> getRoomsForTenantManagementByAdmin(Integer adminId) {
+        List<Room> rooms = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả phòng
+            sql = "SELECT * FROM rooms WHERE status IN ('AVAILABLE', 'OCCUPIED') ORDER BY room_name";
+        } else {
+            // Admin - chỉ thấy phòng của mình
+            sql = "SELECT * FROM rooms WHERE status IN ('AVAILABLE', 'OCCUPIED') AND managed_by_admin_id = ? ORDER BY room_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                stmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = mapResultSetToRoom(rs);
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting rooms for tenant management by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return rooms;
+    }
+    
+    /**
+     * Tìm kiếm phòng cho quản lý tenant theo Admin
+     */
+    public List<Room> searchRoomsForTenantManagementByAdmin(String searchTerm, Integer adminId) {
+        List<Room> rooms = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT * FROM rooms WHERE status IN ('AVAILABLE', 'OCCUPIED') " +
+                  "AND LOWER(room_name) LIKE LOWER(?) ORDER BY room_name";
+        } else {
+            sql = "SELECT * FROM rooms WHERE status IN ('AVAILABLE', 'OCCUPIED') " +
+                  "AND managed_by_admin_id = ? AND LOWER(room_name) LIKE LOWER(?) ORDER BY room_name";
+        }
+        
+        String searchPattern = "%" + searchTerm.trim() + "%";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (adminId == null) {
+                stmt.setString(1, searchPattern);
+            } else {
+                stmt.setInt(1, adminId);
+                stmt.setString(2, searchPattern);
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                Room room = mapResultSetToRoom(rs);
+                rooms.add(room);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching rooms for tenant management by admin: " + e.getMessage());
             e.printStackTrace();
         }
         

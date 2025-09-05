@@ -894,4 +894,231 @@ public class InvoiceDAO {
         return 0;
     }
     
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy tổng doanh thu theo Admin
+     * Super Admin (adminId = null) thấy tất cả
+     * Admin thường chỉ thấy doanh thu từ phòng của mình
+     */
+    public BigDecimal getTotalRevenueByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả
+            sql = "SELECT SUM(i.total_amount) FROM invoices i WHERE i.status = 'PAID'";
+        } else {
+            // Admin - chỉ thấy doanh thu từ phòng của mình
+            sql = "SELECT SUM(i.total_amount) FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE i.status = 'PAID' AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                BigDecimal revenue = rs.getBigDecimal(1);
+                return revenue != null ? revenue : BigDecimal.ZERO;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting total revenue by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return BigDecimal.ZERO;
+    }
+    
+    /**
+     * Lấy doanh thu theo kỳ và Admin
+     */
+    public BigDecimal getRevenueByPeriodAndAdmin(int month, int year, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT SUM(i.total_amount) FROM invoices i " +
+                  "WHERE i.month = ? AND i.year = ? AND i.status = 'PAID'";
+        } else {
+            sql = "SELECT SUM(i.total_amount) FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE i.month = ? AND i.year = ? AND i.status = 'PAID' AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, month);
+            pstmt.setInt(2, year);
+            if (adminId != null) {
+                pstmt.setInt(3, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                BigDecimal revenue = rs.getBigDecimal(1);
+                return revenue != null ? revenue : BigDecimal.ZERO;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting revenue by period and admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return BigDecimal.ZERO;
+    }
+    
+    /**
+     * Lấy số hóa đơn chưa thanh toán theo Admin
+     */
+    public int getUnpaidInvoiceCountByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(*) FROM invoices WHERE status = 'UNPAID'";
+        } else {
+            sql = "SELECT COUNT(*) FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE i.status = 'UNPAID' AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting unpaid invoice count by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy số phòng có nợ theo Admin
+     */
+    public int getRoomsWithUnpaidBillsByAdmin(Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT COUNT(DISTINCT t.room_id) " +
+                  "FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "WHERE i.status = 'UNPAID'";
+        } else {
+            sql = "SELECT COUNT(DISTINCT t.room_id) " +
+                  "FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE i.status = 'UNPAID' AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting rooms with unpaid bills by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Lấy hóa đơn gần đây theo Admin
+     */
+    public List<Invoice> getRecentInvoicesByAdmin(int limit, Integer adminId) {
+        List<Invoice> invoices = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT i.invoice_id, i.tenant_id, i.month, i.year, i.room_price, " +
+                  "i.service_total, i.additional_total, i.total_amount, i.status, i.created_at, " +
+                  "u.full_name, u.phone, u.email, r.room_name " +
+                  "FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "ORDER BY i.created_at DESC " +
+                  "LIMIT ?";
+        } else {
+            sql = "SELECT i.invoice_id, i.tenant_id, i.month, i.year, i.room_price, " +
+                  "i.service_total, i.additional_total, i.total_amount, i.status, i.created_at, " +
+                  "u.full_name, u.phone, u.email, r.room_name " +
+                  "FROM invoices i " +
+                  "JOIN tenants t ON i.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE r.managed_by_admin_id = ? " +
+                  "ORDER BY i.created_at DESC " +
+                  "LIMIT ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId == null) {
+                pstmt.setInt(1, limit);
+            } else {
+                pstmt.setInt(1, adminId);
+                pstmt.setInt(2, limit);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Invoice invoice = new Invoice();
+                invoice.setInvoiceId(rs.getInt("invoice_id"));
+                invoice.setTenantId(rs.getInt("tenant_id"));
+                invoice.setMonth(rs.getInt("month"));
+                invoice.setYear(rs.getInt("year"));
+                invoice.setRoomPrice(rs.getBigDecimal("room_price"));
+                invoice.setServiceTotal(rs.getBigDecimal("service_total"));
+                invoice.setAdditionalTotal(rs.getBigDecimal("additional_total"));
+                invoice.setTotalAmount(rs.getBigDecimal("total_amount"));
+                invoice.setStatus(rs.getString("status"));
+                invoice.setCreatedAt(rs.getTimestamp("created_at"));
+                invoice.setTenantName(rs.getString("full_name"));
+                invoice.setUserPhone(rs.getString("phone"));
+                invoice.setUserEmail(rs.getString("email"));
+                invoice.setRoomName(rs.getString("room_name"));
+                invoices.add(invoice);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting recent invoices by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return invoices;
+    }
 }

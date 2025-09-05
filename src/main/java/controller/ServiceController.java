@@ -14,13 +14,15 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Controller quản lý Dịch vụ
+ * Controller quản lý Dịch vụ với Admin Data Isolation
  * Xử lý các thao tác CRUD cho dịch vụ dành cho quản trị viên
  * Bao gồm thêm, sửa, xóa, xem chi tiết và tìm kiếm dịch vụ
  * Kiểm tra sử dụng trước khi xóa và validation dữ liệu đầy đủ
+ * Mỗi Admin chỉ thấy và quản lý dịch vụ của mình
+ * Super Admin thấy tất cả dịch vụ
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -59,6 +61,17 @@ public class ServiceController {
     }
     
     /**
+     * Lấy Admin ID từ session cho data isolation
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
+    /**
      * Show services management page
      */
     @GetMapping("/services")
@@ -70,20 +83,21 @@ public class ServiceController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         List<Service> services;
         
-        // Handle search functionality
+        // Handle search functionality with admin isolation
         if (search != null && !search.trim().isEmpty()) {
-            services = serviceDAO.searchServicesByName(search.trim());
+            services = serviceDAO.searchServicesByNameAndAdmin(search.trim(), adminId);
             model.addAttribute("searchTerm", search.trim());
         } else {
-            services = serviceDAO.getAllServices();
+            services = serviceDAO.getAllServicesByAdmin(adminId);
         }
         
         model.addAttribute("user", user);
         model.addAttribute("services", services);
         model.addAttribute("pageTitle", "Quản lý Dịch vụ");
-        model.addAttribute("totalServices", serviceDAO.getTotalServiceCount());
+        model.addAttribute("totalServices", serviceDAO.getTotalServiceCountByAdmin(adminId));
         
         return "admin/services";
     }
@@ -121,6 +135,8 @@ public class ServiceController {
             return accessCheck;
         }
         
+        Integer adminId = getAdminId(session);
+        
         // Validate input
         String validationError = validateService(service, true);
         if (validationError != null) {
@@ -128,9 +144,9 @@ public class ServiceController {
             return "redirect:/admin/services/add";
         }
         
-        // Check if service name already exists
-        if (serviceDAO.serviceNameExists(service.getServiceName().trim())) {
-            redirectAttributes.addFlashAttribute("error", "Tên dịch vụ đã tồn tại");
+        // Check if service name already exists in admin scope
+        if (serviceDAO.serviceNameExistsByAdmin(service.getServiceName().trim(), adminId)) {
+            redirectAttributes.addFlashAttribute("error", "Tên dịch vụ đã tồn tại trong phạm vi quản lý của bạn");
             return "redirect:/admin/services/add";
         }
         
@@ -140,8 +156,8 @@ public class ServiceController {
             service.setUnit(service.getUnit().trim());
         }
         
-        // Add service
-        boolean success = serviceDAO.addService(service);
+        // Add service with admin
+        boolean success = serviceDAO.addServiceWithAdmin(service, adminId);
         
         if (success) {
             redirectAttributes.addFlashAttribute("success", "Thêm dịch vụ thành công!");
@@ -166,9 +182,11 @@ public class ServiceController {
             return accessCheck;
         }
         
-        Service service = serviceDAO.getServiceById(id);
+        Integer adminId = getAdminId(session);
+        
+        Service service = serviceDAO.getServiceByIdAndAdmin(id, adminId);
         if (service == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ hoặc bạn không có quyền truy cập");
             return "redirect:/admin/services";
         }
         
@@ -196,10 +214,12 @@ public class ServiceController {
             return accessCheck;
         }
         
-        // Verify service exists
-        Service existingService = serviceDAO.getServiceById(id);
+        Integer adminId = getAdminId(session);
+        
+        // Verify service exists and admin has access
+        Service existingService = serviceDAO.getServiceByIdAndAdmin(id, adminId);
         if (existingService == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ hoặc bạn không có quyền truy cập");
             return "redirect:/admin/services";
         }
         
@@ -210,9 +230,9 @@ public class ServiceController {
             return "redirect:/admin/services/edit/" + id;
         }
         
-        // Check if service name already exists (excluding current service)
-        if (serviceDAO.serviceNameExists(service.getServiceName().trim(), id)) {
-            redirectAttributes.addFlashAttribute("error", "Tên dịch vụ đã tồn tại");
+        // Check if service name already exists (excluding current service) in admin scope
+        if (serviceDAO.serviceNameExistsByAdmin(service.getServiceName().trim(), id, adminId)) {
+            redirectAttributes.addFlashAttribute("error", "Tên dịch vụ đã tồn tại trong phạm vi quản lý của bạn");
             return "redirect:/admin/services/edit/" + id;
         }
         
@@ -248,9 +268,11 @@ public class ServiceController {
             return accessCheck;
         }
         
-        Service service = serviceDAO.getServiceById(id);
+        Integer adminId = getAdminId(session);
+        
+        Service service = serviceDAO.getServiceByIdAndAdmin(id, adminId);
         if (service == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ hoặc bạn không có quyền truy cập");
             return "redirect:/admin/services";
         }
         
@@ -285,9 +307,11 @@ public class ServiceController {
             return accessCheck;
         }
         
-        Service service = serviceDAO.getServiceById(id);
+        Integer adminId = getAdminId(session);
+        
+        Service service = serviceDAO.getServiceByIdAndAdmin(id, adminId);
         if (service == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy dịch vụ hoặc bạn không có quyền truy cập");
             return "redirect:/admin/services";
         }
         

@@ -53,24 +53,22 @@ public class AdminUserController {
         User user = (User) session.getAttribute("user");
         List<User> users;
         
+        // Get admin ID for data isolation
+        Integer adminId = user.isSuperAdmin() ? null : user.getUserId();
+        
         // Handle search and filter functionality - Only show USER role
         if (search != null && !search.trim().isEmpty()) {
-            users = userDAO.searchUsers(search.trim());
+            users = userDAO.searchUsersByAdmin(search.trim(), adminId);
             model.addAttribute("searchTerm", search.trim());
         } else {
-            users = userDAO.getAllUsers();
+            users = userDAO.getUsersByAdmin(adminId);
         }
-        
-        // Filter to only show USER role (exclude ADMIN and SUPER_ADMIN)
-        users = users.stream()
-                .filter(u -> "USER".equalsIgnoreCase(u.getRole()))
-                .collect(java.util.stream.Collectors.toList());
         
         model.addAttribute("user", user);
         model.addAttribute("users", users);
         model.addAttribute("pageTitle", "Quản lý Người dùng");
-        model.addAttribute("regularUsers", userDAO.getRegularUserCount());
-        model.addAttribute("activeTenantsCount", userDAO.getActiveTenantsCount());
+        model.addAttribute("regularUsers", userDAO.getUserCountByAdmin(adminId));
+        model.addAttribute("activeTenantsCount", userDAO.getActiveTenantsCountByAdmin(adminId));
         
         return "admin/users";
     }
@@ -89,19 +87,15 @@ public class AdminUserController {
             return accessCheck;
         }
         
-        User targetUser = userDAO.getUserById(id);
-        if (targetUser == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người dùng");
-            return "redirect:/admin/users";
-        }
-        
-        // Only allow viewing USER accounts
-        if (!"USER".equals(targetUser.getRole())) {
-            redirectAttributes.addFlashAttribute("error", "Không có quyền truy cập thông tin này");
-            return "redirect:/admin/users";
-        }
-        
         User user = (User) session.getAttribute("user");
+        Integer adminId = user.isSuperAdmin() ? null : user.getUserId();
+        
+        User targetUser = userDAO.getUserByIdAndAdmin(id, adminId);
+        if (targetUser == null) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người dùng hoặc bạn không có quyền truy cập");
+            return "redirect:/admin/users";
+        }
+        
         boolean canDelete = userDAO.canDeleteUser(id);
         
         model.addAttribute("user", user);
@@ -126,9 +120,12 @@ public class AdminUserController {
         }
         
         try {
-            User targetUser = userDAO.getUserById(id);
+            User currentUser = (User) session.getAttribute("user");
+            Integer adminId = currentUser.isSuperAdmin() ? null : currentUser.getUserId();
+            
+            User targetUser = userDAO.getUserByIdAndAdmin(id, adminId);
             if (targetUser == null) {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người dùng");
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người dùng hoặc bạn không có quyền truy cập");
                 return "redirect:/admin/users";
             }
             
@@ -227,12 +224,14 @@ public class AdminUserController {
                 return "redirect:/admin/users/add";
             }
             
-            // Set default role if not specified
-            if (newUser.getRole() == null || newUser.getRole().trim().isEmpty()) {
-                newUser.setRole("USER");
-            }
+            // Set default role to USER
+            newUser.setRole("USER");
             
-            boolean success = userDAO.registerUser(newUser);
+            // Get admin ID for user assignment
+            User currentUser = (User) session.getAttribute("user");
+            Integer adminId = currentUser.isSuperAdmin() ? 2 : currentUser.getUserId(); // Default to admin ID 2 for Super Admin
+            
+            boolean success = userDAO.registerUserWithAdmin(newUser, adminId);
             
             if (success) {
                 redirectAttributes.addFlashAttribute("success", "Thêm người dùng thành công!");

@@ -19,8 +19,12 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Additional Cost Management Controller
+ * Additional Cost Management Controller với Admin Data Isolation
  * Handles additional/incidental costs for tenants
+ * Mỗi Admin chỉ thấy và quản lý chi phí phát sinh của tenant trong phòng mình
+ * Super Admin thấy tất cả chi phí phát sinh
+ * 
+ * @version 2.0 - Admin Isolation
  */
 @Controller
 @RequestMapping("/admin")
@@ -50,6 +54,17 @@ public class AdditionalCostController {
     }
     
     /**
+     * Lấy Admin ID từ session cho data isolation
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
+    /**
      * Show additional costs management page
      */
     @GetMapping("/additional-costs")
@@ -62,14 +77,15 @@ public class AdditionalCostController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         List<AdditionalCost> costs;
         
-        // Handle search
+        // Handle search with admin isolation
         if (searchTerm != null && !searchTerm.trim().isEmpty()) {
-            costs = additionalCostDAO.searchAdditionalCosts(searchTerm.trim());
+            costs = additionalCostDAO.searchAdditionalCostsByAdmin(searchTerm.trim(), adminId);
             model.addAttribute("searchTerm", searchTerm.trim());
         } else {
-            costs = additionalCostDAO.getAllAdditionalCosts();
+            costs = additionalCostDAO.getAllAdditionalCostsByAdmin(adminId);
         }
         
         model.addAttribute("user", user);
@@ -90,7 +106,8 @@ public class AdditionalCostController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getActiveTenants();
+        Integer adminId = getAdminId(session);
+        List<Tenant> tenants = tenantDAO.getActiveTenantsByAdmin(adminId);
         
         model.addAttribute("user", user);
         model.addAttribute("additionalCost", new AdditionalCost());
@@ -161,14 +178,16 @@ public class AdditionalCostController {
             return accessCheck;
         }
         
-        AdditionalCost additionalCost = additionalCostDAO.getAdditionalCostById(id);
+        Integer adminId = getAdminId(session);
+        
+        AdditionalCost additionalCost = additionalCostDAO.getAdditionalCostByIdAndAdmin(id, adminId);
         if (additionalCost == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy chi phí phát sinh");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy chi phí phát sinh hoặc bạn không có quyền truy cập");
             return "redirect:/admin/additional-costs";
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getActiveTenants();
+        List<Tenant> tenants = tenantDAO.getActiveTenantsByAdmin(adminId);
         
         // Format date for form
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

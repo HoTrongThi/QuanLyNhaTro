@@ -430,4 +430,233 @@ public class AdditionalCostDAO {
         
         return costList;
     }
+    
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy tất cả chi phí phát sinh theo Admin
+     */
+    public List<AdditionalCost> getAllAdditionalCostsByAdmin(Integer adminId) {
+        List<AdditionalCost> costList = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "ORDER BY ac.date DESC";
+        } else {
+            // Admin - chỉ thấy chi phí của phòng mình
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "WHERE r.managed_by_admin_id = ? " +
+                  "ORDER BY ac.date DESC";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                AdditionalCost cost = new AdditionalCost();
+                cost.setCostId(rs.getInt("cost_id"));
+                cost.setTenantId(rs.getInt("tenant_id"));
+                cost.setDescription(rs.getString("description"));
+                cost.setAmount(rs.getBigDecimal("amount"));
+                cost.setDate(rs.getDate("date"));
+                cost.setTenantName(rs.getString("full_name"));
+                cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
+                costList.add(cost);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting all additional costs by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return costList;
+    }
+    
+    /**
+     * Tìm kiếm chi phí phát sinh theo Admin
+     */
+    public List<AdditionalCost> searchAdditionalCostsByAdmin(String searchTerm, Integer adminId) {
+        List<AdditionalCost> costList = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "WHERE r.room_name LIKE ? OR u.full_name LIKE ? OR ac.description LIKE ? " +
+                  "ORDER BY ac.date DESC";
+        } else {
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "WHERE r.managed_by_admin_id = ? AND (r.room_name LIKE ? OR u.full_name LIKE ? OR ac.description LIKE ?) " +
+                  "ORDER BY ac.date DESC";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchTerm + "%";
+            
+            if (adminId == null) {
+                pstmt.setString(1, searchPattern); // room name
+                pstmt.setString(2, searchPattern); // tenant name
+                pstmt.setString(3, searchPattern); // description
+            } else {
+                pstmt.setInt(1, adminId);
+                pstmt.setString(2, searchPattern); // room name
+                pstmt.setString(3, searchPattern); // tenant name
+                pstmt.setString(4, searchPattern); // description
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                AdditionalCost cost = new AdditionalCost();
+                cost.setCostId(rs.getInt("cost_id"));
+                cost.setTenantId(rs.getInt("tenant_id"));
+                cost.setDescription(rs.getString("description"));
+                cost.setAmount(rs.getBigDecimal("amount"));
+                cost.setDate(rs.getDate("date"));
+                cost.setTenantName(rs.getString("full_name"));
+                cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
+                costList.add(cost);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching additional costs by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return costList;
+    }
+    
+    /**
+     * Lấy chi phí phát sinh theo ID với admin check
+     */
+    public AdditionalCost getAdditionalCostByIdAndAdmin(int costId, Integer adminId) {
+        String sql;
+        
+        if (adminId == null) {
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "WHERE ac.cost_id = ?";
+        } else {
+            sql = "SELECT ac.cost_id, ac.tenant_id, ac.description, ac.amount, ac.date, " +
+                  "u.full_name, r.room_name, " +
+                  "CASE " +
+                  "    WHEN i.status = 'PAID' AND i.additional_total > 0 THEN 'PAID' " +
+                  "    WHEN i.status = 'UNPAID' THEN 'PENDING' " +
+                  "    ELSE 'UNPAID' " +
+                  "END as payment_status " +
+                  "FROM additional_costs ac " +
+                  "JOIN tenants t ON ac.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "LEFT JOIN invoices i ON ac.tenant_id = i.tenant_id " +
+                  "    AND MONTH(ac.date) = i.month " +
+                  "    AND YEAR(ac.date) = i.year " +
+                  "WHERE ac.cost_id = ? AND r.managed_by_admin_id = ?";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, costId);
+            if (adminId != null) {
+                pstmt.setInt(2, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                AdditionalCost cost = new AdditionalCost();
+                cost.setCostId(rs.getInt("cost_id"));
+                cost.setTenantId(rs.getInt("tenant_id"));
+                cost.setDescription(rs.getString("description"));
+                cost.setAmount(rs.getBigDecimal("amount"));
+                cost.setDate(rs.getDate("date"));
+                cost.setTenantName(rs.getString("full_name"));
+                cost.setRoomName(rs.getString("room_name"));
+                cost.setPaymentStatus(rs.getString("payment_status"));
+                return cost;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting additional cost by ID and admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
 }

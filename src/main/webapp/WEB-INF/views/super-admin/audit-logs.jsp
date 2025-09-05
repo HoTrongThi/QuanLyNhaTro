@@ -213,7 +213,6 @@
                                     <li><a class="dropdown-item" href="#">Thông tin cá nhân</a></li>
                                     <li><a class="dropdown-item" href="#">Cài đặt hệ thống</a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/admin/dashboard">Chế độ Admin</a></li>
                                     <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">Đăng xuất</a></li>
                                 </ul>
                             </div>
@@ -326,7 +325,7 @@
                                                                             <strong>Thực hiện bởi:</strong> ${log.superAdminName}
                                                                         </small>
                                                                     </div>
-                                                                    <c:if test="${log.hasTargetAdmin()}">
+                                                                    <c:if test="${log.targetAdminId != null && log.targetAdminId > 0}">
                                                                         <div class="col-md-6">
                                                                             <small class="text-muted">
                                                                                 <i class="bi bi-bullseye me-1"></i>

@@ -256,6 +256,14 @@ public class AdminAuditLog {
     }
     
     /**
+     * Lấy CSS class cho hành động (alias cho getActionBadgeClass)
+     * @return CSS class phù hợp với hành động
+     */
+    public String getActionCssClass() {
+        return getActionBadgeClass();
+    }
+    
+    /**
      * Lấy icon cho hành động
      * @return Bootstrap icon class
      */
@@ -380,6 +388,28 @@ public class AdminAuditLog {
      */
     public boolean hasTargetAdmin() {
         return targetAdminId != null && targetAdminId > 0;
+    }
+    
+    /**
+     * Lấy tên hiển thị của Super Admin
+     * @return tên hiển thị
+     */
+    public String getSuperAdminDisplayName() {
+        if (superAdminName != null && !superAdminName.trim().isEmpty()) {
+            return superAdminName + " (" + superAdminUsername + ")";
+        }
+        return superAdminUsername != null ? superAdminUsername : "Unknown";
+    }
+    
+    /**
+     * Lấy tên hiển thị của target admin
+     * @return tên hiển thị hoặc "N/A" nếu không có
+     */
+    public String getTargetAdminDisplayName() {
+        if (hasTargetAdmin() && targetAdminName != null && !targetAdminName.trim().isEmpty()) {
+            return targetAdminName + " (" + targetAdminUsername + ")";
+        }
+        return "N/A";
     }
     
     /**

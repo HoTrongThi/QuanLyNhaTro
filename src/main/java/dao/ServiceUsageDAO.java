@@ -717,4 +717,70 @@ public class ServiceUsageDAO {
         
         return usageList;
     }
+    
+    // ==================== ADMIN ISOLATION METHODS ====================
+    
+    /**
+     * Lấy tất cả service usage theo Admin
+     */
+    public List<ServiceUsage> getAllServiceUsageByAdmin(Integer adminId) {
+        List<ServiceUsage> usageList = new ArrayList<>();
+        String sql;
+        
+        if (adminId == null) {
+            // Super Admin - thấy tất cả
+            sql = "SELECT su.usage_id, su.tenant_id, su.service_id, su.month, su.year, su.quantity, " +
+                  "s.service_name, s.unit, s.price_per_unit, u.full_name, r.room_name " +
+                  "FROM service_usage su " +
+                  "JOIN services s ON su.service_id = s.service_id " +
+                  "JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "ORDER BY su.year DESC, su.month DESC, r.room_name, s.service_name";
+        } else {
+            // Admin - chỉ thấy service usage của phòng mình
+            sql = "SELECT su.usage_id, su.tenant_id, su.service_id, su.month, su.year, su.quantity, " +
+                  "s.service_name, s.unit, s.price_per_unit, u.full_name, r.room_name " +
+                  "FROM service_usage su " +
+                  "JOIN services s ON su.service_id = s.service_id " +
+                  "JOIN tenants t ON su.tenant_id = t.tenant_id " +
+                  "JOIN users u ON t.user_id = u.user_id " +
+                  "JOIN rooms r ON t.room_id = r.room_id " +
+                  "WHERE r.managed_by_admin_id = ? " +
+                  "ORDER BY su.year DESC, su.month DESC, r.room_name, s.service_name";
+        }
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
+            if (adminId != null) {
+                pstmt.setInt(1, adminId);
+            }
+            
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                ServiceUsage usage = new ServiceUsage();
+                usage.setUsageId(rs.getInt("usage_id"));
+                usage.setTenantId(rs.getInt("tenant_id"));
+                usage.setServiceId(rs.getInt("service_id"));
+                usage.setMonth(rs.getInt("month"));
+                usage.setYear(rs.getInt("year"));
+                usage.setQuantity(rs.getBigDecimal("quantity"));
+                usage.setServiceName(rs.getString("service_name"));
+                usage.setServiceUnit(rs.getString("unit"));
+                usage.setPricePerUnit(rs.getBigDecimal("price_per_unit"));
+                usage.setTenantName(rs.getString("full_name"));
+                usage.setRoomName(rs.getString("room_name"));
+                usage.calculateTotalCost();
+                usageList.add(usage);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting all service usage by admin: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return usageList;
+    }
 }

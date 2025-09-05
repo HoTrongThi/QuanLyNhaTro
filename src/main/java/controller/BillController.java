@@ -19,13 +19,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller quản lý Hóa đơn
+ * Controller quản lý Hóa đơn với Admin Data Isolation
  * Xử lý các chức năng liên quan đến hóa đơn, sử dụng dịch vụ và thanh toán
  * Bao gồm tạo hóa đơn, quản lý sử dụng dịch vụ, tích hợp MoMo và gửi email
  * Hỗ trợ tính toán tiền phòng theo tỷ lệ ngày ở thực tế
+ * Mỗi Admin chỉ thấy và quản lý hóa đơn của phòng mình
+ * Super Admin thấy tất cả hóa đơn
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -99,6 +101,19 @@ public class BillController {
         return null; // Có quyền truy cập
     }
     
+    /**
+     * Lấy Admin ID từ session cho data isolation
+     * Super Admin trả về null (thấy tất cả)
+     * Admin thường trả về user_id của mình
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
     // ==================== CÁC PHƯƠNG THỨC HIỂN THỊ TRANG ====================
     
     /**
@@ -117,9 +132,10 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         
-        // Lấy tất cả phòng
-        List<Room> allRooms = roomDAO.getAllRooms();
+        // Lấy phòng theo admin
+        List<Room> allRooms = roomDAO.getRoomsByAdmin(adminId);
         List<RoomBillInfo> rooms = new ArrayList<>();
         
         int roomsWithDebt = 0;
@@ -193,10 +209,12 @@ public class BillController {
             return "admin/room-bills-table";
         }
         
-        // Lấy thông tin phòng
-        Room room = roomDAO.getRoomById(roomId);
+        Integer adminId = getAdminId(session);
+        
+        // Lấy thông tin phòng với admin check
+        Room room = roomDAO.getRoomByIdAndAdmin(roomId, adminId);
         if (room == null) {
-            model.addAttribute("error", "Không tìm thấy phòng");
+            model.addAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "admin/room-bills-table";
         }
         
@@ -233,7 +251,8 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<ServiceUsage> usageList = serviceUsageDAO.getAllServiceUsage();
+        Integer adminId = getAdminId(session);
+        List<ServiceUsage> usageList = serviceUsageDAO.getAllServiceUsageByAdmin(adminId);
         
         model.addAttribute("user", user);
         model.addAttribute("serviceUsages", usageList);
@@ -253,8 +272,9 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getAllTenants();
-        List<Service> services = serviceDAO.getAllServices();
+        Integer adminId = getAdminId(session);
+        List<Tenant> tenants = tenantDAO.getActiveTenantsByAdmin(adminId);
+        List<Service> services = serviceDAO.getServicesForTenantByAdmin(0, adminId); // Get services available for this admin
         
         // Get current month and year for default values
         Calendar cal = Calendar.getInstance();
@@ -333,8 +353,9 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Tenant> tenants = tenantDAO.getAllTenants();
-        List<Service> services = serviceDAO.getAllServices();
+        Integer adminId = getAdminId(session);
+        List<Tenant> tenants = tenantDAO.getActiveTenantsByAdmin(adminId);
+        List<Service> services = serviceDAO.getServicesForTenantByAdmin(0, adminId); // Get services available for this admin
         
         model.addAttribute("user", user);
         model.addAttribute("serviceUsage", serviceUsage);
@@ -430,7 +451,8 @@ public class BillController {
         }
         
         User user = (User) session.getAttribute("user");
-        List<Room> rooms = roomDAO.getAllRooms();
+        Integer adminId = getAdminId(session);
+        List<Room> rooms = roomDAO.getRoomsByAdmin(adminId);
         
         // Get current month and year for default values
         Calendar cal = Calendar.getInstance();
@@ -468,10 +490,12 @@ public class BillController {
             return "redirect:/admin/bills/generate";
         }
         
-        // Get room information
-        Room room = roomDAO.getRoomById(roomId);
+        Integer adminId = getAdminId(session);
+        
+        // Get room information with admin check
+        Room room = roomDAO.getRoomByIdAndAdmin(roomId, adminId);
         if (room == null) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
             return "redirect:/admin/bills/generate";
         }
         
@@ -589,8 +613,10 @@ public class BillController {
             return "redirect:/admin/bills/generate";
         }
         
-        // Lấy tất cả phòng đang có người thuê
-        List<Room> allRooms = roomDAO.getAllRooms();
+        Integer adminId = getAdminId(session);
+        
+        // Lấy phòng đang có người thuê theo admin
+        List<Room> allRooms = roomDAO.getRoomsByAdmin(adminId);
         List<RoomBillInfo> occupiedRooms = new ArrayList<>();
         
         for (Room room : allRooms) {
@@ -717,10 +743,12 @@ public class BillController {
                 return "redirect:/admin/bills/generate";
             }
             
-            // Lấy thông tin phòng
-            Room room = roomDAO.getRoomById(roomId);
+            Integer adminId = getAdminId(session);
+            
+            // Lấy thông tin phòng với admin check
+            Room room = roomDAO.getRoomByIdAndAdmin(roomId, adminId);
             if (room == null) {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hoặc bạn không có quyền truy cập");
                 return "redirect:/admin/bills/generate";
             }
             
@@ -1050,8 +1078,9 @@ public class BillController {
                         continue;
                     }
                     
-                    // Lấy thông tin phòng
-                    Room room = roomDAO.getRoomById(roomId);
+                    // Lấy thông tin phòng với admin check
+                    Integer adminId = getAdminId(session);
+                    Room room = roomDAO.getRoomByIdAndAdmin(roomId, adminId);
                     if (room == null) {
                         errorCount++;
                         errorMessages.append("Không tìm thấy phòng ID: ").append(roomId).append("; ");
@@ -1335,8 +1364,9 @@ public class BillController {
             return "redirect:/admin/bills/generate";
         }
         
-        // Get room price
-        Room room = roomDAO.getRoomById(tenant.getRoomId());
+        // Get room price với admin check
+        Integer adminId = getAdminId(session);
+        Room room = roomDAO.getRoomByIdAndAdmin(tenant.getRoomId(), adminId);
         if (room == null) {
             redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng");
             return "redirect:/admin/bills/generate";

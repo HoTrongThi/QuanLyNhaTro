@@ -61,7 +61,9 @@ public class Service {
     /** Cấu hình tính toán (JSON format) */
     private String calculationConfig;
     
-
+    /** ID Admin quản lý dịch vụ này (null = Super Admin hoặc dịch vụ chung) */
+    private Integer managedByAdminId;
+    
     
     // ==================== CÁC CONSTRUCTOR ====================
     
@@ -159,6 +161,9 @@ public class Service {
     
     public String getCalculationConfig() { return calculationConfig; }
     public void setCalculationConfig(String calculationConfig) { this.calculationConfig = calculationConfig; }
+    
+    public Integer getManagedByAdminId() { return managedByAdminId; }
+    public void setManagedByAdminId(Integer managedByAdminId) { this.managedByAdminId = managedByAdminId; }
     
     // ==================== UTILITY METHODS ====================
     

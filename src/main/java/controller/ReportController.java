@@ -11,13 +11,15 @@ import javax.servlet.http.HttpSession;
 import java.math.BigDecimal;
 import java.util.*;
 /**
- * Controller Báo cáo và Thống kê
+ * Controller Báo cáo và Thống kê với Admin Data Isolation
  * Xử lý báo cáo tổng hợp và dashboard phân tích
  * Bao gồm thống kê doanh thu, tỷ lệ lấp đầy và biểu đồ theo tháng
  * Hiển thị dữ liệu thời gian thực và xu hướng kinh doanh
+ * Mỗi Admin chỉ thấy báo cáo của phạm vi quản lý của mình
+ * Super Admin thấy báo cáo tổng hợp toàn hệ thống
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -64,6 +66,17 @@ public class ReportController {
     }
     
     /**
+     * Lấy Admin ID từ session cho data isolation
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
+    /**
      * Show reports and statistics dashboard
      */
     @GetMapping("/reports")
@@ -74,6 +87,7 @@ public class ReportController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         
         // Get current month and year for default filtering
         Calendar cal = Calendar.getInstance();
@@ -86,16 +100,16 @@ public class ReportController {
         model.addAttribute("currentMonth", currentMonth);
         model.addAttribute("currentYear", currentYear);
         
-        // Basic counts
-        model.addAttribute("totalRooms", roomDAO.getTotalRoomCount());
-        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCount());
-        model.addAttribute("totalTenants", tenantDAO.getActiveTenantCount());
+        // Basic counts with admin isolation
+        model.addAttribute("totalRooms", roomDAO.getTotalRoomCountByAdmin(adminId));
+        model.addAttribute("occupiedRooms", roomDAO.getOccupiedRoomCountByAdmin(adminId));
+        model.addAttribute("totalTenants", tenantDAO.getActiveTenantCountByAdmin(adminId));
         
-        // Financial overview (current month)
-        BigDecimal currentMonthRevenue = invoiceDAO.getRevenueByPeriod(currentMonth, currentYear);
-        BigDecimal totalRevenue = invoiceDAO.getTotalRevenue();
+        // Financial overview (current month) with admin isolation
+        BigDecimal currentMonthRevenue = invoiceDAO.getRevenueByPeriodAndAdmin(currentMonth, currentYear, adminId);
+        BigDecimal totalRevenue = invoiceDAO.getTotalRevenueByAdmin(adminId);
         int totalInvoices = invoiceDAO.getTotalInvoiceCount();
-        int unpaidInvoices = invoiceDAO.getUnpaidInvoiceCount();
+        int unpaidInvoices = invoiceDAO.getUnpaidInvoiceCountByAdmin(adminId);
         
         model.addAttribute("currentMonthRevenue", currentMonthRevenue != null ? currentMonthRevenue : BigDecimal.ZERO);
         model.addAttribute("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
@@ -103,9 +117,9 @@ public class ReportController {
         model.addAttribute("unpaidInvoices", unpaidInvoices);
         model.addAttribute("paidInvoices", totalInvoices - unpaidInvoices);
         
-        // Occupancy rate
-        int totalRooms = roomDAO.getTotalRoomCount();
-        int occupiedRooms = roomDAO.getOccupiedRoomCount();
+        // Occupancy rate with admin isolation
+        int totalRooms = roomDAO.getTotalRoomCountByAdmin(adminId);
+        int occupiedRooms = roomDAO.getOccupiedRoomCountByAdmin(adminId);
         double occupancyRate = totalRooms > 0 ? (double) occupiedRooms / totalRooms * 100 : 0;
         model.addAttribute("occupancyRate", Math.round(occupancyRate * 100.0) / 100.0);
         
@@ -121,7 +135,7 @@ public class ReportController {
             int year = chartCal.get(Calendar.YEAR);
             
             monthLabels.add(String.format("%02d/%d", month, year));
-            BigDecimal revenue = invoiceDAO.getRevenueByPeriod(month, year);
+            BigDecimal revenue = invoiceDAO.getRevenueByPeriodAndAdmin(month, year, adminId);
             monthlyRevenues.add(revenue != null ? revenue : BigDecimal.ZERO);
             
             chartCal.add(Calendar.MONTH, 1);
@@ -131,8 +145,8 @@ public class ReportController {
         model.addAttribute("monthlyRevenues", monthlyRevenues);
         
         
-        // Recent activity (latest invoices)
-        List<Invoice> recentInvoices = invoiceDAO.getRecentInvoices(5);
+        // Recent activity (latest invoices) with admin isolation
+        List<Invoice> recentInvoices = invoiceDAO.getRecentInvoicesByAdmin(5, adminId);
         model.addAttribute("recentInvoices", recentInvoices);
         
         return "admin/reports";

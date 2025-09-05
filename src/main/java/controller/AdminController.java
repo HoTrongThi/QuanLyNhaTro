@@ -14,13 +14,15 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * Controller quản trị hệ thống
+ * Controller quản trị hệ thống với Admin Data Isolation
  * Xử lý các chức năng dành riêng cho quản trị viên
  * Bao gồm dashboard, thống kê và kiểm soát truy cập dựa trên vai trò
  * Đảm bảo chỉ có admin mới có thể truy cập các tính năng quản lý
+ * Mỗi Admin chỉ thấy thống kê của phạm vi quản lý của mình
+ * Super Admin thấy thống kê tổng hợp toàn hệ thống
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Admin Isolation
  * @since 2025
  */
 @Controller
@@ -62,6 +64,22 @@ public class AdminController {
         return null; // Có quyền truy cập
     }
     
+    /**
+     * Lấy Admin ID từ session cho data isolation
+     * Super Admin trả về null (thấy tất cả)
+     * Admin thường trả về user_id của mình
+     * 
+     * @param session HTTP Session
+     * @return Admin ID hoặc null cho Super Admin
+     */
+    private Integer getAdminId(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        if (user != null && user.isSuperAdmin()) {
+            return null; // Super Admin thấy tất cả
+        }
+        return user != null ? user.getUserId() : null;
+    }
+    
     // ==================== CÁC PHƯƠNG THỨC XỬ LÝ TRANG ====================
     
     /**
@@ -82,26 +100,27 @@ public class AdminController {
         }
         
         User user = (User) session.getAttribute("user");
+        Integer adminId = getAdminId(session);
         
-        // Lấy thống kê phòng
-        int totalRooms = roomDAO.getTotalRoomCount();       // Tổng số phòng
-        int availableRooms = roomDAO.getAvailableRoomCount(); // Phòng còn trống
-        int occupiedRooms = roomDAO.getOccupiedRoomCount();   // Phòng đã thuê
+        // Lấy thống kê phòng theo admin
+        int totalRooms = roomDAO.getTotalRoomCountByAdmin(adminId);       // Tổng số phòng
+        int availableRooms = roomDAO.getAvailableRoomCountByAdmin(adminId); // Phòng còn trống
+        int occupiedRooms = roomDAO.getOccupiedRoomCountByAdmin(adminId);   // Phòng đã thuê
         
-        // Lấy thống kê doanh thu
-        BigDecimal totalRevenue = invoiceDAO.getTotalRevenue(); // Tổng doanh thu
+        // Lấy thống kê doanh thu theo admin
+        BigDecimal totalRevenue = invoiceDAO.getTotalRevenueByAdmin(adminId); // Tổng doanh thu
         
         // Lấy doanh thu tháng hiện tại
         Calendar cal = Calendar.getInstance();
         int currentMonth = cal.get(Calendar.MONTH) + 1;
         int currentYear = cal.get(Calendar.YEAR);
-        BigDecimal currentMonthRevenue = invoiceDAO.getRevenueByPeriod(currentMonth, currentYear);
+        BigDecimal currentMonthRevenue = invoiceDAO.getRevenueByPeriodAndAdmin(currentMonth, currentYear, adminId);
         
-        // Lấy thống kê hóa đơn và nợ
-        int unpaidInvoices = invoiceDAO.getUnpaidInvoiceCount(); // Số hóa đơn chưa thanh toán
+        // Lấy thống kê hóa đơn và nợ theo admin
+        int unpaidInvoices = invoiceDAO.getUnpaidInvoiceCountByAdmin(adminId); // Số hóa đơn chưa thanh toán
         
         // Đếm số phòng có nợ (phòng có hóa đơn chưa thanh toán)
-        int roomsWithDebt = invoiceDAO.getRoomsWithUnpaidBills();
+        int roomsWithDebt = invoiceDAO.getRoomsWithUnpaidBillsByAdmin(adminId);
         
         // Truyền dữ liệu đến view
         model.addAttribute("user", user);
