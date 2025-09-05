@@ -11,12 +11,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.servlet.http.HttpSession;
 
 /**
- * Controller xử lý xác thực người dùng
+ * Controller xử lý xác thực người dùng (Đã cập nhật với Super Admin)
  * Quản lý các chức năng đăng nhập, đăng xuất và điều hướng trang chủ
- * Xử lý việc phân quyền dựa trên vai trò người dùng (Admin/User)
+ * Xử lý việc phân quyền dựa trên vai trò người dùng (Super Admin/Admin/User)
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0
  * @since 2025
  */
 @Controller
@@ -43,11 +43,7 @@ public class AuthController {
         // Kiểm tra nếu đã đăng nhập thì chuyển hướng đến dashboard
         if (session.getAttribute("user") != null) {
             User user = (User) session.getAttribute("user");
-            if (user.isAdmin()) {
-                return "redirect:/admin/dashboard"; // Chuyển đến dashboard admin
-            } else {
-                return "redirect:/user/dashboard";  // Chuyển đến dashboard user
-            }
+            return redirectToDashboard(user);
         }
         
         // Thêm đối tượng User rỗng vào model cho form đăng nhập
@@ -89,19 +85,18 @@ public class AuthController {
             session.setAttribute("fullName", user.getFullName());   // Lưu họ tên
             session.setAttribute("role", user.getRole());           // Lưu vai trò
             
+            // Thêm thông báo chào mừng
+            String welcomeMessage = getWelcomeMessage(user);
+            redirectAttributes.addFlashAttribute("success", welcomeMessage);
+            
             // Chuyển hướng dựa trên vai trò
-            if (user.isAdmin()) {
-                return "redirect:/admin/dashboard";  // Admin đến trang quản trị
-            } else {
-                return "redirect:/user/dashboard";   // User thường đến trang cá nhân
-            }
+            return redirectToDashboard(user);
         } else {
             // Đăng nhập thất bại
             redirectAttributes.addFlashAttribute("error", "Tên đăng nhập hoặc mật khẩu không chính xác");
             return "redirect:/login";
         }
     }
-    
     
     /**
      * Xử lý đăng xuất
@@ -113,11 +108,19 @@ public class AuthController {
      */
     @GetMapping("/logout")
     public String logout(HttpSession session, RedirectAttributes redirectAttributes) {
+        // Lấy thông tin user trước khi hủy session (để hiển thị thông báo)
+        User user = (User) session.getAttribute("user");
+        String logoutMessage = "Đăng xuất thành công";
+        
+        if (user != null) {
+            logoutMessage = "Tạm biệt " + user.getFullName() + "! Đăng xuất thành công.";
+        }
+        
         // Hủy bỏ toàn bộ session (xóa tất cả thông tin đăng nhập)
         session.invalidate();
         
         // Thêm thông báo thành công
-        redirectAttributes.addFlashAttribute("success", "Đăng xuất thành công");
+        redirectAttributes.addFlashAttribute("success", logoutMessage);
         
         // Chuyển hướng về trang đăng nhập
         return "redirect:/login";
@@ -138,14 +141,109 @@ public class AuthController {
         
         // Nếu đã đăng nhập thì chuyển đến dashboard tương ứng
         if (user != null) {
-            if (user.isAdmin()) {
-                return "redirect:/admin/dashboard";  // Admin đến trang quản trị
-            } else {
-                return "redirect:/user/dashboard";   // User thường đến trang cá nhân
-            }
+            return redirectToDashboard(user);
         }
         
         // Chưa đăng nhập thì chuyển đến trang đăng nhập
         return "redirect:/login";
+    }
+    
+    /**
+     * Xử lý trang access denied
+     * Hiển thị khi người dùng không có quyền truy cập
+     * 
+     * @param model Model để truyền dữ liệu
+     * @param session HTTP Session
+     * @return tên view access denied
+     */
+    @GetMapping("/access-denied")
+    public String accessDenied(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        model.addAttribute("user", user);
+        model.addAttribute("pageTitle", "Truy cập bị từ chối");
+        return "error/access-denied";
+    }
+    
+    // ==================== CÁC PHƯƠNG THỨC TIỆN ÍCH ====================
+    
+    /**
+     * Chuyển hướng đến dashboard phù hợp dựa trên vai trò
+     * 
+     * @param user đối tượng User
+     * @return redirect URL
+     */
+    private String redirectToDashboard(User user) {
+        if ("SUPER_ADMIN".equals(user.getRole())) {
+            return "redirect:/super-admin/dashboard";  // Super Admin đến trang quản trị cấp cao
+        } else if ("ADMIN".equals(user.getRole())) {
+            return "redirect:/admin/dashboard";        // Admin đến trang quản trị
+        } else {
+            return "redirect:/user/dashboard";         // User thường đến trang cá nhân
+        }
+    }
+    
+    /**
+     * Tạo thông báo chào mừng dựa trên vai trò
+     * 
+     * @param user đối tượng User
+     * @return thông báo chào mừng
+     */
+    private String getWelcomeMessage(User user) {
+        String roleDisplay = getRoleDisplayName(user.getRole());
+        return "Chào mừng " + roleDisplay + " " + user.getFullName() + "!";
+    }
+    
+    /**
+     * Lấy tên hiển thị của vai trò
+     */
+    private String getRoleDisplayName(String role) {
+        switch (role) {
+            case "SUPER_ADMIN": return "Super Admin";
+            case "ADMIN": return "Quản trị viên";
+            case "USER": return "Người dùng";
+            default: return "Người dùng";
+        }
+    }
+    
+    /**
+     * Kiểm tra quyền truy cập Super Admin
+     * 
+     * @param session HTTP Session
+     * @return true nếu có quyền Super Admin
+     */
+    public static boolean isSuperAdminLoggedIn(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        return user != null && "SUPER_ADMIN".equals(user.getRole());
+    }
+    
+    /**
+     * Kiểm tra quyền truy cập Admin (bao gồm Super Admin)
+     * 
+     * @param session HTTP Session
+     * @return true nếu có quyền Admin hoặc Super Admin
+     */
+    public static boolean isAdminLoggedIn(HttpSession session) {
+        User user = (User) session.getAttribute("user");
+        return user != null && ("ADMIN".equals(user.getRole()) || "SUPER_ADMIN".equals(user.getRole()));
+    }
+    
+    /**
+     * Kiểm tra người dùng đã đăng nhập
+     * 
+     * @param session HTTP Session
+     * @return true nếu đã đăng nhập
+     */
+    public static boolean isUserLoggedIn(HttpSession session) {
+        return session.getAttribute("user") != null;
+    }
+    
+    /**
+     * Lấy thông tin user từ session
+     * 
+     * @param session HTTP Session
+     * @return đối tượng User hoặc null
+     */
+    public static User getCurrentUser(HttpSession session) {
+        return (User) session.getAttribute("user");
     }
 }

@@ -208,10 +208,19 @@ public class User {
     
     /**
      * Kiểm tra người dùng có phải là quản trị viên hay không
-     * @return true nếu là admin, false nếu không
+     * Bao gồm cả ADMIN và SUPER_ADMIN
+     * @return true nếu là admin hoặc super admin, false nếu không
      */
     public boolean isAdmin() {
-        return "ADMIN".equals(this.role);
+        return "ADMIN".equals(this.role) || "SUPER_ADMIN".equals(this.role);
+    }
+    
+    /**
+     * Kiểm tra người dùng có phải là Super Admin hay không
+     * @return true nếu là super admin, false nếu không
+     */
+    public boolean isSuperAdmin() {
+        return "SUPER_ADMIN".equals(this.role);
     }
     
     /**
@@ -220,6 +229,32 @@ public class User {
      */
     public boolean isUser() {
         return "USER".equals(this.role);
+    }
+    
+    /**
+     * Lấy tên hiển thị của vai trò
+     * @return tên vai trò bằng tiếng Việt
+     */
+    public String getRoleDisplayName() {
+        switch (this.role) {
+            case "SUPER_ADMIN": return "Super Admin";
+            case "ADMIN": return "Quản trị viên";
+            case "USER": return "Người dùng";
+            default: return this.role;
+        }
+    }
+    
+    /**
+     * Lấy icon của vai trò
+     * @return Bootstrap icon class
+     */
+    public String getRoleIcon() {
+        switch (this.role) {
+            case "SUPER_ADMIN": return "bi bi-shield-fill-exclamation";
+            case "ADMIN": return "bi bi-person-gear";
+            case "USER": return "bi bi-person";
+            default: return "bi bi-person";
+        }
     }
     
     // Message-related getters and setters

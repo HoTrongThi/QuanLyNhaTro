@@ -32,7 +32,7 @@ public class AdminUserController {
             return "redirect:/login";
         }
         
-        if (!user.isAdmin()) {
+        if (!"ADMIN".equals(user.getRole()) && !"SUPER_ADMIN".equals(user.getRole())) {
             return "redirect:/access-denied";
         }
         
@@ -75,7 +75,7 @@ public class AdminUserController {
         model.addAttribute("selectedRole", role);
         model.addAttribute("totalUsers", userDAO.getTotalUserCount());
         model.addAttribute("regularUsers", userDAO.getRegularUserCount());
-        model.addAttribute("adminUsers", userDAO.getAdminUserCount());
+        model.addAttribute("adminUsers", userDAO.getAdminCount());
         model.addAttribute("activeTenantsCount", userDAO.getActiveTenantsCount());
         
         return "admin/users";
@@ -132,8 +132,8 @@ public class AdminUserController {
                 return "redirect:/admin/users";
             }
             
-            // Prevent deleting admin users
-            if ("ADMIN".equals(targetUser.getRole())) {
+            // Prevent deleting admin and super admin users
+            if ("ADMIN".equals(targetUser.getRole()) || "SUPER_ADMIN".equals(targetUser.getRole())) {
                 redirectAttributes.addFlashAttribute("error", "Không thể xóa tài khoản quản trị viên");
                 return "redirect:/admin/users";
             }

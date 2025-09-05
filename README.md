@@ -11,9 +11,10 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 
 ### 👥 Quản lý người dùng
 - ✅ Đăng ký, đăng nhập với validation
-- ✅ Phân quyền Admin/User
+- ✅ **Phân quyền 3 cấp: Super Admin/Admin/User** 🔥
 - ✅ Quản lý thông tin cá nhân
 - ✅ Hệ thống tin nhắn nội bộ
+- ✅ **Super Admin quản lý toàn bộ Admin** 🔥
 
 ### 🏢 Quản lý phòng trọ
 - ✅ CRUD phòng với validation
@@ -54,6 +55,14 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 - ✅ **Bao gồm mã QR MoMo động** 🔥
 - ✅ Hỗ trợ gửi đến nhiều người thuê
 
+### 🛡️ Quản lý Super Admin
+- ✅ **Dashboard Super Admin chuyên dụng** 🔥
+- ✅ **Quản lý tài khoản Admin (CRUD)** 🔥
+- ✅ **Reset mật khẩu Admin** 🔥
+- ✅ **Tạm khóa/Kích hoạt Admin** 🔥
+- ✅ **Nhật ký hoạt động (Audit Log)** 🔥
+
+
 ## 🛠️ Công nghệ sử dụng
 
 - **Backend**: Java 17 + Spring MVC
@@ -91,6 +100,8 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
    ```bash
    mysql -u root -p quan_ly_phong_tro < database/quan_ly_phong_tro_complete.sql
    ```
+   
+   **Lưu ý**: Sau khi import, bạn có thể cần cập nhật password hash cho Super Admin nếu gặp lỗi đăng nhập.
 
 4. **Cấu hình database connection**
    Chỉnh sửa file `src/main/java/util/DBConnection.java`:
@@ -132,15 +143,24 @@ Hệ thống quản lý phòng trọ hiện đại được xây dựng bằng S
 
 ## 👤 Tài khoản mặc định
 
+### Super Admin
+- **Username**: `superadmin`
+- **Password**: `superadmin123` (hoặc password được cập nhật)
+- **Quyền**: Quản lý toàn bộ hệ thống + Quản lý Admin
+- **Dashboard**: `/super-admin/dashboard`
+- **Lưu ý**: Nếu không đăng nhập được, kiểm tra password hash trong database
+
 ### Admin
 - **Username**: `admin`
 - **Password**: `admin123`
-- **Quyền**: Quản lý toàn bộ hệ thống
+- **Quyền**: Quản lý phòng trọ, người thuê, hóa đơn
+- **Dashboard**: `/admin/dashboard`
 
 ### User
-- **Username**: `user`
+- **Username**: `user1`, `user2`, `user3`
 - **Password**: `user123`
-- **Quyền**: Xem thông tin phòng và hóa đơn
+- **Quyền**: Xem thông tin phòng và hóa đơn cá nhân
+- **Dashboard**: `/user/dashboard`
 
 ## 📁 Cấu trúc project
 
@@ -178,10 +198,22 @@ QuanLyPhongTro/
 
 ### Authentication
 - `GET /login` - Trang đăng nhập
-- `POST /login` - Xử lý đăng nhập
+- `POST /login` - Xử lý đăng nhập (hỗ trợ 3 cấp quyền)
 - `GET /register` - Trang đăng ký
 - `POST /register` - Xử lý đăng ký
 - `GET /logout` - Đăng xuất
+
+### Super Admin
+- `GET /super-admin/dashboard` - Dashboard Super Admin
+- `GET /super-admin/admins` - Quản lý Admin
+- `POST /super-admin/admins/add` - Thêm Admin mới
+- `POST /super-admin/admins/edit/{id}` - Cập nhật Admin
+- `POST /super-admin/admins/reset-password/{id}` - Reset mật khẩu Admin
+- `POST /super-admin/admins/suspend/{id}` - Tạm khóa Admin
+- `POST /super-admin/admins/activate/{id}` - Kích hoạt Admin
+- `POST /super-admin/admins/delete/{id}` - Xóa Admin
+- `GET /super-admin/audit-logs` - Nhật ký hoạt động
+
 
 ### Admin
 - `GET /admin/dashboard` - Dashboard admin

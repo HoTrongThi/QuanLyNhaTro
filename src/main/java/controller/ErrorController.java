@@ -6,9 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * Controller Xử lý Lỗi
- * Xử lý các trang lỗi và tình huống bị từ chối truy cập
- * Bao gồm lỗi 404 (không tìm thấy trang), 500 (lỗi máy chủ) và access denied
+ * Xử lý các trang lỗi hệ thống
+ * Bao gồm lỗi 404 (không tìm thấy trang) và 500 (lỗi máy chủ)
  * Hiển thị thông báo lỗi thân thiện với người dùng
+ * 
+ * Lưu ý: Trang access-denied được xử lý bởi AuthController
  * 
  * @author Hệ thống Quản lý Phòng trọ
  * @version 1.0
@@ -18,22 +20,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class ErrorController {
     
     // ==================== CÁC TRANG LỖI ====================
-    
-    /**
-     * Trang Từ chối Truy cập
-     * Hiển thị khi người dùng không có quyền truy cập tài nguyên
-     * 
-     * @param model Model để truyền dữ liệu đến view
-     * @return tên view của trang access denied
-     */
-    @GetMapping("/access-denied")
-    public String accessDenied(Model model) {
-        model.addAttribute("pageTitle", "Truy cập bị từ chối");
-        model.addAttribute("errorTitle", "Truy cập bị từ chối");
-        model.addAttribute("errorMessage", "Bạn không có quyền truy cập vào trang này.");
-        
-        return "error/access-denied";
-    }
     
     /**
      * 404 Error Page
