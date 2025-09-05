@@ -177,10 +177,6 @@
                             <i class="bi bi-person-gear me-2"></i>
                             Quản lý Admin
                         </a>
-                        <a class="nav-link" href="${pageContext.request.contextPath}/super-admin/system-stats">
-                            <i class="bi bi-graph-up me-2"></i>
-                            Thống kê hệ thống
-                        </a>
                         <a class="nav-link active" href="${pageContext.request.contextPath}/super-admin/audit-logs">
                             <i class="bi bi-journal-text me-2"></i>
                             Nhật ký hoạt động
@@ -340,7 +336,8 @@
                                                                     </c:if>
                                                                 </div>
                                                                 
-                                                                <!-- Technical Details -->
+                                                                <!-- Technical Details - Hidden for cleaner UI -->
+                                                                <%-- 
                                                                 <div class="row text-sm mt-2">
                                                                     <div class="col-md-4">
                                                                         <small class="text-muted">
@@ -361,6 +358,7 @@
                                                                         </small>
                                                                     </div>
                                                                 </div>
+                                                                --%>
                                                             </div>
                                                             
                                                             <!-- Timestamp -->

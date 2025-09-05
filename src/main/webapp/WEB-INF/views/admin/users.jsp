@@ -188,34 +188,16 @@
                     
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <div class="card stats-card">
                                 <div class="card-body text-center">
                                     <i class="bi bi-people fs-1 mb-2"></i>
-                                    <h3>${totalUsers}</h3>
+                                    <h3>${regularUsers}</h3>
                                     <p class="mb-0">Tổng Người dùng</p>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-person fs-1 mb-2"></i>
-                                    <h3>${regularUsers}</h3>
-                                    <p class="mb-0">Người dùng thường</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-shield-check fs-1 mb-2"></i>
-                                    <h3>${adminUsers}</h3>
-                                    <p class="mb-0">Quản trị viên</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-4 mb-3">
                             <div class="card bg-info text-white">
                                 <div class="card-body text-center">
                                     <i class="bi bi-house-heart fs-1 mb-2"></i>
@@ -224,13 +206,22 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-person-plus fs-1 mb-2"></i>
+                                    <h3>${regularUsers - activeTenantsCount}</h3>
+                                    <p class="mb-0">Chưa thuê trọ</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
-                    <!-- Search and Filter -->
+                    <!-- Search and Add User -->
                     <div class="search-filter-row">
                         <form method="GET" action="${pageContext.request.contextPath}/admin/users">
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-8">
                                     <label for="search" class="form-label">Tìm kiếm người dùng</label>
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="search" name="search" 
@@ -241,15 +232,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label for="role" class="form-label">Lọc theo vai trò</label>
-                                    <select class="form-select" id="role" name="role" onchange="this.form.submit()">
-                                        <option value="all" ${selectedRole == 'all' ? 'selected' : ''}>Tất cả</option>
-                                        <option value="USER" ${selectedRole == 'USER' ? 'selected' : ''}>Người dùng</option>
-                                        <option value="ADMIN" ${selectedRole == 'ADMIN' ? 'selected' : ''}>Quản trị viên</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-3 d-flex align-items-end">
+                                <div class="col-md-4 d-flex align-items-end">
                                     <a href="${pageContext.request.contextPath}/admin/users/add" 
                                        class="btn btn-success w-100">
                                         <i class="bi bi-person-plus me-1"></i>
@@ -295,7 +278,6 @@
                                         <table class="table table-hover">
                                             <thead>
                                                 <tr>
-                                                    <th>ID</th>
                                                     <th>Tên đăng nhập</th>
                                                     <th>Họ tên</th>
                                                     <th>Email</th>
@@ -307,7 +289,6 @@
                                             <tbody>
                                                 <c:forEach var="targetUser" items="${users}">
                                                     <tr>
-                                                        <td>${targetUser.userId}</td>
                                                         <td>
                                                             <strong>${targetUser.username}</strong>
                                                         </td>
@@ -323,14 +304,7 @@
                                                             </c:choose>
                                                         </td>
                                                         <td>
-                                                            <c:choose>
-                                                                <c:when test="${targetUser.role == 'ADMIN'}">
-                                                                    <span class="badge badge-admin">Quản trị viên</span>
-                                                                </c:when>
-                                                                <c:otherwise>
-                                                                    <span class="badge badge-user">Người dùng</span>
-                                                                </c:otherwise>
-                                                            </c:choose>
+                                                            <span class="badge badge-user">Người dùng</span>
                                                         </td>
                                                         <td>
                                                             <fmt:formatDate value="${targetUser.createdAt}" pattern="dd/MM/yyyy"/>
@@ -342,14 +316,12 @@
                                                                    title="Xem chi tiết">
                                                                     <i class="bi bi-eye"></i>
                                                                 </a>
-                                                                <c:if test="${targetUser.role != 'ADMIN'}">
-                                                                    <button type="button" 
-                                                                            class="btn btn-outline-danger btn-sm" 
-                                                                            title="Xóa"
-                                                                            onclick="confirmDelete(${targetUser.userId}, '${targetUser.fullName}')">
-                                                                        <i class="bi bi-trash"></i>
-                                                                    </button>
-                                                                </c:if>
+                                                                <button type="button" 
+                                                                        class="btn btn-outline-danger btn-sm" 
+                                                                        title="Xóa"
+                                                                        onclick="confirmDelete(${targetUser.userId}, '${targetUser.fullName}')">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>

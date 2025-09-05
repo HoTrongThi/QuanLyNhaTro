@@ -44,8 +44,7 @@ public class AdminUserController {
      */
     @GetMapping("/users")
     public String showUsersPage(HttpSession session, Model model,
-                               @RequestParam(value = "search", required = false) String search,
-                               @RequestParam(value = "role", required = false, defaultValue = "all") String role) {
+                               @RequestParam(value = "search", required = false) String search) {
         String accessCheck = checkAdminAccess(session);
         if (accessCheck != null) {
             return accessCheck;
@@ -54,7 +53,7 @@ public class AdminUserController {
         User user = (User) session.getAttribute("user");
         List<User> users;
         
-        // Handle search and filter functionality
+        // Handle search and filter functionality - Only show USER role
         if (search != null && !search.trim().isEmpty()) {
             users = userDAO.searchUsers(search.trim());
             model.addAttribute("searchTerm", search.trim());
@@ -62,20 +61,15 @@ public class AdminUserController {
             users = userDAO.getAllUsers();
         }
         
-        // Filter by role if specified
-        if (!"all".equals(role)) {
-            users = users.stream()
-                    .filter(u -> role.equalsIgnoreCase(u.getRole()))
-                    .collect(java.util.stream.Collectors.toList());
-        }
+        // Filter to only show USER role (exclude ADMIN and SUPER_ADMIN)
+        users = users.stream()
+                .filter(u -> "USER".equalsIgnoreCase(u.getRole()))
+                .collect(java.util.stream.Collectors.toList());
         
         model.addAttribute("user", user);
         model.addAttribute("users", users);
         model.addAttribute("pageTitle", "Quản lý Người dùng");
-        model.addAttribute("selectedRole", role);
-        model.addAttribute("totalUsers", userDAO.getTotalUserCount());
         model.addAttribute("regularUsers", userDAO.getRegularUserCount());
-        model.addAttribute("adminUsers", userDAO.getAdminCount());
         model.addAttribute("activeTenantsCount", userDAO.getActiveTenantsCount());
         
         return "admin/users";
@@ -98,6 +92,12 @@ public class AdminUserController {
         User targetUser = userDAO.getUserById(id);
         if (targetUser == null) {
             redirectAttributes.addFlashAttribute("error", "Không tìm thấy thông tin người dùng");
+            return "redirect:/admin/users";
+        }
+        
+        // Only allow viewing USER accounts
+        if (!"USER".equals(targetUser.getRole())) {
+            redirectAttributes.addFlashAttribute("error", "Không có quyền truy cập thông tin này");
             return "redirect:/admin/users";
         }
         

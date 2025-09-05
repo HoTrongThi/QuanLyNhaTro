@@ -266,6 +266,10 @@
                                 <i class="bi bi-person-vcard me-2"></i>
                                 Thông tin cá nhân
                             </h5>
+                            <div class="alert alert-info mb-3">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Lưu ý:</strong> Tài khoản mới sẽ được tạo với vai trò <strong>Người dùng</strong> mặc định.
+                            </div>
                             
                             <div class="row">
                                 <div class="col-md-6">
@@ -294,7 +298,7 @@
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label for="phone" class="form-label">Số điện thoại</label>
                                     <input type="tel" 
                                            class="form-control" 
@@ -303,16 +307,8 @@
                                            value="${newUser.phone}">
                                     <div class="form-text">Định dạng: 0xxxxxxxxx</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label for="role" class="form-label">
-                                        Vai trò <span class="required-field">*</span>
-                                    </label>
-                                    <select class="form-select" id="role" name="role" required>
-                                        <option value="">Chọn vai trò...</option>
-                                        <option value="USER" ${newUser.role == 'USER' ? 'selected' : ''}>Người dùng</option>
-                                        <option value="ADMIN" ${newUser.role == 'ADMIN' ? 'selected' : ''}>Quản trị viên</option>
-                                    </select>
-                                </div>
+                                <!-- Hidden field for role - always USER -->
+                                <input type="hidden" name="role" value="USER">
                             </div>
                             
                             <div class="row">
@@ -384,6 +380,9 @@
                 alert('Số điện thoại không hợp lệ. Định dạng: 0xxxxxxxxx');
                 return false;
             }
+            
+            // Show confirmation message
+            return confirm('Bạn có chắc chắn muốn tạo tài khoản người dùng mới?');
         });
     </script>
 </body>
