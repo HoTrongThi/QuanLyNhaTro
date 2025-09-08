@@ -300,33 +300,9 @@ netstat -tlnp | grep :3306
 - Xác nhận địa chỉ email hợp lệ
 - Test với các nhà cung cấp email khác nhau
 
-## 📈 Roadmap
-
-- [ ] Mobile app (React Native)
-- [ ] Email notifications
-- [ ] Advanced reporting
-- [ ] Multi-language support
-- [ ] API documentation (Swagger)
-- [ ] Docker containerization
-
-## 🤝 Đóng góp
-
-1. Fork repository
-2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Tạo Pull Request
-
 ## 📄 License
 
 Project này được phân phối dưới MIT License. Xem file `LICENSE` để biết thêm chi tiết.
-
-## 📞 Liên hệ
-
-Nếu có bất kỳ câu hỏi nào, vui lòng liên hệ:
-- 📧 Email: your.email@example.com
-- 🐙 GitHub: [your-username](https://github.com/your-username)
-- 💬 Issues: [GitHub Issues](https://github.com/your-username/QuanLyPhongTro/issues)
 
 ---
 

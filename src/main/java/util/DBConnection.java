@@ -20,13 +20,13 @@ public class DBConnection {
     // ==================== CÁC THAM SỐ KẾT NỐI CƠ Sở DỮ LIỆU ====================
     
     /** Đường dẫn kết nối đến cơ sở dữ liệu MySQL */
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/quan_ly_phong_tro";
+    private static final String DB_URL = "jdbc:mysql://mysql:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
     
     /** Tên đăng nhập cơ sở dữ liệu */
-    private static final String DB_USERNAME = "root";
+    private static final String DB_USERNAME = "qlpt_user";
     
     /** Mật khẩu cơ sở dữ liệu */
-    private static final String DB_PASSWORD = "";
+    private static final String DB_PASSWORD = "qlpt_password";
     
     /** Tên driver JDBC cho MySQL */
     private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";

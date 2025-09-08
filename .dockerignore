@@ -1,0 +1,57 @@
+# Docker ignore file for Quan Ly Phong Tro
+
+# Target directory (will be built inside container)
+target/
+
+# IDE files
+.project
+.classpath
+.settings/
+*.iml
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.backup
+*.bak
+
+# Git
+.git/
+.gitignore
+
+# Docker files (not needed inside container)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts (not needed inside container)
+*.bat
+*.sh
+
+# Documentation
+*.md
+README*
+DEPLOY*
+
+# Environment files
+.env
+.env.local
+
+# Node modules (if any)
+node_modules/
+
+# Maven wrapper (optional)
+.mvn/
+mvnw
+mvnw.cmd

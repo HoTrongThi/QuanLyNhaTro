@@ -41,7 +41,7 @@
       <version>${mysql.version}</version>
     </dependency>
     
-    <!-- Servlet API -->
+    <!-- Servlet API (for Tomcat 9) -->
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
