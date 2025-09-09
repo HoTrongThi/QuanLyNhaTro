@@ -17,6 +17,9 @@ COPY src ./src
 # Build the application
 RUN mvn clean package -DskipTests
 
+# Debug: List WAR file
+RUN ls -la target/
+
 # Stage 2: Runtime
 FROM tomcat:9.0-jdk17
 
@@ -26,6 +29,9 @@ RUN rm -rf /usr/local/tomcat/webapps/*
 # Copy the built WAR file as ROOT.war
 COPY --from=build /app/target/QuanLyPhongTro.war /usr/local/tomcat/webapps/ROOT.war
 
+# Debug: Verify WAR file copied
+RUN ls -la /usr/local/tomcat/webapps/
+
 # Set environment variables for Railway
 ENV CATALINA_OPTS="-Xms256m -Xmx512m"
 ENV JAVA_OPTS="-Djava.awt.headless=true -Dfile.encoding=UTF-8 -Duser.timezone=Asia/Ho_Chi_Minh"
@@ -33,5 +39,5 @@ ENV JAVA_OPTS="-Djava.awt.headless=true -Dfile.encoding=UTF-8 -Duser.timezone=As
 # Expose port 8080
 EXPOSE 8080
 
-# Start Tomcat
+# Start Tomcat with verbose logging
 CMD ["catalina.sh", "run"]
