@@ -37,21 +37,22 @@ public class DBConnection {
      * Lấy database URL từ environment variable hoặc default local
      */
     private static String getDbUrl() {
-        // Railway tự động set MYSQL_PUBLIC_URL
-        String railwayUrl = System.getenv("MYSQL_PUBLIC_URL");
-        if (railwayUrl != null && !railwayUrl.isEmpty()) {
-            // Convert mysql:// to jdbc:mysql://
-            String jdbcUrl = railwayUrl.replace("mysql://", "jdbc:mysql://");
-            // Add parameters
-            if (!jdbcUrl.contains("?")) {
-                jdbcUrl += "?useSSL=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
-            }
-            return jdbcUrl;
+    // Thử lấy từ Railway env
+    String railwayUrl = System.getenv("MYSQL_URL"); // Railway đặt tên này
+    if (railwayUrl != null && !railwayUrl.isEmpty()) {
+        // convert mysql:// => jdbc:mysql://
+        String jdbcUrl = railwayUrl.replace("mysql://", "jdbc:mysql://");
+        // thêm parameters nếu chưa có
+        if (!jdbcUrl.contains("?")) {
+            jdbcUrl += "?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
         }
-        
-        // Fallback cho local development
-        return "jdbc:mysql://mysql:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
+        return jdbcUrl;
     }
+
+    // fallback cho local
+    return "jdbc:mysql://localhost:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
+}
+
     
     /**
      * Lấy database username từ environment variable hoặc default local
