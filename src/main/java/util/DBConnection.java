@@ -7,29 +7,73 @@ import org.springframework.stereotype.Component;
 
 /**
  * Lớp tiện ích quản lý kết nối cơ sở dữ liệu
- * Cung cấp các phương thức để kết nối và đóng kết nối MySQL
- * Sử dụng pattern Singleton để quản lý kết nối hiệu quả
+ * Hỗ trợ cả local development và Railway production
+ * Sử dụng environment variables cho Railway
  * 
  * @author Hệ thống Quản lý Phòng trọ
- * @version 1.0
+ * @version 2.0 - Railway compatible
  * @since 2025
  */
 @Component
 public class DBConnection {
     
-    // ==================== CÁC THAM SỐ KẾT NỐI CƠ Sở DỮ LIỆU ====================
+    // ==================== CÁC THAM SỐ KẾT NỐI CƠ SỞ DỮ LIỆU ====================
     
-    /** Đường dẫn kết nối đến cơ sở dữ liệu MySQL */
-    private static final String DB_URL = "jdbc:mysql://mysql:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
+    /** Đường dẫn kết nối đến cơ sở dữ liệu */
+    private static final String DB_URL = getDbUrl();
     
     /** Tên đăng nhập cơ sở dữ liệu */
-    private static final String DB_USERNAME = "qlpt_user";
+    private static final String DB_USERNAME = getDbUsername();
     
     /** Mật khẩu cơ sở dữ liệu */
-    private static final String DB_PASSWORD = "qlpt_password";
+    private static final String DB_PASSWORD = getDbPassword();
     
     /** Tên driver JDBC cho MySQL */
     private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
+    
+    // ==================== CÁC PHƯƠNG THỨC CẤU HÌNH ====================
+    
+    /**
+     * Lấy database URL từ environment variable hoặc default local
+     */
+    private static String getDbUrl() {
+        // Railway tự động set MYSQL_PUBLIC_URL
+        String railwayUrl = System.getenv("MYSQL_PUBLIC_URL");
+        if (railwayUrl != null && !railwayUrl.isEmpty()) {
+            // Convert mysql:// to jdbc:mysql://
+            String jdbcUrl = railwayUrl.replace("mysql://", "jdbc:mysql://");
+            // Add parameters
+            if (!jdbcUrl.contains("?")) {
+                jdbcUrl += "?useSSL=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
+            }
+            return jdbcUrl;
+        }
+        
+        // Fallback cho local development
+        return "jdbc:mysql://mysql:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
+    }
+    
+    /**
+     * Lấy database username từ environment variable hoặc default local
+     */
+    private static String getDbUsername() {
+        String username = System.getenv("MYSQLUSER");
+        if (username != null && !username.isEmpty()) {
+            return username;
+        }
+        return "qlpt_user"; // Local default
+    }
+    
+    /**
+     * Lấy database password từ environment variable hoặc default local
+     */
+    private static String getDbPassword() {
+        String password = System.getenv("MYSQLPASSWORD");
+        if (password != null && !password.isEmpty()) {
+            return password;
+        }
+        return "qlpt_password"; // Local default
+    }
     
     // ==================== KHỐI TẠO DRIVER ====================
     
@@ -42,6 +86,8 @@ public class DBConnection {
             // Tải MySQL JDBC Driver
             Class.forName(DB_DRIVER);
             System.out.println("MySQL JDBC Driver đã được tải thành công!");
+            System.out.println("Environment: " + (isRailway() ? "Railway" : "Local"));
+            System.out.println("Database URL: " + maskPassword(DB_URL));
         } catch (ClassNotFoundException e) {
             System.err.println("Không tìm thấy MySQL JDBC Driver!");
             e.printStackTrace();
@@ -53,7 +99,7 @@ public class DBConnection {
     
     /**
      * Lấy kết nối đến cơ sở dữ liệu
-     * Tạo một kết nối mới đến MySQL database
+     * Hỗ trợ cả MySQL (local) và Railway (production)
      * 
      * @return đối tượng Connection để thực hiện các thao tác database
      * @throws SQLException nếu kết nối thất bại
@@ -65,14 +111,14 @@ public class DBConnection {
             return connection;
         } catch (SQLException e) {
             System.err.println("Kết nối cơ sở dữ liệu thất bại: " + e.getMessage());
+            System.err.println("URL: " + maskPassword(DB_URL));
+            System.err.println("Username: " + DB_USERNAME);
             throw e;
         }
     }
     
     /**
      * Đóng kết nối cơ sở dữ liệu một cách an toàn
-     * Kiểm tra và đóng kết nối nếu nó không null
-     * Xử lý ngoại lệ nếu có lỗi khi đóng kết nối
      * 
      * @param connection kết nối cần đóng
      */
@@ -104,12 +150,32 @@ public class DBConnection {
     }
     
     /**
-     * Lấy thông tin cấu hình cơ sở dữ liệu
+     * Lấy thông tin cấu hình cơ sở dữ liệu (ẩn mật khẩu)
      * 
      * @return chuỗi chứa thông tin cấu hình
      */
     public static String getDatabaseInfo() {
         return String.format("Database URL: %s | Username: %s | Driver: %s", 
-                           DB_URL, DB_USERNAME, DB_DRIVER);
+                           maskPassword(DB_URL), DB_USERNAME, DB_DRIVER);
+    }
+    
+    /**
+     * Kiểm tra có đang chạy trên Railway không
+     * 
+     * @return true nếu là Railway environment
+     */
+    public static boolean isRailway() {
+        return System.getenv("RAILWAY_ENVIRONMENT") != null || System.getenv("MYSQL_PUBLIC_URL") != null;
+    }
+    
+    /**
+     * Ẩn mật khẩu trong URL để log an toàn
+     * 
+     * @param url URL cần ẩn mật khẩu
+     * @return URL đã ẩn mật khẩu
+     */
+    private static String maskPassword(String url) {
+        if (url == null) return null;
+        return url.replaceAll("://([^:]+):([^@]+)@", "://$1:****@");
     }
 }
