@@ -38,7 +38,7 @@ public class DBConnection {
      */
     private static String getDbUrl() {
     // Thử lấy từ Railway env
-    String railwayUrl = System.getenv("MYSQL_URL"); // Railway đặt tên này
+    String railwayUrl = System.getenv("MYSQL_PUBLIC_URL"); // ✅ Đúng biến của Railway
     if (railwayUrl != null && !railwayUrl.isEmpty()) {
         // convert mysql:// => jdbc:mysql://
         String jdbcUrl = railwayUrl.replace("mysql://", "jdbc:mysql://");
