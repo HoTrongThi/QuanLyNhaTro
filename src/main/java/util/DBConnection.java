@@ -37,9 +37,22 @@ public class DBConnection {
      * Lấy database URL từ environment variable hoặc default local
      */
     private static String getDbUrl() {
-        // Railway tự động set MYSQL_PUBLIC_URL
+        // Debug: Print all Railway environment variables
+        System.out.println("[DEBUG] MYSQL_PUBLIC_URL: " + System.getenv("MYSQL_PUBLIC_URL"));
+        System.out.println("[DEBUG] MYSQL_URL: " + System.getenv("MYSQL_URL"));
+        System.out.println("[DEBUG] DATABASE_URL: " + System.getenv("DATABASE_URL"));
+        
+        // Try multiple Railway environment variables
         String railwayUrl = System.getenv("MYSQL_PUBLIC_URL");
+        if (railwayUrl == null || railwayUrl.isEmpty()) {
+            railwayUrl = System.getenv("DATABASE_URL");
+        }
+        if (railwayUrl == null || railwayUrl.isEmpty()) {
+            railwayUrl = System.getenv("MYSQL_URL");
+        }
+        
         if (railwayUrl != null && !railwayUrl.isEmpty()) {
+            System.out.println("[DEBUG] Using Railway URL: " + railwayUrl);
             // Convert mysql:// to jdbc:mysql://
             String jdbcUrl = railwayUrl.replace("mysql://", "jdbc:mysql://");
             // Add parameters
@@ -49,6 +62,7 @@ public class DBConnection {
             return jdbcUrl;
         }
         
+        System.out.println("[DEBUG] Using local development URL");
         // Fallback cho local development
         return "jdbc:mysql://mysql:3306/quan_ly_phong_tro?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true";
     }
@@ -57,10 +71,13 @@ public class DBConnection {
      * Lấy database username từ environment variable hoặc default local
      */
     private static String getDbUsername() {
+        System.out.println("[DEBUG] MYSQLUSER: " + System.getenv("MYSQLUSER"));
         String username = System.getenv("MYSQLUSER");
         if (username != null && !username.isEmpty()) {
+            System.out.println("[DEBUG] Using Railway username: " + username);
             return username;
         }
+        System.out.println("[DEBUG] Using local username: qlpt_user");
         return "qlpt_user"; // Local default
     }
     
